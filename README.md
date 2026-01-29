@@ -1,2 +1,3 @@
-# model-editor-demo
-Single web page that acts as XML editor for a financial model 
+# model-editor
+
+A constrained editor for business model definitions encoded as XML.
