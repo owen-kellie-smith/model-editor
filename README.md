@@ -30,12 +30,11 @@ The models exist to demonstrate the editor, not as standalone simulations.
 
 - Working with large declarative models
 - Dependency analysis and visualisation
-- Constrained editing and model validity
-- Practical tooling for complexity rather than domain theory
+- Constrained editing and model validity 
 
 
 
-
+'''
 model-editor/
 │
 ├─ README.md
