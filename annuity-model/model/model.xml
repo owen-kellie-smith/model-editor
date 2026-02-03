@@ -200,14 +200,38 @@
         <case>
           <when>step &gt; 0</when>
           <value>
-            survival_factor(cohort, step - 1)
+            survival_to_start_of_step(cohort, step - 1)
             * monthly_survival_rate(cohort, step - 1)
           </value>
         </case>
     
       </definition>
     </variable>
+
+    <variable id="payable_at_start_of_step">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>boolean</dataType>
     
+      <definition type="expression">
+        attained_age(cohort, step) >= annuity_start_age(cohort)
+      </definition>
+    </variable>
+
+    <variable id="payment_indicator">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+    
+      <definition type="expression">
+        payable_at_start_of_step(cohort, step) ? 1 : 0
+      </definition>
+    </variable>
+
     <variable id="cashflow">
       <arguments>
         <arg indexSet="cohort"/>
@@ -216,8 +240,21 @@
       <dataType>real</dataType>
       <unit>GBP</unit>
       <definition type="expression">
-        annual_annuity_amount(cohort) * step_length
+        annual_annuity_amount(cohort) 
+        * step_length
+        * payment_indicator(cohort, step)
         * survival_to_start_of_step(cohort, step)
+      </definition>
+    </variable>
+
+    <variable id="spot_rate">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="spot_rate"/>
+        <column ref="rate"/>
       </definition>
     </variable>
 
