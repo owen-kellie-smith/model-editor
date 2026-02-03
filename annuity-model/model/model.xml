@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="annuity-model">
+
+  <!-- ========================================================= -->
+  <!-- Index sets                                                -->
+  <!-- ========================================================= -->
+
+  <indexSets>
+
+    <indexSet id="cohort">
+      <description>Cohort identifier (model points)</description>
+      <dataType>string</dataType>
+    </indexSet>
+
+    <indexSet id="time">
+      <description>Projection time steps (months)</description>
+      <dataType>integer</dataType>
+    </indexSet>
+
+    <indexSet id="age">
+      <description>Integer age values (finite domain)</description>
+      <dataType>integer</dataType>
+    </indexSet>
+
+    <indexSet id="mortality_basis">
+      <description>Named mortality tables</description>
+      <dataType>string</dataType>
+    </indexSet>
+
+  </indexSets>
+
+  <!-- ========================================================= -->
+  <!-- Units                                                     -->
+  <!-- ========================================================= -->
+
+  <units>
+
+    <unit id="GBP">
+      <description>Pounds sterling</description>
+    </unit>
+
+    <unit id="GBP_per_year">
+      <description>Pounds sterling per year</description>
+    </unit>
+
+    <unit id="per_year">
+      <description>Annual rate</description>
+    </unit>
+
+  </units>
+
+  <!-- ========================================================= -->
+  <!-- Tables                                                    -->
+  <!-- ========================================================= -->
+
+  <tables>
+
+    <!-- Cohort-level attributes -->
+
+    <table id="cohort_attributes">
+      <keys>
+        <key indexSet="cohort"/>
+      </keys>
+      <columns>
+        <column id="age_at_start">
+          <dataType>real</dataType>
+        </column>
+        <column id="annuity_start_age">
+          <dataType>real</dataType>
+        </column>
+        <column id="annual_annuity_amount">
+          <dataType>real</dataType>
+          <unit>GBP_per_year</unit>
+        </column>
+        <column id="mortality_basis">
+          <dataType>string</dataType>
+        </column>
+      </columns>
+    </table>
+
+    <!-- Mortality rates: wide table with indexed columns -->
+
+    <table id="mortality_rates">
+      <keys>
+        <key indexSet="age"/>
+      </keys>
+      <columns indexedBy="mortality_basis">
+        <dataType>real</dataType>
+        <unit>per_year</unit>
+      </columns>
+    </table>
+
+  </tables>
+
+  <!-- ========================================================= -->
+  <!-- Variables                                                 -->
+  <!-- ========================================================= -->
+
+  <variables>
+
+    <!-- Base cohort variables -->
+
+    <variable id="age_at_start">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="cohort_attributes"/>
+        <column ref="age_at_start"/>
+      </definition>
+    </variable>
+
+    <variable id="annuity_start_age">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="cohort_attributes"/>
+        <column ref="annuity_start_age"/>
+      </definition>
+    </variable>
+
+    <variable id="annual_annuity_amount">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP_per_year</unit>
+      <definition type="table">
+        <table ref="cohort_attributes"/>
+        <column ref="annual_annuity_amount"/>
+      </definition>
+    </variable>
+
+    <variable id="mortality_basis">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>string</dataType>
+      <definition type="table">
+        <table ref="cohort_attributes"/>
+        <column ref="mortality_basis"/>
+      </definition>
+    </variable>
+
+    <!-- Time and age variables -->
+
+    <variable id="attained_age">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="time"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        <expression>
+          age_at_start(c) + time / 12
+        </expression>
+      </definition>
+    </variable>
+
+    <variable id="age_at_start_of_year">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="time"/>
+      </arguments>
+      <dataType>integer</dataType>
+      <definition type="expression">
+        <expression>
+          floor( age_at_start(c) + floor(time / 12) )
+        </expression>
+      </definition>
+    </variable>
+
+    <!-- Mortality -->
+
+    <variable id="mortality_rate">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="age"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>per_year</unit>
+      <definition type="table">
+        <table ref="mortality_rates"/>
+        <rowKey ref="age"/>
+        <columnKey>
+          mortality_basis(c)
+        </columnKey>
+      </definition>
+    </variable>
+
+    <variable id="annual_survival_factor">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="time"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        <expression>
+          1 - mortality_rate(
+                c,
+                age_at_start_of_year(c, time)
+              )
+        </expression>
+      </definition>
+    </variable>
+
+    <variable id="survival_indicator">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="time"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        <expression>
+          annual_survival_factor(c, time)
+        </expression>
+      </definition>
+    </variable>
+
+    <!-- Benefits -->
+
+    <variable id="is_in_payment">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="time"/>
+      </arguments>
+      <dataType>boolean</dataType>
+      <definition type="expression">
+        <expression>
+          attained_age(c, time) >= annuity_start_age(c)
+        </expression>
+      </definition>
+    </variable>
+
+    <variable id="monthly_annuity_amount">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP</unit>
+      <definition type="expression">
+        <expression>
+          annual_annuity_amount(c) / 12
+        </expression>
+      </definition>
+    </variable>
+
+    <variable id="benefit_payment">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="time"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP</unit>
+      <definition type="expression">
+        <expression>
+          monthly_annuity_amount(c)
+          * survival_indicator(c, time)
+          * is_in_payment(c, time)
+        </expression>
+      </definition>
+    </variable>
+
+  </variables>
+
+  <!-- ========================================================= -->
+  <!-- Outputs                                                   -->
+  <!-- ========================================================= -->
+
+  <outputs>
+    <!-- Output requirements are defined in run specifications -->
+  </outputs>
+
+</model>
