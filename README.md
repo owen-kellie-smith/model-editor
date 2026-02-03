@@ -1,11 +1,6 @@
 # model-editor
 
-A constrained editor for navigating and modifying large declarative models.
-
-The editor is for models that are:
-- declarative text (XML),
-- highly interdependent,
-- large, and difficult to change safely at scale.
+A constrained editor for navigating and modifying large models encoded as declarative formulae, stored in XML.
 
 The editor makes structural relationships explicit: variable dependencies, precedents, dependants, and diffs between model versions.
 
@@ -16,11 +11,11 @@ The editor makes structural relationships explicit: variable dependencies, prece
 - **The editor**  
   A single-page web tool for exploring and editing models under structural constraints.
 
-- **A small example model (restaurant)**  
-  Human-scale, familiar, and intentionally simple — used to explain how the editor works.
+- **A restaurant cashflow model**
+  Used to demonstrate the editor on a large deterministic model.
 
-- **A large synthetic model**  
-  Domain-neutral, structurally realistic, and deliberately complex — included to show why such an editor becomes necessary.
+- **An aircraft cashflow model**
+  Used to demonstrate the editor on a large deterministic model with a different structure.
 
 The models exist to demonstrate the editor, not as standalone simulations.
 
@@ -34,26 +29,3 @@ The models exist to demonstrate the editor, not as standalone simulations.
 
 
 
-'''
-model-editor/
-│
-├─ README.md
-├─ LICENSE
-│
-├─ editor/
-│   ├─ index.html
-│   ├─ js/
-│   └─ css/
-│
-├─ models/
-│   ├─ restaurant/
-│   │   ├─ README.md
-│   │   └─ restaurant.xml
-│   │
-│   └─ synthetic/
-│       ├─ README.md
-│       ├─ synthetic-model.xml
-│       └─ generated/
-│
-└─ docs/
-    └─ screenshots/
