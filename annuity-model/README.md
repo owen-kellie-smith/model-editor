@@ -14,7 +14,7 @@ The annuity model is:
 - deterministic and cohort-based
 - closed to new entrants
 - defined on monthly time steps
-- immediate or deferred depending on attained age versus annuity start age
+- for both immediate and deferred annuities
 - for level nominal benefits
 - with mortality dependent on sex and integer attained age only
 - without mortality improvements or lapses
