@@ -34,5 +34,3 @@ The models exist to demonstrate the editor rather than to act as standalone simu
 - working with large declarative models
 - dependency analysis and visualisation
 - constrained editing with structural validity guarantees
-- dependency analysis and visualisation
-- constrained editing with structural validity guarantees
