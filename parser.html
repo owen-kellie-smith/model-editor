@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Model XML Validator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    #log {
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      font-family: monospace;
+      border: 1px solid #ccc;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<input type="file" id="loadLanguage" accept=".xml">
+<label for="loadLanguage">Load language</label>
+
+<br><br>
+
+<input type="file" id="loadModel" accept=".xml">
+<label for="loadModel">Load model</label>
+
+
+  <div id="log"></div>
+
+<script>
+let languageEnv = null;
+let modelEnv = null;
+
+function parseLanguage(xmlDoc) {
+  const functions = new Map();
+
+  const fnNodes = xmlDoc.querySelectorAll("functions > function");
+  for (const fn of fnNodes) {
+    const name = fn.getAttribute("name");
+    const arity = Number(fn.getAttribute("arity"));
+
+    if (!name || Number.isNaN(arity)) {
+      throw new Error("Invalid function declaration in language.xml");
+    }
+
+    functions.set(name, { arity });
+  }
+
+  return { functions };
+}
+
+/* ===========================
+   Error helper
+   =========================== */
+function modelError(message, context = {}) {
+  const err = new Error(message);
+  err.context = context;
+  throw err;
+}
+
+/* ===========================
+   XML → JS object (minimal)
+   =========================== */
+function xmlToObject(xml) {
+  function nodeToObj(node) {
+    const obj = {};
+
+    // attributes
+    if (node.attributes) {
+      for (const attr of node.attributes) {
+        obj[attr.name] = attr.value;
+      }
+    }
+
+    // child nodes
+    for (const child of node.childNodes) {
+      if (child.nodeType === 1) { // ELEMENT
+        const name = child.nodeName;
+        const value = nodeToObj(child);
+
+        if (obj[name]) {
+          if (!Array.isArray(obj[name])) {
+            obj[name] = [obj[name]];
+          }
+          obj[name].push(value);
+        } else {
+          obj[name] = value;
+        }
+      }
+
+      if (child.nodeType === 3) { // TEXT
+        const text = child.nodeValue.trim();
+        if (text) {
+          obj["#text"] = text;
+        }
+      }
+    }
+
+    return obj;
+  }
+
+  return { model: nodeToObj(xml.documentElement) };
+}
+
+/* ===========================
+   Step 1: Collect symbols
+   =========================== */
+function collectSymbols(xml) {
+  const indexSets = new Map();
+  const units = new Map();
+  const tables = new Map();
+  const variables = new Map();
+
+  for (const is of [].concat(xml.model.indexSets?.indexSet || [])) {
+    if (indexSets.has(is.id)) {
+      modelError("Duplicate index set", { id: is.id });
+    }
+    indexSets.set(is.id, is);
+  }
+
+  for (const u of [].concat(xml.model.units?.unit || [])) {
+    units.set(u.id, u);
+  }
+
+  for (const t of [].concat(xml.model.tables?.table || [])) {
+    tables.set(t.id, t);
+  }
+
+  for (const v of [].concat(xml.model.variables?.variable || [])) {
+    if (variables.has(v.id)) {
+      modelError("Duplicate variable", { id: v.id });
+    }
+    variables.set(v.id, v);
+  }
+
+  return { indexSets, units, tables, variables };
+}
+
+/* ===========================
+   Step 2: Resolve domains
+   =========================== */
+function resolveDomains(symbols) {
+  const resolved = new Map();
+
+  for (const [name, v] of symbols.variables) {
+    const args = [];
+
+    for (const arg of [].concat(v.arguments?.arg || [])) {
+      const indexSet = symbols.indexSets.get(arg.indexSet);
+      if (!indexSet) {
+        modelError("Unknown index set", {
+          variable: name,
+          indexSet: arg.indexSet
+        });
+      }
+      args.push(indexSet.id);
+    }
+
+    resolved.set(name, {
+      name,
+      domain: args,
+      xml: v
+    });
+  }
+
+  return resolved;
+}
+
+/* ===========================
+   Expression reference scan
+   =========================== */
+function extractVariableRefs(exprText) {
+  const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
+  const refs = new Set();
+  let m;
+  while ((m = regex.exec(exprText)) !== null) {
+    refs.add(m[1]);
+  }
+  return [...refs];
+}
+
+/* ===========================
+   Step 3: Resolve references
+   =========================== */
+function resolveReferences(symbols, resolvedVars, languageEnv) {
+  const dependencies = new Map();
+
+  for (const [name, rv] of resolvedVars) {
+    dependencies.set(name, new Set());
+    const def = rv.xml.definition;
+    if (!def) continue;
+
+    if (def.type === "expression") {
+      const refs = extractVariableRefs(def["#text"] || "");
+      for (const r of refs) {
+        if (symbols.variables.has(r)) {
+          dependencies.get(name).add(r);
+          continue;
+        }
+
+        if (languageEnv.functions.has(r)) {
+          continue; // built-in function
+        }
+
+        modelError("Unknown identifier", {
+          variable: name,
+          reference: r
+        });
+      }
+    }
+
+    if (def.type === "table") {
+      const tableId = def.table?.ref;
+      if (!symbols.tables.has(tableId)) {
+        modelError("Unknown table", {
+          variable: name,
+          table: tableId
+        });
+      }
+    }
+  }
+
+  return dependencies;
+}
+
+/* ===========================
+   Step 4: Cycle detection
+   =========================== */
+function detectCycles(dependencies) {
+  const visited = new Set();
+  const stack = new Set();
+
+  function visit(v) {
+    if (stack.has(v)) return [v];
+    if (visited.has(v)) return null;
+
+    visited.add(v);
+    stack.add(v);
+
+    for (const d of dependencies.get(v) || []) {
+      const cycle = visit(d);
+      if (cycle) {
+        cycle.push(v);
+        return cycle;
+      }
+    }
+
+    stack.delete(v);
+    return null;
+  }
+
+  for (const v of dependencies.keys()) {
+    const cycle = visit(v);
+    if (cycle) {
+      modelError("Dependency cycle detected", { cycle });
+    }
+  }
+}
+
+/* ===========================
+   Orchestrator
+   =========================== */
+function validateModel(xmlModel) {
+  const symbols = collectSymbols(xmlModel);
+  const resolvedVars = resolveDomains(symbols);
+  const dependencies = resolveReferences(symbols, resolvedVars, languageEnv);
+  detectCycles(dependencies);
+
+  return {
+    indexSets: [...symbols.indexSets.keys()],
+    variables: [...symbols.variables.keys()]
+  };
+}
+
+/* ===========================
+   UI wiring
+   =========================== */
+const log = document.getElementById("log");
+const input = document.getElementById("loadModel");
+
+document.getElementById("loadLanguage").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const xml = new DOMParser().parseFromString(reader.result, "text/xml");
+    languageEnv = parseLanguage(xml);
+    console.log("Language loaded:", languageEnv);
+  };
+  reader.readAsText(file);
+});
+
+
+input.addEventListener("change", () => {
+if (!languageEnv) {
+  alert("Load language.xml before loading a model.");
+  return;
+}
+
+  log.textContent = "";
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const xml = new DOMParser().parseFromString(reader.result, "application/xml");
+      const obj = xmlToObject(xml);
+      const result = validateModel(obj);
+      log.textContent =
+        "✔ Model is structurally valid\n\n" +
+        "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
+        "Variables:\n" + result.variables.join(", ");
+    } catch (e) {
+      log.textContent =
+        "✖ Validation error:\n" +
+        e.message +
+        "\n\nContext:\n" +
+        JSON.stringify(e.context || {}, null, 2);
+    }
+  };
+
+  reader.readAsText(file);
+});
+</script>
+
+</body>
+</html>
