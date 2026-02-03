@@ -1,65 +1,48 @@
-# Annuity Model (Declarative)
+# Annuity Model
 
-## Purpose
+A deliberately simplified, fully declarative pension / annuity cashflow model.
 
-This folder contains a **deliberately simplified, fully declarative annuity cashflow model**.
-
-Its sole purpose is to:
-- exercise a **declarative model editor / interpreter**
-- provide a **structurally realistic** but **numerically unambitious** example
-- remain **engine-agnostic** and ultimately **disposable**
-
-This is **not** a production actuarial model.
+The model exists to exercise the model editor on a structurally realistic example.  
+The contents do not represent a production actuarial model.
 
 ---
 
-## What this model is
+## Scope and simplifications
 
-- Closed (to new entrants) and deterministic  
-- Cohort-based  
-- Monthly time steps  
-- Immediate and deferred annuities (inferred from age versus annuity start age)  
-- Mortality depends on **sex and integer attained age only**  
-- No mortality improvements  
-- No lapses  
-- Level nominal benefits  
-- Discounting from input spot rates  
-- Outputs defined declaratively via grouping requests  
+The annuity model is:
 
-All behaviour is expressed through:
-- variable definitions
-- index sets
-- mappings between them
-- output requirements
+- deterministic and cohort-based
+- closed to new entrants
+- defined on monthly time steps
+- immediate or deferred depending on attained age versus annuity start age
+- for level nominal benefits
+- with mortality dependent on sex and integer attained age only
+- without mortality improvements or lapses
+- discounted using input spot rates
+- queried via declarative output requirements
 
-No numerical algorithms are specified here.
+The model is expressed entirely using construct types supported by the model editor.  
+No numerical algorithms or execution semantics are specified.
 
 ---
 
-## What this model is **not**
-
-This directory does **not** contain:
-
-- executable code
-- solvers or numerical engines
-- performance benchmarks
-- reference implementations
-- “golden” numerical results
-- tolerance-based tests
-
-Any engine that evaluates this model exists **outside** this directory.
-
----
-
-## Repository layout (conceptual)
-
-This directory contains the following kinds of artefacts:
+## Contents
 
 - **model/** — declarative model definition (XML, XSD)
 - **data/** — minimal illustrative CSV inputs
-- **examples/** — example run and output specifications (YAML)
-- **docs/** — human-readable explanations and boundaries
-- **tests/** — structural and semantic validation (non-numeric)
+- **examples/** — example run and output specifications
+- **docs/** — explanatory notes and boundaries
+- **tests/** — structural and semantic validation
 - **NOTES.md** — design scratchpad
 
-Each subfolder includes a `README.md` describing its role a
+Each subdirectory contains a short README.
+
+---
+
+## Boundary
+
+The annuity model defines structure and relationships only.
+
+Code, numerical methods, optimisation logic, and performance concerns belong to an execution engine and do not appear here.
+
+Code, numerical methods, optimisation logic, and performance concerns belong to an execution engine and do not appear here.
