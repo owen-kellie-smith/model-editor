@@ -2,9 +2,24 @@
 
 <model id="annuity-model">
 
-  <!-- ========================================================= -->
-  <!-- Index sets                                                -->
-  <!-- ========================================================= -->
+  <!-- ===================== -->
+  <!-- Units                 -->
+  <!-- ===================== -->
+
+  <units>
+    <unit id="GBP"/>
+    <unit id="GBP_per_year">
+      <numerator ref="GBP"/>
+      <denominator ref="years"/>
+    </unit>
+    <unit id="years"/>
+    <unit id="probability"/>
+  </units>
+
+
+  <!-- ===================== -->
+  <!-- Index sets            -->
+  <!-- ===================== -->
 
   <indexSets>
 
@@ -13,113 +28,79 @@
       <dataType>string</dataType>
     </indexSet>
 
-    <indexSet id="time">
-      <description>Projection time steps (months)</description>
-      <dataType>integer</dataType>
-    </indexSet>
-
     <indexSet id="age">
       <description>Integer age values (finite domain)</description>
       <dataType>integer</dataType>
     </indexSet>
 
-    <indexSet id="mortality_basis">
-      <description>Named mortality tables</description>
-      <dataType>string</dataType>
+    <indexSet id="step">
+      <description>Projection steps (months)</description>
+      <dataType>integer</dataType>
     </indexSet>
 
   </indexSets>
 
-  <!-- ========================================================= -->
-  <!-- Units                                                     -->
-  <!-- ========================================================= -->
 
-  <units>
-
-    <unit id="GBP">
-      <description>Pounds sterling</description>
-    </unit>
-
-    <unit id="GBP_per_year">
-      <description>Pounds sterling per year</description>
-    </unit>
-
-    <unit id="per_year">
-      <description>Annual rate</description>
-    </unit>
-
-  </units>
-
-  <!-- ========================================================= -->
-  <!-- Tables                                                    -->
-  <!-- ========================================================= -->
+  <!-- ===================== -->
+  <!-- Tables                -->
+  <!-- ===================== -->
 
   <tables>
 
-    <!-- Cohort-level attributes -->
-
-    <table id="cohort_attributes">
-      <keys>
-        <key indexSet="cohort"/>
-      </keys>
+    <!-- Cohort-level inputs collapsed into one table -->
+    <table id="cohort_data">
+      <rowIndex ref="cohort"/>
       <columns>
-        <column id="age_at_start">
-          <dataType>real</dataType>
-        </column>
-        <column id="annuity_start_age">
-          <dataType>real</dataType>
-        </column>
-        <column id="annual_annuity_amount">
-          <dataType>real</dataType>
-          <unit>GBP_per_year</unit>
-        </column>
-        <column id="mortality_basis">
-          <dataType>string</dataType>
-        </column>
+        <column id="initial_age_years" dataType="real" unit="years"/>
+        <column id="annuity_start_age_years" dataType="real" unit="years"/>
+        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year"/>
+        <column id="mortality_table" dataType="string"/>
       </columns>
     </table>
 
-    <!-- Mortality rates: wide table with indexed columns -->
-
-    <table id="mortality_rates">
-      <keys>
-        <key indexSet="age"/>
-      </keys>
-      <columns indexedBy="mortality_basis">
-        <dataType>real</dataType>
-        <unit>per_year</unit>
+    <!-- Mortality rates by integer age, multiple tables as columns -->
+    <table id="mortality_rate">
+      <rowIndex ref="age"/>
+      <columns>
+        <column id="ELT15" dataType="real" unit="probability"/>
+        <column id="AM90" dataType="real" unit="probability"/>
+        <column id="PMA90" dataType="real" unit="probability"/>
+        <column id="PFA80C_2020" dataType="real" unit="probability"/>
       </columns>
     </table>
 
   </tables>
 
-  <!-- ========================================================= -->
-  <!-- Variables                                                 -->
-  <!-- ========================================================= -->
+
+  <!-- ===================== -->
+  <!-- Variables             -->
+  <!-- ===================== -->
 
   <variables>
 
-    <!-- Base cohort variables -->
+    <!-- Base cohort properties -->
 
-    <variable id="age_at_start">
+    <variable id="initial_age_years">
       <arguments>
         <arg indexSet="cohort"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>years</unit>
       <definition type="table">
-        <table ref="cohort_attributes"/>
-        <column ref="age_at_start"/>
+        <table ref="cohort_data"/>
+        <column ref="initial_age_years"/>
       </definition>
     </variable>
 
-    <variable id="annuity_start_age">
+    <variable id="annuity_start_age_years">
       <arguments>
         <arg indexSet="cohort"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>years</unit>
       <definition type="table">
-        <table ref="cohort_attributes"/>
-        <column ref="annuity_start_age"/>
+        <table ref="cohort_data"/>
+        <column ref="annuity_start_age_years"/>
       </definition>
     </variable>
 
@@ -130,149 +111,99 @@
       <dataType>real</dataType>
       <unit>GBP_per_year</unit>
       <definition type="table">
-        <table ref="cohort_attributes"/>
+        <table ref="cohort_data"/>
         <column ref="annual_annuity_amount"/>
       </definition>
     </variable>
 
-    <variable id="mortality_basis">
+    <variable id="mortality_table">
       <arguments>
         <arg indexSet="cohort"/>
       </arguments>
       <dataType>string</dataType>
       <definition type="table">
-        <table ref="cohort_attributes"/>
-        <column ref="mortality_basis"/>
+        <table ref="cohort_data"/>
+        <column ref="mortality_table"/>
       </definition>
     </variable>
 
-    <!-- Time and age variables -->
 
-    <variable id="attained_age">
+    <!-- Derived time / age variables -->
+
+    <variable id="attained_age_years_floor">
       <arguments>
         <arg indexSet="cohort"/>
-        <arg indexSet="time"/>
-      </arguments>
-      <dataType>real</dataType>
-      <definition type="expression">
-        <expression>
-          age_at_start(c) + time / 12
-        </expression>
-      </definition>
-    </variable>
-
-    <variable id="age_at_start_of_year">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="time"/>
+        <arg indexSet="step"/>
       </arguments>
       <dataType>integer</dataType>
+      <unit>years</unit>
       <definition type="expression">
-        <expression>
-          floor( age_at_start(c) + floor(time / 12) )
-        </expression>
+        floor(
+          initial_age_years(cohort)
+          + step / 12
+        )
       </definition>
     </variable>
+
 
     <!-- Mortality -->
 
-    <variable id="mortality_rate">
+    <variable id="annual_mortality_rate">
       <arguments>
         <arg indexSet="cohort"/>
-        <arg indexSet="age"/>
+        <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
-      <unit>per_year</unit>
-      <definition type="table">
-        <table ref="mortality_rates"/>
-        <rowKey ref="age"/>
-        <columnKey>
-          mortality_basis(c)
-        </columnKey>
+      <unit>probability</unit>
+      <definition type="tableLookup">
+        <table ref="mortality_rate"/>
+        <row ref="attained_age_years_floor"/>
+        <columnSelector ref="mortality_table"/>
       </definition>
     </variable>
 
-    <variable id="annual_survival_factor">
+    <variable id="monthly_survival_factor">
       <arguments>
         <arg indexSet="cohort"/>
-        <arg indexSet="time"/>
+        <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>probability</unit>
       <definition type="expression">
-        <expression>
-          1 - mortality_rate(
-                c,
-                age_at_start_of_year(c, time)
-              )
-        </expression>
+        1 - annual_mortality_rate(cohort, step)
       </definition>
     </variable>
 
-    <variable id="survival_indicator">
+
+    <!-- Benefit payment -->
+
+    <variable id="monthly_benefit">
       <arguments>
         <arg indexSet="cohort"/>
-        <arg indexSet="time"/>
-      </arguments>
-      <dataType>real</dataType>
-      <definition type="expression">
-        <expression>
-          annual_survival_factor(c, time)
-        </expression>
-      </definition>
-    </variable>
-
-    <!-- Benefits -->
-
-    <variable id="is_in_payment">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="time"/>
-      </arguments>
-      <dataType>boolean</dataType>
-      <definition type="expression">
-        <expression>
-          attained_age(c, time) >= annuity_start_age(c)
-        </expression>
-      </definition>
-    </variable>
-
-    <variable id="monthly_annuity_amount">
-      <arguments>
-        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
       <unit>GBP</unit>
       <definition type="expression">
-        <expression>
-          annual_annuity_amount(c) / 12
-        </expression>
-      </definition>
-    </variable>
-
-    <variable id="benefit_payment">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="time"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>GBP</unit>
-      <definition type="expression">
-        <expression>
-          monthly_annuity_amount(c)
-          * survival_indicator(c, time)
-          * is_in_payment(c, time)
-        </expression>
+        if attained_age_years_floor(cohort, step)
+           >= annuity_start_age_years(cohort)
+        then
+           annual_annuity_amount(cohort) / 12
+           * monthly_survival_factor(cohort, step)
+        else
+           0
       </definition>
     </variable>
 
   </variables>
 
-  <!-- ========================================================= -->
-  <!-- Outputs                                                   -->
-  <!-- ========================================================= -->
+
+  <!-- ===================== -->
+  <!-- Outputs               -->
+  <!-- ===================== -->
 
   <outputs>
-    <!-- Output requirements are defined in run specifications -->
+    <!-- Output requirements defined elsewhere (examples / runs) -->
   </outputs>
 
 </model>
