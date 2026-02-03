@@ -3,21 +3,6 @@
 <model id="annuity-model">
 
   <!-- ===================== -->
-  <!-- Units                 -->
-  <!-- ===================== -->
-
-  <units>
-    <unit id="GBP"/>
-    <unit id="GBP_per_year">
-      <numerator ref="GBP"/>
-      <denominator ref="years"/>
-    </unit>
-    <unit id="years"/>
-    <unit id="probability"/>
-  </units>
-
-
-  <!-- ===================== -->
   <!-- Index sets            -->
   <!-- ===================== -->
 
@@ -28,18 +13,32 @@
       <dataType>string</dataType>
     </indexSet>
 
-    <indexSet id="age">
-      <description>Integer age values (finite domain)</description>
-      <dataType>integer</dataType>
-    </indexSet>
-
     <indexSet id="step">
       <description>Projection steps (months)</description>
       <dataType>integer</dataType>
     </indexSet>
 
+    <indexSet id="age">
+      <description>Integer age values (finite domain)</description>
+      <dataType>integer</dataType>
+      <unit>years</unit>
+    </indexSet>
+
   </indexSets>
 
+  <!-- ===================== -->
+  <!-- Units                 -->
+  <!-- ===================== -->
+
+  <units>
+
+    <unit id="GBP"/>
+    <unit id="GBP_per_year"/>
+    <unit id="years"/>
+    <unit id="months"/>
+    <unit id="probability"/>
+
+  </units>
 
   <!-- ===================== -->
   <!-- Tables                -->
@@ -51,36 +50,40 @@
     <table id="cohort_data">
       <rowIndex ref="cohort"/>
       <columns>
-        <column id="initial_age_years" dataType="real" unit="years"/>
-        <column id="annuity_start_age_years" dataType="real" unit="years"/>
+        <column id="age_at_valuation" dataType="real" unit="years"/>
+        <column id="annuity_start_age" dataType="real" unit="years"/>
         <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year"/>
         <column id="mortality_table" dataType="string"/>
       </columns>
     </table>
 
-    <!-- Mortality rates by integer age, multiple tables as columns -->
+    <!-- Mortality rates indexed by integer age -->
     <table id="mortality_rate">
       <rowIndex ref="age"/>
       <columns>
-        <column id="ELT15" dataType="real" unit="probability"/>
-        <column id="AM90" dataType="real" unit="probability"/>
-        <column id="PMA90" dataType="real" unit="probability"/>
-        <column id="PFA80C_2020" dataType="real" unit="probability"/>
+        <!-- unconstrained: column ids supplied by data -->
+      </columns>
+    </table>
+
+    <!-- Spot rates indexed by projection step -->
+    <table id="spot_rate">
+      <rowIndex ref="step"/>
+      <columns>
+        <column id="rate" dataType="real"/>
       </columns>
     </table>
 
   </tables>
 
-
   <!-- ===================== -->
-  <!-- Variables             -->
+  <!-- Variables              -->
   <!-- ===================== -->
 
   <variables>
 
-    <!-- Base cohort properties -->
+    <!-- Cohort properties -->
 
-    <variable id="initial_age_years">
+    <variable id="age_at_valuation">
       <arguments>
         <arg indexSet="cohort"/>
       </arguments>
@@ -88,11 +91,11 @@
       <unit>years</unit>
       <definition type="table">
         <table ref="cohort_data"/>
-        <column ref="initial_age_years"/>
+        <column ref="age_at_valuation"/>
       </definition>
     </variable>
 
-    <variable id="annuity_start_age_years">
+    <variable id="annuity_start_age">
       <arguments>
         <arg indexSet="cohort"/>
       </arguments>
@@ -100,7 +103,7 @@
       <unit>years</unit>
       <definition type="table">
         <table ref="cohort_data"/>
-        <column ref="annuity_start_age_years"/>
+        <column ref="annuity_start_age"/>
       </definition>
     </variable>
 
@@ -125,10 +128,37 @@
         <table ref="cohort_data"/>
         <column ref="mortality_table"/>
       </definition>
+      <constraints>
+        <mustResolveAs>
+          <columnOf table="mortality_rate"/>
+        </mustResolveAs>
+      </constraints>
     </variable>
 
+    <!-- Derived time variables -->
 
-    <!-- Derived time / age variables -->
+    <variable id="projection_years">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="expression">
+        step / 12
+      </definition>
+    </variable>
+
+    <variable id="attained_age">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="expression">
+        age_at_valuation(cohort) + projection_years(step)
+      </definition>
+    </variable>
 
     <variable id="attained_age_years_floor">
       <arguments>
@@ -138,13 +168,9 @@
       <dataType>integer</dataType>
       <unit>years</unit>
       <definition type="expression">
-        floor(
-          initial_age_years(cohort)
-          + step / 12
-        )
+        floor(attained_age(cohort, step))
       </definition>
     </variable>
-
 
     <!-- Mortality -->
 
@@ -174,8 +200,18 @@
       </definition>
     </variable>
 
+    <!-- Benefits -->
 
-    <!-- Benefit payment -->
+    <variable id="is_in_payment">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>boolean</dataType>
+      <definition type="expression">
+        attained_age(cohort, step) >= annuity_start_age(cohort)
+      </definition>
+    </variable>
 
     <variable id="monthly_benefit">
       <arguments>
@@ -185,25 +221,44 @@
       <dataType>real</dataType>
       <unit>GBP</unit>
       <definition type="expression">
-        if attained_age_years_floor(cohort, step)
-           >= annuity_start_age_years(cohort)
-        then
-           annual_annuity_amount(cohort) / 12
-           * monthly_survival_factor(cohort, step)
-        else
-           0
+        is_in_payment(cohort, step)
+          ? annual_annuity_amount(cohort) / 12
+          : 0
+      </definition>
+    </variable>
+
+    <!-- Discounting -->
+
+    <variable id="discount_factor">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        1 / (1 + spot_rate(step)) ^ projection_years(step)
+      </definition>
+    </variable>
+
+    <variable id="discounted_monthly_benefit">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP</unit>
+      <definition type="expression">
+        monthly_benefit(cohort, step) * discount_factor(step)
       </definition>
     </variable>
 
   </variables>
-
 
   <!-- ===================== -->
   <!-- Outputs               -->
   <!-- ===================== -->
 
   <outputs>
-    <!-- Output requirements defined elsewhere (examples / runs) -->
+    <!-- Output requirements live elsewhere; this block exists only as a hook -->
   </outputs>
 
 </model>
