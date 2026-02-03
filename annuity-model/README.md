@@ -1,239 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?>
+# Annuity model
 
-<model id="annuity-model">
+This directory contains a **small, fully declarative annuity cashflow model**.
 
-  <!-- ================= -->
-  <!-- Index sets        -->
-  <!-- ================= -->
+The model exists to:
+- exercise the model editor and its structural constraints,
+- provide a realistic but numerically unambitious example, and
+- remain engine-agnostic and disposable.
 
-  <indexSets>
+The model is deterministic, cohort-based, and closed to new entrants.  
+Benefits are level and payable while alive. Mortality depends on integer attained age via externally supplied tables. Discounting is derived from spot rates.
 
-    <indexSet id="cohort">
-      <description>Cohort identifier (model points)</description>
-      <dataType>string</dataType>
-    </indexSet>
+## Structure
 
-    <indexSet id="age">
-      <description>Integer age values</description>
-      <dataType>integer</dataType>
-    </indexSet>
+- `model/` — the complete declarative specification (`model.xml`)
+- `data/` — minimal CSV fixtures required to instantiate the model
+- `examples/` — example run and output requests
+- `docs/` — explanatory notes and boundaries
+- `tests/` — structural and semantic validation artefacts
 
-    <indexSet id="step">
-      <description>Projection steps</description>
-      <dataType>integer</dataType>
-    </indexSet>
+## Boundary
 
-  </indexSets>
+The annuity model is a specification, not an implementation.
 
+It contains no:
+- code,
+- numerical algorithms,
+- solvers,
+- optimisation logic, or
+- performance considerations.
 
-  <!-- ================= -->
-  <!-- Units             -->
-  <!-- ================= -->
-
-  <units>
-
-    <unit id="GBP_per_year"/>
-    <unit id="GBP"/>
-    <unit id="years"/>
-
-  </units>
-
-
-  <!-- ================= -->
-  <!-- Tables            -->
-  <!-- ================= -->
-
-  <tables>
-
-    <table id="cohort_data">
-      <rowIndex ref="cohort"/>
-      <columns>
-        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year"/>
-        <column id="annuity_start_age" dataType="real" unit="years"/>
-        <column id="current_age" dataType="real" unit="years"/>
-        <column id="mortality_table" dataType="string"/>
-      </columns>
-    </table>
-
-    <table id="mortality_rate">
-      <rowIndex ref="age"/>
-      <!-- columns unconstrained -->
-    </table>
-
-    <table id="spot_rate">
-      <rowIndex ref="step"/>
-      <columns>
-        <column id="rate" dataType="real"/>
-      </columns>
-    </table>
-
-  </tables>
-
-
-  <!-- ================= -->
-  <!-- Variables         -->
-  <!-- ================= -->
-
-  <variables>
-
-    <variable id="step_length">
-      <dataType>real</dataType>
-      <unit>years</unit>
-      <definition type="constant">
-        1 / 12
-      </definition>
-    </variable>
-
-    <variable id="annual_annuity_amount">
-      <arguments>
-        <arg indexSet="cohort"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>GBP_per_year</unit>
-      <definition type="table">
-        <table ref="cohort_data"/>
-        <column ref="annual_annuity_amount"/>
-      </definition>
-    </variable>
-
-    <variable id="annuity_start_age">
-      <arguments>
-        <arg indexSet="cohort"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>years</unit>
-      <definition type="table">
-        <table ref="cohort_data"/>
-        <column ref="annuity_start_age"/>
-      </definition>
-    </variable>
-
-    <variable id="current_age">
-      <arguments>
-        <arg indexSet="cohort"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>years</unit>
-      <definition type="table">
-        <table ref="cohort_data"/>
-        <column ref="current_age"/>
-      </definition>
-    </variable>
-
-    <variable id="mortality_table">
-      <arguments>
-        <arg indexSet="cohort"/>
-      </arguments>
-      <dataType>string</dataType>
-      <definition type="table">
-        <table ref="cohort_data"/>
-        <column ref="mortality_table"/>
-      </definition>
-      <constraints>
-        <mustResolveAs>
-          <columnOf table="mortality_rate"/>
-        </mustResolveAs>
-      </constraints>
-    </variable>
-
-    <variable id="attained_age">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>years</unit>
-      <definition type="expression">
-        current_age(cohort) + step * step_length
-      </definition>
-    </variable>
-
-    <variable id="attained_age_years_floor">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>integer</dataType>
-      <definition type="expression">
-        floor(attained_age(cohort, step))
-      </definition>
-    </variable>
-
-    <variable id="annual_mortality_rate">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>real</dataType>
-      <definition type="tableLookup">
-        <table ref="mortality_rate"/>
-        <row ref="attained_age_years_floor"/>
-        <columnSelector ref="mortality_table"/>
-      </definition>
-    </variable>
-
-    <variable id="monthly_survival_rate">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>real</dataType>
-      <definition type="expression">
-        (1 - annual_mortality_rate(cohort, step)) ^ step_length
-      </definition>
-    </variable>
-
-    <variable id="survival_to_start_of_step">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>real</dataType>
-    
-      <definition type="piecewise">
-    
-        <case>
-          <when>step = 0</when>
-          <value>1</value>
-        </case>
-    
-        <case>
-          <when>step &gt; 0</when>
-          <value>
-            survival_factor(cohort, step - 1)
-            * monthly_survival_rate(cohort, step - 1)
-          </value>
-        </case>
-    
-      </definition>
-    </variable>
-    
-    <variable id="cashflow">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>GBP</unit>
-      <definition type="expression">
-        annual_annuity_amount(cohort) * step_length
-        * survival_to_start_of_step(cohort, step)
-      </definition>
-    </variable>
-
-    <variable id="discounted_cashflow">
-      <arguments>
-        <arg indexSet="cohort"/>
-        <arg indexSet="step"/>
-      </arguments>
-      <dataType>real</dataType>
-      <unit>GBP</unit>
-      <definition type="expression">
-        cashflow(cohort, step)
-        * discount_factor(step)
-      </definition>
-    </variable>
-
-  </variables>
-
-</model>
+Such concerns belong to execution engines, not to the model definition.
