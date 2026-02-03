@@ -11,10 +11,10 @@ The editor makes structural relationships explicit: variable dependencies, prece
 - **The editor**  
   A single-page web tool for exploring and editing models under structural constraints.
 
-- **A restaurant cashflow model**
+- **A restaurant cashflow model**  
   Used to demonstrate the editor on a large deterministic model.
 
-- **An aircraft cashflow model**
+- **An aircraft cashflow model**  
   Used to demonstrate the editor on a large deterministic model with a different structure.
 
 The models exist to demonstrate the editor, not as standalone simulations.
