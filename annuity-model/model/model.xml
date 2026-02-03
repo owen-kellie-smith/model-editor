@@ -221,6 +221,17 @@
       </definition>
     </variable>
 
+    <variable id="discount_factor">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+    
+      <definition type="expression">
+        (1 + spot_rate(step)) ^ (- step * step_length)
+      </definition>
+    </variable>
+
     <variable id="discounted_cashflow">
       <arguments>
         <arg indexSet="cohort"/>
