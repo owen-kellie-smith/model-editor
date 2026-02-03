@@ -42,7 +42,6 @@ Each subdirectory contains a short README.
 ## Boundary
 
 The annuity model defines structure and relationships only.
-
 Code, numerical methods, optimisation logic, and performance concerns belong to an execution engine and do not appear here.
 
 Code, numerical methods, optimisation logic, and performance concerns belong to an execution engine and do not appear here.
