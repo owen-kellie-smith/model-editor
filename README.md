@@ -13,9 +13,10 @@ The editor makes structural relationships explicit, including variable dependenc
 
   The editor operates on models composed only of the following construct types:
   - index sets with intrinsic meaning,
-  - variables with declared arguments, units, data types, and value definitions, and
+  - variables with declared arguments, units, data types, and value definitions,
+    where a variable assigns values to points in the Cartesian product of one or more index sets, and
   - output requirements, defined as declarative requests for aggregations of variables, optionally grouped by other variables.
- 
+  
   No procedural constructs, execution semantics, or numerical methods form part of the model representation.
 
 - **A restaurant cashflow model**  
@@ -29,7 +30,6 @@ The models exist to demonstrate the editor rather than to act as standalone simu
 ---
 
 ## What the editor demonstrates
-
 
 - working with large declarative models
 - dependency analysis and visualisation
