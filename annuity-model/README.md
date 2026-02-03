@@ -8,7 +8,9 @@ The model exists to:
 - remain engine-agnostic and disposable.
 
 The model is deterministic, cohort-based, and closed to new entrants.  
-Benefits are level and payable while alive. Mortality depends on integer attained age via externally supplied tables. Discounting is derived from spot rates.
+Benefits are level and payable while alive. There are no reversionary or lump sum benefits.
+Mortality depends on integer attained age via externally supplied tables. 
+Discounting is derived from spot rates.
 
 ## Structure
 
