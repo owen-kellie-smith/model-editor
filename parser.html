@@ -44,19 +44,7 @@
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const xml = new DOMParser().parseFromString(reader.result, "text/xml");
-      g_languageEnv = parseLanguage(xml);
-      writeToLog("Language loaded:\n " + JSON.stringify(
-        { functions: Object.fromEntries(g_languageEnv.functions) },
-        null,
-        2
-      ));
-      console.log("Language loaded:", g_languageEnv);
-    };
-    reader.readAsText(file);
+    readLanguage(file);
   };
 
   function onLoadModelChange(ev){
@@ -70,6 +58,21 @@
 
     parseAndValidateLoadedModel(file);
   };
+
+  function readLanguage(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const xml = new DOMParser().parseFromString(reader.result, "text/xml");
+      g_languageEnv = parseLanguage(xml);
+      writeToLog("Language loaded:\n " + JSON.stringify(
+        { functions: Object.fromEntries(g_languageEnv.functions) },
+        null,
+        2
+      ));
+      console.log("Language loaded:", g_languageEnv);
+    };
+    reader.readAsText(file);
+  }
 
   function parseAndValidateLoadedModel(file){
     writeToLog("");
