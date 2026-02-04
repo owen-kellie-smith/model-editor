@@ -34,7 +34,7 @@
   let g_languageEnv = null;
 
   document.
-    addEventListener("DOMContentLoaded", enableInput(g_languageEnv, document.getElementById("loadModel")));
+    addEventListener("DOMContentLoaded", enableControls);
 
   document
     .getElementById("loadLanguage")
@@ -44,6 +44,10 @@
     .getElementById("loadModel")
     .addEventListener("change", onLoadModelChange);
 
+  function enableControls(){
+    enableInput(g_languageEnv, document.getElementById("loadModel"));
+  }
+  
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
@@ -64,7 +68,7 @@
       const xml = new DOMParser().parseFromString(reader.result, "text/xml");
       g_languageEnv = parseLanguage(xml);
       recordLoadedLanguage(g_languageEnv);
-      enableInput(g_languageEnv, document.getElementById("loadModel"));
+      enableControls();
     };
     reader.readAsText(file);
   }
