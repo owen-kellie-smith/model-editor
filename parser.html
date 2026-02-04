@@ -55,15 +55,6 @@
     }
   };
 
-  function bReadyToLoadModel(elementToNullify){
-    if (!g_languageEnv) {
-      writeToLog("✖ Load language.xml before loading a model.\n");
-      elementToNullify.value = null;  //  Clear the file 
-      return false;
-    }
-    return true;
-  }
-
   function readLanguage(file){
     const reader = new FileReader();
     reader.onload = () => {
@@ -77,6 +68,15 @@
       console.log("Language loaded:", g_languageEnv);
     };
     reader.readAsText(file);
+  }
+
+  function bReadyToLoadModel(elementToNullify){
+    if (!g_languageEnv) {
+      writeToLog("✖ Load language.xml before loading a model.\n");
+      elementToNullify.value = null;  //  Clear the file 
+      return false;
+    }
+    return true;
   }
 
   function parseAndValidateLoadedModel(file){
