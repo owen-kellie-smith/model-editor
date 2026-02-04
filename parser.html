@@ -115,6 +115,18 @@
     return { functions };
   }
 
+  function validateModel(xmlModel) {
+    const symbols = collectSymbols(xmlModel);
+    const resolvedVars = resolveDomains(symbols);
+    const dependencies = resolveReferences(symbols, resolvedVars, g_languageEnv);
+    detectCycles(dependencies);
+
+    return {
+      indexSets: [...symbols.indexSets.keys()],
+      variables: [...symbols.variables.keys()]
+    };
+  }
+
   /* ===========================
      Error helper
      =========================== */
@@ -169,7 +181,7 @@
   }
 
   /* ===========================
-     Step 1: Collect symbols
+     Validate Step 1: Collect symbols
      =========================== */
   function collectSymbols(xml) {
     const indexSets = new Map();
@@ -203,7 +215,7 @@
   }
 
   /* ===========================
-     Step 2: Resolve domains
+     Validate Step 2: Resolve domains
      =========================== */
   function resolveDomains(symbols) {
     const resolved = new Map();
@@ -246,7 +258,7 @@
   }
 
   /* ===========================
-     Step 3: Resolve references
+     Validate Step 3: Resolve references
      =========================== */
   function resolveReferences(symbols, resolvedVars, g_languageEnv) {
     const dependencies = new Map();
@@ -290,7 +302,7 @@
   }
 
   /* ===========================
-     Step 4: Cycle detection
+     Validate Step 4: Cycle detection
      =========================== */
   function detectCycles(dependencies) {
     const visited = new Set();
@@ -321,21 +333,6 @@
         modelError("Dependency cycle detected", { cycle });
       }
     }
-  }
-
-  /* ===========================
-     Orchestrator
-     =========================== */
-  function validateModel(xmlModel) {
-    const symbols = collectSymbols(xmlModel);
-    const resolvedVars = resolveDomains(symbols);
-    const dependencies = resolveReferences(symbols, resolvedVars, g_languageEnv);
-    detectCycles(dependencies);
-
-    return {
-      indexSets: [...symbols.indexSets.keys()],
-      variables: [...symbols.variables.keys()]
-    };
   }
 
   function writeToLog(s){
