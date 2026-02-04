@@ -48,16 +48,21 @@
   };
 
   function onLoadModelChange(ev){
+    if (bReadyToLoadModel(ev.target)) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      parseAndValidateLoadedModel(file);
+    }
+  };
+
+  function bReadyToLoadModel(elementToNullify){
     if (!g_languageEnv) {
       writeToLog("✖ Load language.xml before loading a model.\n");
-      ev.target.value = null;  //  Clear the file 
-      return;
+      elementToNullify.value = null;  //  Clear the file 
+      return false;
     }
-    const file = ev.target.files[0];
-    if (!file) return;
-
-    parseAndValidateLoadedModel(file);
-  };
+    return true;
+  }
 
   function readLanguage(file){
     const reader = new FileReader();
