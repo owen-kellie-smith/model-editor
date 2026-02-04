@@ -90,7 +90,7 @@
         writeToLog("✖ Validation error:\n" +
           er.message +
           "\n\nContext:\n" +
-          JSON.stringify(e.context || {}, null, 2));
+          JSON.stringify(er.context || {}, null, 2));
       }
     };
 
