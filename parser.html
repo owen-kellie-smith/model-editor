@@ -238,8 +238,8 @@
   /* ===========================
      Expression reference scan
      =========================== */
-  function extractVariableRefs(exprText) {
-    const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
+  function extractStringsFollowedByBrackets(exprText) {
+    const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;   // all matches of strings followed by left round bracket 
     const refs = new Set();
     let m;
     while ((m = regex.exec(exprText)) !== null) {
@@ -260,7 +260,7 @@
       if (!def) continue;
 
       if (def.type === "expression") {
-        const refs = extractVariableRefs(def["#text"] || "");
+        const refs = extractStringsFollowedByBrackets(def["#text"] || "");
         for (const r of refs) {
           if (symbols.variables.has(r)) {
             dependencies.get(name).add(r);
@@ -326,14 +326,14 @@
     }
   }
 
+  /* ===========================
+     Helpers
+     =========================== */
   function writeToLog(s){
       const log = document.getElementById("log");
       log.textContent = s;
   }
 
-  /* ===========================
-     Error helper
-     =========================== */
   function throwModelError(message, context = {}) {
     const err = new Error(message);
     err.context = context;
