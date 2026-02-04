@@ -60,12 +60,7 @@
     reader.onload = () => {
       const xml = new DOMParser().parseFromString(reader.result, "text/xml");
       g_languageEnv = parseLanguage(xml);
-      writeToLog("Language loaded:\n " + JSON.stringify(
-        { functions: Object.fromEntries(g_languageEnv.functions) },
-        null,
-        2
-      ));
-      console.log("Language loaded:", g_languageEnv);
+      recordLoadedLanguage(g_languageEnv);
     };
     reader.readAsText(file);
   }
@@ -118,6 +113,15 @@
     }
 
     return { functions };
+  }
+
+  function recordLoadedLanguage(languageEnv) {
+      writeToLog("Language loaded:\n " + JSON.stringify(
+        { functions: Object.fromEntries(languageEnv.functions) },
+        null,
+        2
+      ));
+      console.log("Language loaded:", languageEnv);
   }
 
   function validateModel(xmlModel) {
