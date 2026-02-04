@@ -33,11 +33,15 @@
   <script>
   let g_languageEnv = null;
 
-  /* ===========================
-     UI wiring
-     =========================== */
+  document
+    .getElementById("loadLanguage")
+     .addEventListener("change", onLoadLanguageChange);
 
-  document.getElementById("loadLanguage").addEventListener("change", e => {
+  document
+    .getElementById("loadModel")
+    .addEventListener("change", onLoadModelChange);
+
+  function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
 
@@ -45,24 +49,34 @@
     reader.onload = () => {
       const xml = new DOMParser().parseFromString(reader.result, "text/xml");
       g_languageEnv = parseLanguage(xml);
+      const log = document.getElementById("log");
+      log.textContent = "Language loaded:\n " + JSON.stringify(
+        { functions: Object.fromEntries(g_languageEnv.functions) },
+        null,
+        2
+      );
       console.log("Language loaded:", g_languageEnv);
     };
     reader.readAsText(file);
-  });
+  };
 
-
-  document.getElementById("loadModel").addEventListener("change", ev => {
+  function onLoadModelChange(ev){
     if (!g_languageEnv) {
-      alert("Load language.xml before loading a model.");
+      const log = document.getElementById("log");
+      log.textContent = "✖ Load language.xml before loading a model.\n"
       ev.target.value = null;  //  Clear the file 
       return;
     }
-    const log = document.getElementById("log");
-
-    log.textContent = "";
     const file = ev.target.files[0];
     if (!file) return;
 
+    parseAndValidateLoadedModel(file);
+  };
+
+  function parseAndValidateLoadedModel(file){
+    const log = document.getElementById("log");
+    log.textContent = "";
+    
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -83,7 +97,7 @@
     };
 
     reader.readAsText(file);
-  });
+  };
 
   function parseLanguage(xmlDoc) {
     const functions = new Map();
