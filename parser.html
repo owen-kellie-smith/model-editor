@@ -128,15 +128,6 @@
   }
 
   /* ===========================
-     Error helper
-     =========================== */
-  function modelError(message, context = {}) {
-    const err = new Error(message);
-    err.context = context;
-    throw err;
-  }
-
-  /* ===========================
      XML → JS object (minimal)
      =========================== */
   function xmlToObject(xml) {
@@ -191,7 +182,7 @@
 
     for (const is of [].concat(xml.model.indexSets?.indexSet || [])) {
       if (indexSets.has(is.id)) {
-        modelError("Duplicate index set", { id: is.id });
+        throwModelError("Duplicate index set", { id: is.id });
       }
       indexSets.set(is.id, is);
     }
@@ -206,7 +197,7 @@
 
     for (const v of [].concat(xml.model.variables?.variable || [])) {
       if (variables.has(v.id)) {
-        modelError("Duplicate variable", { id: v.id });
+        throwModelError("Duplicate variable", { id: v.id });
       }
       variables.set(v.id, v);
     }
@@ -226,7 +217,7 @@
       for (const arg of [].concat(v.arguments?.arg || [])) {
         const indexSet = symbols.indexSets.get(arg.indexSet);
         if (!indexSet) {
-          modelError("Unknown index set", {
+          throwModelError("Unknown index set", {
             variable: name,
             indexSet: arg.indexSet
           });
@@ -280,7 +271,7 @@
             continue; // built-in function
           }
 
-          modelError("Unknown identifier", {
+          throwModelError("Unknown identifier", {
             variable: name,
             reference: r
           });
@@ -290,7 +281,7 @@
       if (def.type === "table") {
         const tableId = def.table?.ref;
         if (!symbols.tables.has(tableId)) {
-          modelError("Unknown table", {
+          throwModelError("Unknown table", {
             variable: name,
             table: tableId
           });
@@ -330,7 +321,7 @@
     for (const v of dependencies.keys()) {
       const cycle = visit(v);
       if (cycle) {
-        modelError("Dependency cycle detected", { cycle });
+        throwModelError("Dependency cycle detected", { cycle });
       }
     }
   }
@@ -339,6 +330,16 @@
       const log = document.getElementById("log");
       log.textContent = s;
   }
+
+  /* ===========================
+     Error helper
+     =========================== */
+  function throwModelError(message, context = {}) {
+    const err = new Error(message);
+    err.context = context;
+    throw err;
+  }
+
 
   </script>
 
