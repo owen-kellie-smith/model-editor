@@ -90,7 +90,7 @@
       try {
         const xml = new DOMParser().parseFromString(reader.result, "application/xml");
         const obj = getObjectFromXML(xml);
-        const result = validateModel(obj);
+        const result = validateModel(obj, languageEnv);
         writeToLog("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
           "Variables:\n" + result.variables.join(", "));
@@ -132,10 +132,10 @@
       console.log("Language loaded:", langEnv);
   }
 
-  function validateModel(xmlModel) {
+  function validateModel(xmlModel, lang) {
     const symbols = collectSymbols(xmlModel);
     const resolvedVars = resolveDomains(symbols);
-    const dependencies = resolveReferences(symbols, resolvedVars, languageEnv);
+    const dependencies = resolveReferences(symbols, resolvedVars, lang);
     detectCycles(dependencies);
 
     return {
@@ -255,7 +255,7 @@
   /* ===========================
      Validate Step 3: Resolve references
      =========================== */
-  function resolveReferences(symbols, resolvedVars, languageEnv) {
+  function resolveReferences(symbols, resolvedVars, lang) {
     const dependencies = new Map();
 
     for (const [name, resolvedVariable] of resolvedVars) {
@@ -271,7 +271,7 @@
             continue;
           }
 
-          if (languageEnv.functions.has(r)) {
+          if (lang.functions.has(r)) {
             continue; // built-in function
           }
 
