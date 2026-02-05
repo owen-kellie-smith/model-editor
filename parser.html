@@ -55,11 +55,10 @@
   };
 
   function onLoadModelChange(ev){
-    if (isLanguageLoaded(ev.target)) {
-      const file = ev.target.files[0];
-      if (!file) return;
-      parseAndValidateLoadedModel(file);
-    }
+    if (!isLanguageLoaded(ev.target)) return;  
+    const file = ev.target.files[0];
+    if (!file) return;
+    parseAndValidateLoadedModel(file);
   };
 
   function readLanguage(file){
