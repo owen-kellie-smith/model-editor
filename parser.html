@@ -31,7 +31,7 @@
   <div id="log"></div>
 
   <script>
-  let g_languageEnv = null;
+  let languageEnv = null;
 
   document.
     addEventListener("DOMContentLoaded", enableControls);
@@ -45,7 +45,7 @@
     .addEventListener("change", onLoadModelChange);
 
   function enableControls(){
-    enableInput(g_languageEnv, document.getElementById("loadModel"));
+    enableInput(languageEnv, document.getElementById("loadModel"));
   }
   
   function onLoadLanguageChange(e){
@@ -55,7 +55,7 @@
   };
 
   function onLoadModelChange(ev){
-    if (bLanguageIsLoaded(ev.target)) {
+    if (isLanguageLoaded(ev.target)) {
       const file = ev.target.files[0];
       if (!file) return;
       parseAndValidateLoadedModel(file);
@@ -66,15 +66,15 @@
     const reader = new FileReader();
     reader.onload = () => {
       const xml = new DOMParser().parseFromString(reader.result, "text/xml");
-      g_languageEnv = parseLanguage(xml);
-      recordLoadedLanguage(g_languageEnv);
+      languageEnv = parseLanguage(xml);
+      recordLoadedLanguage(languageEnv);
       enableControls();
     };
     reader.readAsText(file);
   }
 
-  function bLanguageIsLoaded(elementToNullify){
-    if (!g_languageEnv) {
+  function isLanguageLoaded(elementToNullify){
+    if (!languageEnv) {
       writeToLog("✖ Load language.xml first.\n");
       elementToNullify.value = null;  //  Clear the file 
       return false;
@@ -89,7 +89,7 @@
     reader.onload = () => {
       try {
         const xml = new DOMParser().parseFromString(reader.result, "application/xml");
-        const obj = xmlToObject(xml);
+        const obj = getObjectFromXML(xml);
         const result = validateModel(obj);
         writeToLog("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
@@ -123,19 +123,19 @@
     return { functions };
   }
 
-  function recordLoadedLanguage(languageEnv) {
+  function recordLoadedLanguage(langEnv) {
       writeToLog("Language loaded:\n " + JSON.stringify(
-        { functions: Object.fromEntries(languageEnv.functions) },
+        { functions: Object.fromEntries(langEnv.functions) },
         null,
         2
       ));
-      console.log("Language loaded:", languageEnv);
+      console.log("Language loaded:", langEnv);
   }
 
   function validateModel(xmlModel) {
     const symbols = collectSymbols(xmlModel);
     const resolvedVars = resolveDomains(symbols);
-    const dependencies = resolveReferences(symbols, resolvedVars, g_languageEnv);
+    const dependencies = resolveReferences(symbols, resolvedVars, languageEnv);
     detectCycles(dependencies);
 
     return {
@@ -147,8 +147,8 @@
   /* ===========================
      XML → JS object (minimal)
      =========================== */
-  function xmlToObject(xml) {
-    function nodeToObj(node) {
+  function getObjectFromXML(xml) {
+    function getObjectFromNode(node) {
       const obj = {};
 
       // attributes
@@ -162,7 +162,7 @@
       for (const child of node.childNodes) {
         if (child.nodeType === 1) { // ELEMENT
           const name = child.nodeName;
-          const value = nodeToObj(child);
+          const value = getObjectFromNode(child);
 
           if (obj[name]) {
             if (!Array.isArray(obj[name])) {
@@ -185,7 +185,7 @@
       return obj;
     }
 
-    return { model: nodeToObj(xml.documentElement) };
+    return { model: getObjectFromNode(xml.documentElement) };
   }
 
   /* ===========================
@@ -197,22 +197,22 @@
     const tables = new Map();
     const variables = new Map();
 
-    for (const is of [].concat(xml.model.indexSets?.indexSet || [])) {
+    for (const is of asArray(xml.model.indexSets?.indexSet)) {
       if (indexSets.has(is.id)) {
         throwModelError("Duplicate index set", { id: is.id });
       }
       indexSets.set(is.id, is);
     }
 
-    for (const u of [].concat(xml.model.units?.unit || [])) {
+    for (const u of asArray(xml.model.units?.unit)) {
       units.set(u.id, u);
     }
 
-    for (const t of [].concat(xml.model.tables?.table || [])) {
+    for (const t of asArray(xml.model.tables?.table)) {
       tables.set(t.id, t);
     }
 
-    for (const v of [].concat(xml.model.variables?.variable || [])) {
+    for (const v of asArray(xml.model.variables?.variable)) {
       if (variables.has(v.id)) {
         throwModelError("Duplicate variable", { id: v.id });
       }
@@ -231,7 +231,7 @@
     for (const [name, v] of symbols.variables) {
       const args = [];
 
-      for (const arg of [].concat(v.arguments?.arg || [])) {
+      for (const arg of asArray(v.arguments?.arg)) {
         const indexSet = symbols.indexSets.get(arg.indexSet);
         if (!indexSet) {
           throwModelError("Unknown index set", {
@@ -255,7 +255,7 @@
   /* ===========================
      Validate Step 3: Resolve references
      =========================== */
-  function resolveReferences(symbols, resolvedVars, g_languageEnv) {
+  function resolveReferences(symbols, resolvedVars, languageEnv) {
     const dependencies = new Map();
 
     for (const [name, rv] of resolvedVars) {
@@ -271,7 +271,7 @@
             continue;
           }
 
-          if (g_languageEnv.functions.has(r)) {
+          if (languageEnv.functions.has(r)) {
             continue; // built-in function
           }
 
@@ -344,6 +344,10 @@
   /* ===========================
      Helpers
      =========================== */
+  function asArray(x){
+    return [].concat(x || []);
+  }
+  
   function enableInput(bCondition, el){
     el.disabled = !bCondition;
   };
