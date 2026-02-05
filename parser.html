@@ -258,9 +258,9 @@
   function resolveReferences(symbols, resolvedVars, languageEnv) {
     const dependencies = new Map();
 
-    for (const [name, rv] of resolvedVars) {
+    for (const [name, resolvedVariable] of resolvedVars) {
       dependencies.set(name, new Set());
-      const def = rv.xml.definition;
+      const def = resolvedVariable.xml.definition;
       if (!def) continue;
 
       if (def.type === "expression") {
@@ -348,8 +348,8 @@
     return [].concat(x || []);
   }
   
-  function enableInput(bCondition, el){
-    el.disabled = !bCondition;
+  function enableInput(qualifier, el){
+    el.disabled = !qualifier;
   };
 
   function writeToLog(s){
