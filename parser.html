@@ -97,6 +97,8 @@
         writeToLog("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
           "Variables:\n" + result.variables.join(", ") + "\n\n" + 
+          "Resolvedvars:\n"  + JSON.stringify(mapToObject(result.resolvedVars) || {}, null, 2) + "\n\n" + 
+          "Dependencies:\n"  + JSON.stringify(mapOfSetsToObject(result.dependencies) || {}, null, 2) + "\n\n" + 
           file.name + " as object:\n" + JSON.stringify(obj || {}, null, 2));
       } catch (er) {
         writeToLog("✖ Validation error:\n" +
@@ -181,7 +183,9 @@
     detectCycles(dependencies);
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
-      variables: [...symbols.variables.keys()]    // an array containing all the keys from the variables map
+      variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
+      resolvedVars,
+      dependencies   
     };
   }
 
@@ -359,6 +363,16 @@
     const err = new Error(message);
     err.context = context;
     throw err;
+  }
+
+  function mapToObject(map) {
+    return Object.fromEntries(map);
+  }
+
+  function mapOfSetsToObject(map) {
+    return Object.fromEntries(
+      [...map.entries()].map(([k, v]) => [k, [...v]])
+    );
   }
 
 
