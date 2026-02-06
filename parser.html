@@ -19,53 +19,117 @@
 </head>
 <body>
 
-  <input type="file" id="loadLanguage" accept=".xml">
-  <label for="loadLanguage">Load language</label>
+  <h3>Language</h3>
+  <input type="file" id="loadLanguageFile" accept=".xml">
+  <br>
+  <textarea id="languageText" rows="8" cols="80"
+    placeholder="Paste language.xml here"></textarea>
+  <br>
+  <button id="loadLanguageText">Load language from text</button>
 
-  <br><br>
+  <hr>
 
-  <input type="file" id="loadModel" accept=".xml" disabled>
-  <label for="loadModel">Load model</label>
-
+  <h3>Model</h3>
+  <input type="file" id="loadModelFile" accept=".xml" disabled >
+  <br>
+  <textarea id="modelText" rows="12" cols="80" disabled
+    placeholder="Paste model.xml here"></textarea>
+  <br>
+  <button id="loadModelText" disabled >Load model from text</button>
 
   <div id="log"></div>
 
   <script>
   let languageEnv = null;
+  const ui = {
+    loadLanguageFile: document.getElementById("loadLanguageFile"),
+    loadLanguageText: document.getElementById("loadLanguageText"),
+    languageText: document.getElementById("languageText"),
+    loadModelFile: document.getElementById("loadModelFile"),
+    loadModelText: document.getElementById("loadModelText"),
+    modelText: document.getElementById("modelText"),
+    log: document.getElementById("log"),
+  };
 
-  document
-    .getElementById("loadLanguage")
+  ui.loadLanguageFile
     .addEventListener("change", onLoadLanguageChange);
 
-  document
-    .getElementById("loadModel")
+  ui.loadModelFile
     .addEventListener("change", onLoadModelChange);
 
+  ui.loadLanguageText
+    .addEventListener("click", onLoadLanguageText);
+
+  ui.loadModelText
+    .addEventListener("click", onLoadModelText);
+
   function enableControls(isLanguageLoaded){
-    enableInput(document.getElementById("loadModel"),isLanguageLoaded);
+    enableInput(ui.loadModelFile, isLanguageLoaded);
+    enableInput(ui.modelText, isLanguageLoaded);
+    enableInput(ui.loadModelText, isLanguageLoaded);
   }
-  
+
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
     setValidLanguage(file);
   };
 
+  function onLoadLanguageText() {
+    const text = ui.languageText.value.trim();
+    if (!text) return;
+
+    try {
+      const xml = parseXmlOrThrow(text, "pasted language.xml");
+      const lang = parseAndValidateLanguage(xml, "pasted language.xml");
+      commitLanguage(lang);
+    } catch (er) {
+      rejectLanguage(er);
+    }
+  }
+
   function onLoadModelChange(ev){
     if (!languageEnv) {
-      nullifyInputWithMessage(ev.target, "✖ Load language.xml first.\n");
+      rejectModelInput("✖ Load language.xml first.\n");
       return;
     }
     const file = ev.target.files[0];
     if (!file) return;
-    parseAndValidateLoadedModel(file, languageEnv);
+    parseAndValidateLoadedModel(file);
   };
+
+  function rejectModelInput(message) {
+    ui.loadModelFile.value = null;
+    ui.modelText.value = "";
+    setLogText(message);
+  }
+
+  function onLoadModelText() {
+    if (!languageEnv) {
+      rejectModelInput("✖ Load language.xml first.\n");
+      return;
+    }
+
+    const text = ui.modelText.value.trim();
+    if (!text) return;
+
+    try {
+      validateModelText(text, "pasted model.xml");
+    } catch (er) {
+      setLogText(formatModelError(er));
+    }
+  }
+
+  function validateModelText(xmlText, filename) {
+    const result = validateModel(xmlText, filename, languageEnv);
+    setLogText(formatModelResult(result));
+  }
 
   function setValidLanguage(file){
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const xml = new DOMParser().parseFromString(reader.result, "text/xml");
+        const xml = parseXmlOrThrow(reader.result, file.name);
         const lang = parseAndValidateLanguage(xml, file.name);
         commitLanguage(lang);
       } catch (er) {
@@ -78,22 +142,27 @@
   function commitLanguage(lang) {
     languageEnv = lang;
     setLogText(formatLanguageLoaded(lang));
-    console.log("Language loaded:", lang);
     enableControls(true);
+    resetModelInputs();
+  }
+
+  function resetModelInputs() {
+    ui.loadModelFile.value = null;
+    ui.modelText.value = "";
   }
 
   function rejectLanguage(er) {
     languageEnv = null;
     setLogText(formatModelError(er));
     enableControls(false);
+    resetModelInputs();
   }
 
-  function parseAndValidateLoadedModel(file, language){
+  function parseAndValidateLoadedModel(file){
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const result = validateModel(reader.result, file.name, language);
-        setLogText(formatModelResult(result));
+        validateModelText(reader.result, file.name);
       } catch (er) {
         setLogText(formatModelError(er));
       }
@@ -102,7 +171,7 @@
   }
 
   function validateModel(xmlText, filename, language) {
-    const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+    const xml = parseXmlOrThrow(xmlText, filename);
     const obj = getObjectFromXML(xml);
     const features = getModelFeatures(obj, language);
     return { features, obj, filename };
@@ -395,7 +464,7 @@
   };
 
   function setLogText(s){
-      const log = document.getElementById("log");
+      const log = ui.log;
       log.textContent = s;
   }
 
@@ -420,8 +489,17 @@
   }
 
   function nullifyInputWithMessage(input, message) {
-    input.value = null;
+    input.value = '';
     setLogText(message);
+  }
+
+  function parseXmlOrThrow(text, label) {
+    const xml = new DOMParser().parseFromString(text, "application/xml");
+    const err = xml.getElementsByTagName("parsererror")[0];
+    if (err) {
+      throw new Error(`Invalid XML in ${label}`);
+    }
+    return xml;
   }
 
 
