@@ -180,8 +180,8 @@
     const dependencies = resolveReferences(symbols, resolvedVars, lang);
     detectCycles(dependencies);
     return {
-      indexSets: [...symbols.indexSets.keys()],
-      variables: [...symbols.variables.keys()]
+      indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
+      variables: [...symbols.variables.keys()]    // an array containing all the keys from the variables map
     };
   }
 
