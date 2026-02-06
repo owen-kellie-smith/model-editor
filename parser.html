@@ -69,16 +69,25 @@
     reader.onload = () => {
       try {
         const xml = new DOMParser().parseFromString(reader.result, "text/xml");
-        languageEnv = parseAndValidateLanguage(xml, file.name);
-        logLoadingOfLanguage(languageEnv);
+        const lang = parseAndValidateLanguage(xml, file.name);
+        commitLanguage(lang);
       } catch (er) {
-        languageEnv = null;
-        writeToLog("✖ Validation error:\n" + er.message);
-      } finally {
-        enableControls();
+        rejectLanguage(er);
       }
     };
     reader.readAsText(file);
+  }
+
+  function commitLanguage(lang) {
+    languageEnv = lang;
+    logLoadingOfLanguage(lang);
+    enableControls();
+  }
+
+  function rejectLanguage(er) {
+    languageEnv = null;
+    writeToLog("✖ Validation error:\n" + er.message);
+    enableControls();
   }
 
   function parseAndValidateLoadedModel(file){
