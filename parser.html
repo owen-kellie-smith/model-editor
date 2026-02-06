@@ -97,14 +97,14 @@
         writeToLog("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
           "Variables:\n" + result.variables.join(", ") + "\n\n" + 
-          "Resolvedvars:\n"  + JSON.stringify(mapToObject(result.resolvedVars) || {}, null, 2) + "\n\n" + 
-          "Dependencies:\n"  + JSON.stringify(mapOfSetsToObject(result.dependencies) || {}, null, 2) + "\n\n" + 
-          file.name + " as object:\n" + JSON.stringify(fileReadAsObj || {}, null, 2));
+          "resolvedVars:\n"  + getObjectAsString(mapToObject(result.resolvedVars)) + "\n\n" + 
+          "dependencies:\n"  + getObjectAsString(mapOfSetsToObject(result.dependencies)) + "\n\n" + 
+          file.name + " as object:\n" + getObjectAsString(fileReadAsObj));
       } catch (er) {
         writeToLog("✖ Validation error:\n" +
           er.message +
           "\n\nContext:\n" +
-          JSON.stringify(er.context || {}, null, 2));
+          getObjectAsString(er.context));
       }
     };
     reader.readAsText(file);
@@ -130,10 +130,8 @@
   }
 
   function logLoadingOfLanguage(langEnv) {
-      writeToLog("Language loaded:\n " + JSON.stringify(
-        { functions: Object.fromEntries(langEnv.functions) },
-        null,
-        2
+      writeToLog("Language loaded:\n " + getObjectAsString(
+        { functions: Object.fromEntries(langEnv.functions) }
       ));
       console.log("Language loaded:", langEnv);
   }
@@ -373,6 +371,10 @@
     return Object.fromEntries(
       [...map.entries()].map(([k, v]) => [k, [...v]])
     );
+  }
+
+  function getObjectAsString(obj) {
+    return  JSON.stringify(obj || {}, null, 2);
   }
 
 
