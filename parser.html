@@ -149,7 +149,7 @@
       }
       // child nodes
       for (const child of node.childNodes) {
-        if (child.nodeType === 1) { // ELEMENT
+        if (child.nodeType === Node.ELEMENT_NODE) { // === 1
           const name = child.nodeName;
           const value = getObjectFromNode(child);
           if (obj[name]) {
@@ -161,7 +161,7 @@
             obj[name] = value;
           }
         }
-        if (child.nodeType === 3) { // TEXT
+        if (child.nodeType === Node.TEXT_NODE ) { // === 3
           const text = child.nodeValue.trim();
           if (text) {
             obj["#text"] = text;
