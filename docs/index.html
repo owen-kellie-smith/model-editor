@@ -15,28 +15,50 @@
       border: 1px solid #ccc;
       padding: 1rem;
     }
+    .editor-container {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    
+    .editor {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor textarea {
+      flex: 1;              /* fills available space */
+      min-height: 130px;    /* pick a height you like */
+      resize: vertical;    /* optional: allow user resize */
+    }
+
+
   </style>
 </head>
 <body>
+  <div class="editor-container">
+    <div class="editor">
+      <h3>Language</h3>
+      <input type="file" id="loadLanguageFile" accept=".xml">
+      <br>
+      <textarea id="languageText" cols="80"
+        placeholder="Paste language.xml here"></textarea>
+      <br>
+      <button id="loadLanguageText">Load language from text</button>
 
-  <h3>Language</h3>
-  <input type="file" id="loadLanguageFile" accept=".xml">
-  <br>
-  <textarea id="languageText" rows="8" cols="80"
-    placeholder="Paste language.xml here"></textarea>
-  <br>
-  <button id="loadLanguageText">Load language from text</button>
+    </div>
+    <div class="editor">
 
+      <h3>Model</h3>
+      <input type="file" id="loadModelFile" accept=".xml" disabled >
+      <br>
+      <textarea id="modelText" cols="80" disabled
+        placeholder="Paste model.xml here"></textarea>
+      <br>
+      <button id="loadModelText" disabled >Load model from text</button>
+    </div>
+  </div> 
   <hr>
-
-  <h3>Model</h3>
-  <input type="file" id="loadModelFile" accept=".xml" disabled >
-  <br>
-  <textarea id="modelText" rows="12" cols="80" disabled
-    placeholder="Paste model.xml here"></textarea>
-  <br>
-  <button id="loadModelText" disabled >Load model from text</button>
-
   <div id="log"></div>
 
   <script>
