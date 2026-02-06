@@ -33,8 +33,8 @@
   <script>
   let languageEnv = null;
 
-  document.
-    addEventListener("DOMContentLoaded", enableControls);
+  document
+    .addEventListener("DOMContentLoaded", () => enableControls(false) );
 
   document
     .getElementById("loadLanguage")
@@ -44,8 +44,8 @@
     .getElementById("loadModel")
     .addEventListener("change", onLoadModelChange);
 
-  function enableControls(){
-    enableInput(document.getElementById("loadModel"),languageEnv);
+  function enableControls(isLanguageLoaded){
+    enableInput(document.getElementById("loadModel"),isLanguageLoaded);
   }
   
   function onLoadLanguageChange(e){
@@ -61,7 +61,7 @@
     }
     const file = ev.target.files[0];
     if (!file) return;
-    parseAndValidateLoadedModel(file);
+    parseAndValidateLoadedModel(file, languageEnv);
   };
 
   function setValidLanguage(file){
@@ -81,22 +81,22 @@
   function commitLanguage(lang) {
     languageEnv = lang;
     logLoadingOfLanguage(lang);
-    enableControls();
+    enableControls(true);
   }
 
   function rejectLanguage(er) {
     languageEnv = null;
     setLogText("✖ Validation error:\n" + er.message);
-    enableControls();
+    enableControls(false);
   }
 
-  function parseAndValidateLoadedModel(file){
+  function parseAndValidateLoadedModel(file, language){
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const fileReadAsXML = new DOMParser().parseFromString(reader.result, "application/xml");
         const fileReadAsObj = getObjectFromXML(fileReadAsXML);
-        const result = getModelFeatures(fileReadAsObj, languageEnv);
+        const result = getModelFeatures(fileReadAsObj, language);
         setLogText("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
           "Variables:\n" + result.variables.join(", ") + "\n\n" + 
