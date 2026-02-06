@@ -90,28 +90,70 @@
     enableControls(false);
   }
 
-  function parseAndValidateLoadedModel(file, language){
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const fileReadAsXML = new DOMParser().parseFromString(reader.result, "application/xml");
-        const fileReadAsObj = getObjectFromXML(fileReadAsXML);
-        const result = getModelFeatures(fileReadAsObj, language);
-        setLogText("✔ Model is structurally valid\n\n" +
-          "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
-          "Variables:\n" + result.variables.join(", ") + "\n\n" + 
-          "resolvedVars:\n"  + getObjectAsString(mapToObject(result.resolvedVars)) + "\n\n" + 
-          "dependencies:\n"  + getObjectAsString(mapOfSetsToObject(result.dependencies)) + "\n\n" + 
-          file.name + " as object:\n" + getObjectAsString(fileReadAsObj));
-      } catch (er) {
-        setLogText("✖ Validation error:\n" +
-          er.message +
-          "\n\nContext:\n" +
-          getObjectAsString(er.context));
-      }
-    };
-    reader.readAsText(file);
+function parseAndValidateLoadedModel(file, language){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const result = validateModel(reader.result, file.name, language);
+      setLogText(formatModelResult(result));
+    } catch (er) {
+      setLogText(formatModelError(er));
+    }
   };
+  reader.readAsText(file);
+}
+
+function validateModel(xmlText, filename, language) {
+  const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+  const obj = getObjectFromXML(xml);
+  const features = getModelFeatures(obj, language);
+  return { features, obj, filename };
+}
+
+function formatModelResult({ features, obj, filename }) {
+  const {
+    indexSets,
+    variables,
+    resolvedVars,
+    dependencies
+  } = features;
+
+  return [
+    "✔ Model is structurally valid",
+    "",
+    "Index sets:",
+    indexSets.join(", ") || "(none)",
+    "",
+    "Variables:",
+    variables.join(", ") || "(none)",
+    "",
+    "Resolved variables:",
+    getObjectAsString(mapToObject(resolvedVars)),
+    "",
+    "Dependencies:",
+    getObjectAsString(mapOfSetsToObject(dependencies)),
+    "",
+    `${filename} as object:`,
+    getObjectAsString(obj)
+  ].join("\n");
+}
+
+
+
+function formatModelError(err) {
+  const lines = [
+    "✖ Validation error:",
+    err.message
+  ];
+  if (err.context) {
+    lines.push(
+      "",
+      "Context:",
+      getObjectAsString(err.context)
+    );
+  }
+  return lines.join("\n");
+}
 
   function parseAndValidateLanguage(xmlDoc, filename) {
     const functions = new Map();
