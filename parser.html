@@ -67,7 +67,7 @@
       try {
         const xml = new DOMParser().parseFromString(reader.result, "text/xml");
         languageEnv = parseAndValidateLanguage(xml, file.name);
-        outputReceiptOfLoadedLanguage(languageEnv);
+        logLoadingOfLanguage(languageEnv);
         enableControls();
       } catch (er) {
         writeToLog("✖ Validation error:\n" + er.message);
@@ -127,7 +127,7 @@
     return { functions };
   }
 
-  function outputReceiptOfLoadedLanguage(langEnv) {
+  function logLoadingOfLanguage(langEnv) {
       writeToLog("Language loaded:\n " + JSON.stringify(
         { functions: Object.fromEntries(langEnv.functions) },
         null,
