@@ -51,9 +51,9 @@ The current focus is on **parsing, validation, and dependency analysis** as a fo
 ## How to run
 
 1. Clone the repository
-2. Open `parser.html` in a modern browser
-3. Load or paste a `language.xml`
-4. Load or paste a `model.xml`
+2. Open `docs/index.html` in a modern browser
+3. Load or paste a `language.xml` (e.g. from docs/)
+4. Load or paste a `model.xml`(e.g. from docs/annuity-model)
 5. Inspect validation and dependency output in the log panel
 
 No build step or server required.
