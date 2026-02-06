@@ -1,36 +1,64 @@
 # model-editor
 
-A constrained editor for navigating and modifying large models encoded as declarative formulae and stored in XML.
+An experimental single web page for parsing, validating, and exploring large declarative models stored in XML.
 
-The editor makes structural relationships explicit, including variable dependencies, precedents, dependants, and differences between model versions.
+The long-term goal of this project is a **constrained editor** for navigating and modifying models while preserving structural validity.  
+The current focus is on **parsing, validation, and dependency analysis** as a foundation for that editor.
 
----
-
-## What’s here
-
-- **The editor**  
-  A single-page web tool for exploring and editing models subject to structural constraints.
-
-  The editor operates on models composed only of the following construct types:
-  - index sets with intrinsic meaning,
-  - variables with declared arguments, units, data types, and value definitions,
-    where a variable assigns values to points in the Cartesian product of one or more index sets, and
-  - output requirements, defined as declarative requests for aggregations of variables, optionally grouped by other variables.
-  
-  No procedural constructs, execution semantics, or numerical methods form part of the model representation.
-
-- **A restaurant cashflow model**  
-  A deterministic model used to demonstrate the editor on a large but simple structure.
-
-- **An aircraft cashflow model**  
-  A deterministic model used to demonstrate the editor on a large structure with different dependencies and dimensions.
-
-The models exist to demonstrate the editor rather than to act as standalone simulations.
+> ⚠️ Status: Early prototype / active development
 
 ---
 
-## What the editor demonstrates
+## What’s here today
 
+### XML parsing and validation
+- Safe XML parsing with explicit error detection
+- Conversion of XML models into normalized JavaScript objects
+- Explicit separation between:
+  - language definition
+  - model structure
+  - validation logic
+
+### Language-driven validation
+- A `language.xml` definition describing built-in functions
+- Validation of function declarations (name, arity)
+- A language environment (i.e. function list) used during model validation
+
+### Model structure analysis
+- Collection and validation of:
+  - index sets
+  - variables
+  - tables and units
+- Detection of:
+  - duplicate identifiers
+  - unknown references (missing variables which are not listed as functions)
+  - invalid domains
+  - dependency cycles between variables i.e. circular logic
+- Explicit dependency graphs derived from declarative expressions
+
+### UI prototype
+- Single-page, no-build browser UI
+- Load XML via file input or pasted text
+- Immediate feedback with contextual error reporting
+- UI state resets on invalid input to avoid partial state
+
+---
+
+## How to run
+
+1. Clone the repository
+2. Open `parser.html` in a modern browser
+3. Load or paste a `language.xml`
+4. Load or paste a `model.xml`
+5. Inspect validation and dependency output in the log panel
+
+No build step or server required.
+
+---
+
+## Why this exists
+
+This project explores:
 - working with large declarative models
-- dependency analysis and visualisation
-- constrained editing with structural validity guarantees
+- making structural relationships explicit
+- enforcing correctness through constraints
