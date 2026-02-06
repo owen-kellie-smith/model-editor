@@ -132,11 +132,15 @@
     return { functions };
   }
 
-  function logLoadingOfLanguage(langEnv) {
-      writeToLog("Language loaded:\n " + getObjectAsString(
-        { functions: Object.fromEntries(langEnv.functions) }
-      ));
-      console.log("Language loaded:", langEnv);
+  function logLoadingOfLanguage(lang) {
+      writeToLog(formatLanguageLoaded(lang));
+      console.log("Language loaded:", lang);
+  }
+
+  function formatLanguageLoaded(lang) {
+    return "Language loaded:\n " + getObjectAsString(
+      { functions: Object.fromEntries(lang.functions) }
+    );
   }
 
   /* ===========================
