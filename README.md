@@ -2,6 +2,10 @@
 
 An experimental single web page for parsing, validating, and exploring large declarative models stored in XML.
 
+**Live demo:** https://owen-kellie-smith.github.io/model-editor/
+
+---
+
 The long-term goal of this project is a **constrained editor** for navigating and modifying models while preserving structural validity.  
 The current focus is on **parsing, validation, and dependency analysis** as a foundation for that editor.
 
