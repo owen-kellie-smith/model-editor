@@ -135,6 +135,44 @@
       console.log("Language loaded:", langEnv);
   }
 
+  /* ===========================
+     XML → JS object (minimal)
+     =========================== */
+  function getObjectFromXML(xml) {
+    function getObjectFromNode(node) {
+      const obj = {};
+      // attributes
+      if (node.attributes) {
+        for (const attr of node.attributes) {
+          obj[attr.name] = attr.value;
+        }
+      }
+      // child nodes
+      for (const child of node.childNodes) {
+        if (child.nodeType === 1) { // ELEMENT
+          const name = child.nodeName;
+          const value = getObjectFromNode(child);
+          if (obj[name]) {
+            if (!Array.isArray(obj[name])) {
+              obj[name] = [obj[name]];
+            }
+            obj[name].push(value);
+          } else {
+            obj[name] = value;
+          }
+        }
+        if (child.nodeType === 3) { // TEXT
+          const text = child.nodeValue.trim();
+          if (text) {
+            obj["#text"] = text;
+          }
+        }
+      }
+      return obj;
+    }
+    return { model: getObjectFromNode(xml.documentElement) };
+  }
+
   function getModelFeatures(xmlModel, lang) {
     const symbols = collectSymbols(xmlModel);
     const resolvedVars = resolveDomains(symbols);
@@ -146,49 +184,6 @@
     };
   }
 
-  /* ===========================
-     XML → JS object (minimal)
-     =========================== */
-  function getObjectFromXML(xml) {
-    function getObjectFromNode(node) {
-      const obj = {};
-
-      // attributes
-      if (node.attributes) {
-        for (const attr of node.attributes) {
-          obj[attr.name] = attr.value;
-        }
-      }
-
-      // child nodes
-      for (const child of node.childNodes) {
-        if (child.nodeType === 1) { // ELEMENT
-          const name = child.nodeName;
-          const value = getObjectFromNode(child);
-
-          if (obj[name]) {
-            if (!Array.isArray(obj[name])) {
-              obj[name] = [obj[name]];
-            }
-            obj[name].push(value);
-          } else {
-            obj[name] = value;
-          }
-        }
-
-        if (child.nodeType === 3) { // TEXT
-          const text = child.nodeValue.trim();
-          if (text) {
-            obj["#text"] = text;
-          }
-        }
-      }
-
-      return obj;
-    }
-
-    return { model: getObjectFromNode(xml.documentElement) };
-  }
 
   /* ===========================
      Validate Step 1: Collect symbols
