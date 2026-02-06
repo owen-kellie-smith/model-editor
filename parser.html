@@ -91,15 +91,15 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const xml = new DOMParser().parseFromString(reader.result, "application/xml");
-        const obj = getObjectFromXML(xml);
-        const result = getModelFeatures(obj, languageEnv);
+        const fileReadAsXML = new DOMParser().parseFromString(reader.result, "application/xml");
+        const fileReadAsObj = getObjectFromXML(fileReadAsXML);
+        const result = getModelFeatures(fileReadAsObj, languageEnv);
         writeToLog("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
           "Variables:\n" + result.variables.join(", ") + "\n\n" + 
           "Resolvedvars:\n"  + JSON.stringify(mapToObject(result.resolvedVars) || {}, null, 2) + "\n\n" + 
           "Dependencies:\n"  + JSON.stringify(mapOfSetsToObject(result.dependencies) || {}, null, 2) + "\n\n" + 
-          file.name + " as object:\n" + JSON.stringify(obj || {}, null, 2));
+          file.name + " as object:\n" + JSON.stringify(fileReadAsObj || {}, null, 2));
       } catch (er) {
         writeToLog("✖ Validation error:\n" +
           er.message +
