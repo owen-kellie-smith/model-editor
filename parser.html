@@ -68,9 +68,11 @@
         const xml = new DOMParser().parseFromString(reader.result, "text/xml");
         languageEnv = parseAndValidateLanguage(xml, file.name);
         logLoadingOfLanguage(languageEnv);
-        enableControls();
       } catch (er) {
+        languageEnv = null;
         writeToLog("✖ Validation error:\n" + er.message);
+      } finally {
+        enableControls();
       }
     };
     reader.readAsText(file);
@@ -86,8 +88,6 @@
   }
 
   function parseAndValidateLoadedModel(file){
-    writeToLog("");
-    
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -104,7 +104,6 @@
           JSON.stringify(er.context || {}, null, 2));
       }
     };
-
     reader.readAsText(file);
   };
 
