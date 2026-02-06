@@ -86,7 +86,7 @@
 
   function rejectLanguage(er) {
     languageEnv = null;
-    writeToLog("✖ Validation error:\n" + er.message);
+    setLogText("✖ Validation error:\n" + er.message);
     enableControls();
   }
 
@@ -97,14 +97,14 @@
         const fileReadAsXML = new DOMParser().parseFromString(reader.result, "application/xml");
         const fileReadAsObj = getObjectFromXML(fileReadAsXML);
         const result = getModelFeatures(fileReadAsObj, languageEnv);
-        writeToLog("✔ Model is structurally valid\n\n" +
+        setLogText("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
           "Variables:\n" + result.variables.join(", ") + "\n\n" + 
           "resolvedVars:\n"  + getObjectAsString(mapToObject(result.resolvedVars)) + "\n\n" + 
           "dependencies:\n"  + getObjectAsString(mapOfSetsToObject(result.dependencies)) + "\n\n" + 
           file.name + " as object:\n" + getObjectAsString(fileReadAsObj));
       } catch (er) {
-        writeToLog("✖ Validation error:\n" +
+        setLogText("✖ Validation error:\n" +
           er.message +
           "\n\nContext:\n" +
           getObjectAsString(er.context));
@@ -133,7 +133,7 @@
   }
 
   function logLoadingOfLanguage(lang) {
-      writeToLog(formatLanguageLoaded(lang));
+      setLogText(formatLanguageLoaded(lang));
       console.log("Language loaded:", lang);
   }
 
@@ -359,7 +359,7 @@
     el.disabled = !qualifier;
   };
 
-  function writeToLog(s){
+  function setLogText(s){
       const log = document.getElementById("log");
       log.textContent = s;
   }
@@ -385,7 +385,7 @@
   }
 
   function rejectLoad(input, message) {
-    writeToLog(message);
+    setLogText(message);
     input.value = null;
   }
 
