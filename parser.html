@@ -51,7 +51,7 @@
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
-    readLanguage(file);
+    setLanguage(file);
   };
 
   function onLoadModelChange(ev){
@@ -61,13 +61,17 @@
     parseAndValidateLoadedModel(file);
   };
 
-  function readLanguage(file){
+  function setLanguage(file){
     const reader = new FileReader();
     reader.onload = () => {
-      const xml = new DOMParser().parseFromString(reader.result, "text/xml");
-      languageEnv = parseLanguage(xml);
-      recordLoadedLanguage(languageEnv);
-      enableControls();
+      try {
+        const xml = new DOMParser().parseFromString(reader.result, "text/xml");
+        languageEnv = parseAndValidateLanguage(xml, file.name);
+        outputReceiptOfLoadedLanguage(languageEnv);
+        enableControls();
+      } catch (er) {
+        writeToLog("✖ Validation error:\n" + er.message);
+      }
     };
     reader.readAsText(file);
   }
@@ -104,25 +108,26 @@
     reader.readAsText(file);
   };
 
-  function parseLanguage(xmlDoc) {
+  function parseAndValidateLanguage(xmlDoc, filename) {
     const functions = new Map();
-
     const fnNodes = xmlDoc.querySelectorAll("functions > function");
     for (const fn of fnNodes) {
       const name = fn.getAttribute("name");
       const arity = Number(fn.getAttribute("arity"));
-
-      if (!name || Number.isNaN(arity)) {
-        throw new Error("Invalid function declaration in language.xml");
+      const serializer = new XMLSerializer();
+      const fnXml = serializer.serializeToString(fn);
+      if (!name ) {
+        throw new Error("Invalid function declaration in " + filename + ": function without name \n" + fnXml);
       }
-
+      if (Number.isNaN(arity)) {
+        throw new Error("Invalid function declaration in " + filename + ": function with non-numeric arity \n" + fnXml);
+      }
       functions.set(name, { arity });
     }
-
     return { functions };
   }
 
-  function recordLoadedLanguage(langEnv) {
+  function outputReceiptOfLoadedLanguage(langEnv) {
       writeToLog("Language loaded:\n " + JSON.stringify(
         { functions: Object.fromEntries(langEnv.functions) },
         null,

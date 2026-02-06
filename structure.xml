@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<structure>
+  <section name="indexSets" item="indexSet"/>
+  <section name="variables" item="variable"/>
+  <section name="tables"    item="table"/>
+</structure>
