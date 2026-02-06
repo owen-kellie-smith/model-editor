@@ -12,13 +12,6 @@ Benefits are level and payable while alive. There are no reversionary or lump su
 Mortality depends on integer attained age via externally supplied tables. 
 Discounting is derived from spot rates.
 
-## Structure
-
-- `model/` — the complete declarative specification (`model.xml`)
-- `data/` — minimal CSV fixtures required to instantiate the model
-- `examples/` — example run and output requests
-- `docs/` — explanatory notes and boundaries
-- `tests/` — structural and semantic validation artefacts
 
 ## Boundary
 
@@ -30,5 +23,3 @@ It contains no:
 - solvers,
 - optimisation logic, or
 - performance considerations.
-
-Such concerns belong to execution engines, not to the model definition.
