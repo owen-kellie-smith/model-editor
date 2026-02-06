@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model id="annuity-model">
+some more text
+  <!-- ================= -->
+  <!-- Index sets        -->
+  <!-- ================= -->
+
+  <indexSets>
+text inside index sets
+    <indexSet id="cohort">
+      <description>Cohort identifier (model points)</description>
+      <dataType>string</dataType>
+      text inside cohort
+    </indexSet>
+more text in indexSets
+    <indexSet id="age">
+      <description>Integer age values</description>
+      <dataType>integer</dataType>
+    </indexSet>
+
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+
+  </indexSets>
+
+
+  <!-- ================= -->
+  <!-- Units             -->
+  <!-- ================= -->
+
+  <units>
+
+    <unit id="GBP_per_year"/>
+    <unit id="GBP"/>
+    <unit id="years"/>
+
+  </units>
+
+
+  <!-- ================= -->
+  <!-- Tables            -->
+  <!-- ================= -->
+
+  <tables>
+
+    <table id="cohort_data">
+      <rowIndex ref="cohort"/>
+      <columns>
+        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year"/>
+        <column id="annuity_start_age" dataType="real" unit="years"/>
+        <column id="current_age" dataType="real" unit="years"/>
+        <column id="mortality_table" dataType="string"/>
+      </columns>
+    </table>
+
+    <table id="mortality_rate">
+      <rowIndex ref="age"/>
+      <!-- columns unconstrained -->
+    </table>
+
+    <table id="spot_rate">
+      <rowIndex ref="step"/>
+      <columns>
+        <column id="rate" dataType="real"/>
+      </columns>
+    </table>
+
+  </tables>
+
+
+  <!-- ================= -->
+  <!-- Variables         -->
+  <!-- ================= -->
+
+  <variables>
+
+    <variable id="step_length">
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="constant">
+        1 / 12
+      </definition>
+    </variable>
+
+    <variable id="annual_annuity_amount">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP_per_year</unit>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="annual_annuity_amount"/>
+      </definition>
+    </variable>
+
+    <variable id="annuity_start_age">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="annuity_start_age"/>
+      </definition>
+    </variable>
+
+    <variable id="current_age">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="current_age"/>
+      </definition>
+    </variable>
+
+    <variable id="mortality_table">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>string</dataType>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="mortality_table"/>
+      </definition>
+      <constraints>
+        <mustResolveAs>
+          <columnOf table="mortality_rate"/>
+        </mustResolveAs>
+      </constraints>
+    </variable>
+
+    <variable id="attained_age">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="expression">
+        current_age(cohort) + step * step_length
+      </definition>
+    </variable>
+
+    <variable id="attained_age_years_floor">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>integer</dataType>
+      <definition type="expression">
+        floor(attained_age(cohort, step))
+      </definition>
+    </variable>
+
+    <variable id="annual_mortality_rate">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="tableLookup">
+        <table ref="mortality_rate"/>
+        <row ref="attained_age_years_floor"/>
+        <columnSelector ref="mortality_table"/>
+      </definition>
+    </variable>
+
+    <variable id="monthly_survival_rate">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        (1 - annual_mortality_rate(cohort, step)) ^ step_length
+      </definition>
+    </variable>
+
+    <variable id="survival_to_start_of_step">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+    
+      <definition type="piecewise">
+    
+        <case>
+          <when>step = 0</when>
+          <value>1</value>
+        </case>
+    
+        <case>
+          <when>step &gt; 0</when>
+          <value>
+            survival_to_start_of_step(cohort, step - 1)
+            * monthly_survival_rate(cohort, step - 1)
+          </value>
+        </case>
+    
+      </definition>
+    </variable>
+
+    <variable id="payable_at_start_of_step">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>boolean</dataType>
+    
+      <definition type="expression">
+        attained_age(cohort, step) >= annuity_start_age(cohort)
+      </definition>
+    </variable>
+
+    <variable id="payment_indicator">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+    
+      <definition type="expression">
+        payable_at_start_of_step(cohort, step) ? 1 : 0
+      </definition>
+    </variable>
+
+    <variable id="cashflow">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP</unit>
+      <definition type="expression">
+        annual_annuity_amount(cohort) 
+        * step_length
+        * payment_indicator(cohort, step)
+        * survival_to_start_of_step(cohort, step)
+      </definition>
+    </variable>
+
+    <variable id="spot_rate">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="spot_rate"/>
+        <column ref="rate"/>
+      </definition>
+    </variable>
+
+    <variable id="discount_factor">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+    
+      <definition type="expression">
+        (1 + spot_rate(step)) ^ (- step * step_length)
+      </definition>
+    </variable>
+
+    <variable id="discounted_cashflow">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>GBP</unit>
+      <definition type="expression">
+        cashflow(cohort, step)
+        * discount_factor(step)
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>

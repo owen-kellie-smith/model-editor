@@ -96,7 +96,8 @@
         const result = getModelFeatures(obj, languageEnv);
         writeToLog("✔ Model is structurally valid\n\n" +
           "Index sets:\n" + result.indexSets.join(", ") + "\n\n" +
-          "Variables:\n" + result.variables.join(", "));
+          "Variables:\n" + result.variables.join(", ") + "\n\n" + 
+          file.name + " as object:\n" + JSON.stringify(obj || {}, null, 2));
       } catch (er) {
         writeToLog("✖ Validation error:\n" +
           er.message +
@@ -136,7 +137,7 @@
   }
 
   /* ===========================
-     XML → JS object (minimal)
+     XML → JS object
      =========================== */
   function getObjectFromXML(xml) {
     function getObjectFromNode(node) {
@@ -152,19 +153,19 @@
         if (child.nodeType === Node.ELEMENT_NODE) { // === 1
           const name = child.nodeName;
           const value = getObjectFromNode(child);
-          if (obj[name]) {
+          if (obj[name]) {  // obj[name] already exists so Make it an array and add elements to the array
             if (!Array.isArray(obj[name])) {
               obj[name] = [obj[name]];
             }
             obj[name].push(value);
-          } else {
+          } else {  // obj[name] doesn't exist so create it and set its value
             obj[name] = value;
           }
         }
         if (child.nodeType === Node.TEXT_NODE ) { // === 3
           const text = child.nodeValue.trim();
           if (text) {
-            obj["#text"] = text;
+            obj["#text"] = text;  // so if there is more than one bit of text it just takes the last one
           }
         }
       }
