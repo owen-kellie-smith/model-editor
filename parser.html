@@ -38,20 +38,20 @@
 
   document
     .getElementById("loadLanguage")
-     .addEventListener("change", onLoadLanguageChange);
+    .addEventListener("change", onLoadLanguageChange);
 
   document
     .getElementById("loadModel")
     .addEventListener("change", onLoadModelChange);
 
   function enableControls(){
-    enableInput(languageEnv, document.getElementById("loadModel"));
+    enableInput(document.getElementById("loadModel"),languageEnv);
   }
   
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
-    setLanguage(file);
+    setValidLanguage(file);
   };
 
   function onLoadModelChange(ev){
@@ -61,7 +61,7 @@
     parseAndValidateLoadedModel(file);
   };
 
-  function setLanguage(file){
+  function setValidLanguage(file){
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -352,7 +352,7 @@
     return [].concat(x || []);
   }
   
-  function enableInput(qualifier, el){
+  function enableInput(el, qualifier){
     el.disabled = !qualifier;
   };
 
