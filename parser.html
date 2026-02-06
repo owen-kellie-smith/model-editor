@@ -55,7 +55,10 @@
   };
 
   function onLoadModelChange(ev){
-    if (!isLanguageLoaded(ev.target)) return;  
+    if (!languageEnv) {
+      rejectLoad(ev.target, "✖ Load language.xml first.\n");
+      return;
+    }
     const file = ev.target.files[0];
     if (!file) return;
     parseAndValidateLoadedModel(file);
@@ -76,15 +79,6 @@
       }
     };
     reader.readAsText(file);
-  }
-
-  function isLanguageLoaded(elementToNullify){
-    if (!languageEnv) {
-      writeToLog("✖ Load language.xml first.\n");
-      elementToNullify.value = null;  //  Clear the file 
-      return false;
-    }
-    return true;
   }
 
   function parseAndValidateLoadedModel(file){
@@ -375,6 +369,11 @@
 
   function getObjectAsString(obj) {
     return  JSON.stringify(obj || {}, null, 2);
+  }
+
+  function rejectLoad(input, message) {
+    writeToLog(message);
+    input.value = null;
   }
 
 
