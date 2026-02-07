@@ -340,40 +340,64 @@
 
   // gets a map of dependencies
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
-  function getDependencies(symbols, resolvedVars, lang) {
-    const dependencies = new Map();
-    for (const [name, resolvedVariable] of resolvedVars) {
-      dependencies.set(name, new Set());
-      const def = resolvedVariable.xml.definition;
-      if (!def) continue;
-      if (def.type === "expression") {
-        const refs = extractStringsFollowedByBrackets(def["#text"] || "");
-        for (const r of refs) {
-          if (symbols.variables.has(r)) {
-            dependencies.get(name).add(r);
-            continue;
-          }
-          if (lang.functions.has(r)) {
-            continue; // built-in function
-          }
-          throwModelError("Unknown identifier", {
-            variable: name,
-            reference: r
-          });
-        }
-      }
-      if (def.type === "table") {
-        const tableId = def.table?.ref;
-        if (!symbols.tables.has(tableId)) {
-          throwModelError("Unknown table", {
-            variable: name,
-            table: tableId
-          });
-        }
+function getDependencies(symbols, resolvedVars, lang) {
+  const dependencies = new Map();
+
+  for (const [name, resolvedVariable] of resolvedVars) {
+    const deps = new Set();
+    dependencies.set(name, deps);
+
+    const def = resolvedVariable.xml.definition;
+    if (!def) continue;
+
+    // ------------------------
+    // 1. expression
+    // ------------------------
+    if (def.type === "expression") {
+      getExpressionRefs(def["#text"], symbols, lang, name, deps);
+    }
+
+    // ------------------------
+    // 2. piecewise
+    // ------------------------
+    if (def.type === "piecewise") {
+      for (const c of asArray(def.case)) {
+        getExpressionRefs(c.when?.["#text"], symbols, lang, name, deps);
+        getExpressionRefs(c.value?.["#text"], symbols, lang, name, deps);
       }
     }
-    return dependencies;
+
+    // ------------------------
+    // 3. table
+    // ------------------------
+    if (def.type === "table") {
+      const tableId = def.table?.ref;
+      if (!symbols.tables.has(tableId)) {
+        throwModelError("Unknown table", {
+          variable: name,
+          table: tableId
+        });
+      }
+    }
+
+    // ------------------------
+    // 4. tableLookup  ⭐ NEW
+    // ------------------------
+    if (def.type === "tableLookup") {
+      const tableId = def.table?.ref;
+      if (!symbols.tables.has(tableId)) {
+        throwModelError("Unknown table", {
+          variable: name,
+          table: tableId
+        });
+      }
+
+      getTableLookupRefs(def, symbols, name, deps);
+    }
   }
+
+  return dependencies;
+}
 
   // throw an error if e.g. a depends on B which depends on C which depends on A.
   function detectCircularExpressions(dependencies) {
@@ -415,6 +439,46 @@
     return [...refs];
   }
 
+
+function getExpressionRefs(text, symbols, lang, ownerName, deps) {
+  const refs = extractStringsFollowedByBrackets(text || "");
+  for (const r of refs) {
+    if (symbols.variables.has(r)) {
+      deps.add(r);
+      continue;
+    }
+    if (lang.functions.has(r)) continue;
+
+    throwModelError("Unknown identifier", {
+      variable: ownerName,
+      reference: r
+    });
+  }
+}
+
+function getTableLookupRefs(def, symbols, ownerName, deps) {
+  const row = def.row?.ref;
+  if (row) {
+    if (!symbols.variables.has(row)) {
+      throwModelError("Unknown identifier", {
+        variable: ownerName,
+        reference: row
+      });
+    }
+    deps.add(row);
+  }
+
+  const colSel = def.columnSelector?.ref;
+  if (colSel) {
+    if (!symbols.variables.has(colSel)) {
+      throwModelError("Unknown identifier", {
+        variable: ownerName,
+        reference: colSel
+      });
+    }
+    deps.add(colSel);
+  }
+}
 
   /* ===========================
      4. FORMAT - make data structures readable by human users
