@@ -400,33 +400,51 @@ function getDependencies(symbols, resolvedVars, lang) {
 }
 
   // throw an error if e.g. a depends on B which depends on C which depends on A.
-  function detectCircularExpressions(dependencies) {
-    const visited = new Set();
-    const stack = new Set();
+function detectCircularExpressions(dependencies) {
+  const visited = new Set();
+  const stack = [];
 
-    function visit(v) {
-      if (stack.has(v)) return [v];
-      if (visited.has(v)) return null;
-      visited.add(v);
-      stack.add(v);
-      for (const d of dependencies.get(v) || []) {
-        const cycle = visit(d);
-        if (cycle) {
-          cycle.push(v);
-          return cycle;
-        }
+  function visit(v) {
+    if (stack.includes(v)) {
+      // extract cycle
+      const start = stack.indexOf(v);
+      return stack.slice(start);
+    }
+    if (visited.has(v)) return null;
+
+    visited.add(v);
+    stack.push(v);
+
+    for (const edge of dependencies.get(v) || []) {
+      const cycle = visit(edge.name);
+      if (cycle) {
+        cycle.push(v);
+        return cycle;
       }
-      stack.delete(v);
-      return null;
     }
 
-    for (const v of dependencies.keys()) {
-      const cycle = visit(v);
-      if (cycle) {
+    stack.pop();
+    return null;
+  }
+
+  for (const v of dependencies.keys()) {
+    const cycle = visit(v);
+    if (cycle) {
+      // check shifts
+      const hasLag = cycle.some((name, i) => {
+        const from = cycle[i];
+        const to = cycle[(i + 1) % cycle.length];
+        return [...dependencies.get(from)].some(
+          e => e.name === to && e.shift < 0
+        );
+      });
+
+      if (!hasLag) {
         throwModelError("Circular expressions detected", { cycle });
       }
     }
   }
+}
      
   // gets functions and variables which are strings followed by left round bracket e.g. the "if" in "if(...)"
   function extractStringsFollowedByBrackets(exprText) {
@@ -478,6 +496,30 @@ function getTableLookupRefs(def, symbols, ownerName, deps) {
     }
     deps.add(colSel);
   }
+}
+
+function extractReferencesWithShift(exprText) {
+  const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/g;
+
+  const refs = [];
+  let m;
+
+  while ((m = regex.exec(exprText)) !== null) {
+    const name = m[1];
+    const args = m[2];
+
+    let shift = 0;
+
+    // very simple: detect "step - number"
+    const shiftMatch = /step\s*-\s*(\d+)/.exec(args);
+    if (shiftMatch) {
+      shift = -Number(shiftMatch[1]);
+    }
+
+    refs.push({ name, shift });
+  }
+
+  return refs;
 }
 
   /* ===========================
