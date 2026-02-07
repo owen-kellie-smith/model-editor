@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<language>
+
+  <functions>
+
+    <!-- numeric -->
+    <function name="floor" arity="xx"/>
+    <function name="ceil" arity="1"/>
+    <function name="round" arity="1"/>
+
+    <function name="min" arity="2"/>
+    <function name="max" arity="2"/>
+    <function name="pow" arity="2"/>
+
+    <!-- logical / conditional helpers -->
+    <function name="abs" arity="1"/>
+
+  </functions>
+
+</language>

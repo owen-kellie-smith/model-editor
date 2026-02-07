@@ -107,9 +107,9 @@
     log: document.getElementById("log"),
   };
 
-  /* ===========================
-     INITIALIZATION
-     =========================== */
+  /* ======================================================
+     1. HANDLERS   ui → applications 
+     ====================================================== */
   ui.loadLanguageFile
     .addEventListener("change", onLoadLanguageChange);
 
@@ -123,84 +123,116 @@
     .addEventListener("click", onLoadModelText);
 
   /* ===========================
-     FUNCTIONS
+     2. APPLICATIONS prepare → call domain → interpret → update state/UI 
      =========================== */
 
+  // Entry point from "Load language" file input.
+  // Reads text from file, then sends it for loading or rejection.
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
     if (!file) return;
-    setValidLanguage(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      ui.languageText.value = reader.result;          // assuming common next action is to tweak it
+      commitOrRejectLanguage(reader.result, file.name) 
+    };
+    reader.readAsText(file);
   };
 
+  // Entry point from "Load language from text" button.
+  // Reads text from textarea, then sends it for loading or rejection.
   function onLoadLanguageText() {
     const text = ui.languageText.value.trim();
+    commitOrRejectLanguage(text, "language in textarea"); 
+  }
+
+  // Orchestrates language load success vs failure.
+  function commitOrRejectLanguage(text, sourceLabel) {
     if (!text) return;
     try {
-      const xml = parseXmlOrThrow(text, "pasted language.xml");
-      const lang = parseAndValidateLanguage(xml, "pasted language.xml");
+      const xml = parseXmlOrThrow(text,  sourceLabel);
+      const lang = getFunctionsFromLanguage(xml,  sourceLabel);
       commitLanguage(lang);
     } catch (er) {
       rejectLanguage(er);
     }
   }
 
+  // Entry point from "Load model" file input.
+  // Validates prerequisites, reads model from file, copies it to textarea, sends it on for reporting.
   function onLoadModelChange(e){
-    if (!languageEnv) {
-      rejectModelInput("✖ Load language.xml first.\n");
-      return;
-    }
+    if (!languageEnvIsSet()) return;
     const file = e.target.files[0];
     if (!file) return;
-    parseAndValidateLoadedModel(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      ui.modelText.value = reader.result;   // copies model to textarea assuming typical next user step will be to tweak model manually
+      validateModel(reader.result, file.name, languageEnv)
+    };
+    reader.readAsText(file);
   };
 
+  // Entry point from "Load model from text" button.
+  // Validates prerequisites, reads model from textarea, sends it on for reporting.
   function onLoadModelText() {
-    if (!languageEnv) {
-      rejectModelInput("✖ Load language.xml first.\n");
-      return;
-    }
+    if (!languageEnvIsSet()) return;
     const text = ui.modelText.value.trim();
     if (!text) return;
+    validateModel(text, "model in textarea", languageEnv)
+  }
 
+  // Gets report on model and pastes it to log or reports any error.
+  function validateModel(text, filename, lang){
     try {
-      validateModelText(text, "pasted model.xml");
+    const xml = parseXmlOrThrow(text, filename);
+    const obj = getObjectFromXML(xml);
+    const features = getModelFeatures(obj, lang);
+    const report = { features, obj, filename };
+    setLogText(formatModelResult(report));
     } catch (er) {
       setLogText(formatModelError(er));
     }
   }
 
-  function setValidLanguage(file){
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        ui.languageText.value = reader.result;          // assuming common next action is to tweak it
-        const xml = parseXmlOrThrow(reader.result, file.name);
-        const lang = parseAndValidateLanguage(xml, file.name);
-        commitLanguage(lang);
-      } catch (er) {
-        rejectLanguage(er);
-      }
+  // passes xmlModel and lang to parsers to get an object containing parsed model features (variables, dependencie i.e. immediate precedents) 
+  function getModelFeatures(xmlModel, lang) {
+    const symbols = getMapsOfModelFeatures(xmlModel);
+    const resolvedVars = getConfirmationThatVariableArgumentsAreIndexSets(symbols);
+    const dependencies = getDependencies(symbols, resolvedVars, lang);
+    detectCircularExpressions(dependencies);
+    return {
+      indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
+      variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
+      resolvedVars,
+      dependencies   
     };
-    reader.readAsText(file);
   }
 
+  
+  // Returns true (with no side-effects) if language is set, otherwise sends an instruction to update UI and state and returns false.
+  function languageEnvIsSet(){
+    if (!languageEnv) {
+      rejectModelInput("✖ Load language.xml first.\n");
+      return false;
+    }
+    return true;
+  }
+
+  // Updates UI (controls) depending on whether language has been loaded.
   function enableControls(isLanguageLoaded){
-    enableInput(ui.loadModelFile, isLanguageLoaded);
-    enableInput(ui.modelText, isLanguageLoaded);
-    enableInput(ui.loadModelText, isLanguageLoaded);
+    enableElement(ui.loadModelFile, isLanguageLoaded);
+    enableElement(ui.modelText, isLanguageLoaded);
+    enableElement(ui.loadModelText, isLanguageLoaded);
   }
 
+  // Updates UI (resets model input controls) and sets log to message
   function rejectModelInput(message) {
     ui.loadModelFile.value = null;
     ui.modelText.value = "";
     setLogText(message);
   }
 
-  function validateModelText(xmlText, filename) {
-    const result = validateModel(xmlText, filename, languageEnv);
-    setLogText(formatModelResult(result));
-  }
-
+  // Updates state (languageEnv) and UI (log and controls) for a new language lang
   function commitLanguage(lang) {
     languageEnv = lang;
     setLogText(formatLanguageLoaded(lang));
@@ -208,11 +240,13 @@
     resetModelInputs();
   }
 
+  // Updates  UI (clears model file and textarea inputs)
   function resetModelInputs() {
     ui.loadModelFile.value = null;
     ui.modelText.value = "";
   }
 
+  // Updates state (languageEnv) and UI (controls, and log with info about error er)
   function rejectLanguage(er) {
     languageEnv = null;
     setLogText(formatModelError(er));
@@ -220,70 +254,19 @@
     resetModelInputs();
   }
 
-  function parseAndValidateLoadedModel(file){
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        ui.modelText.value = reader.result;          // assuming common next action is to tweak it
-        validateModelText(reader.result, file.name);
-      } catch (er) {
-        setLogText(formatModelError(er));
-      }
-    };
-    reader.readAsText(file);
+  // updates UI
+  function clearElementValueAndLogMessage(input, message) {
+    input.value = '';
+    setLogText(message);
   }
 
-  function validateModel(xmlText, filename, language) {
-    const xml = parseXmlOrThrow(xmlText, filename);
-    const obj = getObjectFromXML(xml);
-    const features = getModelFeatures(obj, language);
-    return { features, obj, filename };
-  }
+  /* ===========================
+     3. DOMAIN - return knowledge / analysis about arguments provided, with no unecessary side-effects 
+     =========================== */
 
-  function formatModelResult({ features, obj, filename }) {
-    const {
-      indexSets,
-      variables,
-      resolvedVars,
-      dependencies
-    } = features;
-
-    return [
-      "✔ Model is structurally valid",
-      "",
-      "Index sets:",
-      indexSets.join(", ") || "(none)",
-      "",
-      "Variables:",
-      variables.join(", ") || "(none)",
-      "",
-      "Resolved variables:",
-      getObjectAsString(mapToObject(resolvedVars)),
-      "",
-      "Dependencies:",
-      getObjectAsString(mapOfSetsToObject(dependencies)),
-      "",
-      `${filename} as object:`,
-      getObjectAsString(obj)
-    ].join("\n");
-  }
-
-  function formatModelError(err) {
-    const lines = [
-      "✖ Validation error:",
-      err.message
-    ];
-    if (err.context) {
-      lines.push(
-        "",
-        "Context:",
-        getObjectAsString(err.context)
-      );
-    }
-    return lines.join("\n");
-  }
-
-  function parseAndValidateLanguage(xmlDoc, filename) {
+  // determines if xmlDoc is an valid language and returns its functions or throws an error if it is an invalid language
+  // throws error if domain rules are broken (functions without a name or with non-numeric arity)
+  function getFunctionsFromLanguage(xmlDoc, filename) {
     const functions = new Map();
     const fnNodes = xmlDoc.querySelectorAll("functions > function");
     for (const fn of fnNodes) {
@@ -302,10 +285,244 @@
     return { functions };
   }
 
+  // returns in one object maps of indexSets, units, tables, variables in xml
+  // throws error if domain rules are broken (duplicate index sets, duplicate variables)
+  function getMapsOfModelFeatures(xml) {
+    const indexSets = new Map();
+    const units = new Map();
+    const tables = new Map();
+    const variables = new Map();
+    for (const indSet of asArray(xml.model.indexSets?.indexSet)) {
+      if (indexSets.has(indSet.id)) {
+        throwModelError("Duplicate index set", { id: indSet.id });
+      }
+      indexSets.set(indSet.id, indSet);
+    }
+    for (const u of asArray(xml.model.units?.unit)) {
+      units.set(u.id, u);
+    }
+    for (const t of asArray(xml.model.tables?.table)) {
+      tables.set(t.id, t);
+    }
+    for (const v of asArray(xml.model.variables?.variable)) {
+      if (variables.has(v.id)) {
+        throwModelError("Duplicate variable", { id: v.id });
+      }
+      variables.set(v.id, v);
+    }
+    return { indexSets, units, tables, variables };
+  }
+
+  // returns map of variables whose arguments are verified to be IndexSets
+  // throws error if domain rules are broken (arguments not recognised as IndexSets)
+  function getConfirmationThatVariableArgumentsAreIndexSets(symbols) {
+    const resolved = new Map();
+    for (const [name, v] of symbols.variables) {
+      const args = [];
+      for (const arg of asArray(v.arguments?.arg)) {
+        const indexSet = symbols.indexSets.get(arg.indexSet);
+        if (!indexSet) {
+          throwModelError("Unknown index set", {
+            variable: name,
+            indexSet: arg.indexSet
+          });
+        }
+        args.push(indexSet.id);
+      }
+      resolved.set(name, {
+        name,
+        domain: args,
+        xml: v
+      });
+    }
+    return resolved;
+  }
+
+  // gets a map of dependencies
+  // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
+  function getDependencies(symbols, resolvedVars, lang) {
+    const dependencies = new Map();
+    for (const [name, resolvedVariable] of resolvedVars) {
+      dependencies.set(name, new Set());
+      const def = resolvedVariable.xml.definition;
+      if (!def) continue;
+      if (def.type === "expression") {
+        const refs = extractStringsFollowedByBrackets(def["#text"] || "");
+        for (const r of refs) {
+          if (symbols.variables.has(r)) {
+            dependencies.get(name).add(r);
+            continue;
+          }
+          if (lang.functions.has(r)) {
+            continue; // built-in function
+          }
+          throwModelError("Unknown identifier", {
+            variable: name,
+            reference: r
+          });
+        }
+      }
+      if (def.type === "table") {
+        const tableId = def.table?.ref;
+        if (!symbols.tables.has(tableId)) {
+          throwModelError("Unknown table", {
+            variable: name,
+            table: tableId
+          });
+        }
+      }
+    }
+    return dependencies;
+  }
+
+  // throw an error if e.g. a depends on B which depends on C which depends on A.
+  function detectCircularExpressions(dependencies) {
+    const visited = new Set();
+    const stack = new Set();
+
+    function visit(v) {
+      if (stack.has(v)) return [v];
+      if (visited.has(v)) return null;
+      visited.add(v);
+      stack.add(v);
+      for (const d of dependencies.get(v) || []) {
+        const cycle = visit(d);
+        if (cycle) {
+          cycle.push(v);
+          return cycle;
+        }
+      }
+      stack.delete(v);
+      return null;
+    }
+
+    for (const v of dependencies.keys()) {
+      const cycle = visit(v);
+      if (cycle) {
+        throwModelError("Circular expressions detected", { cycle });
+      }
+    }
+  }
+     
+  // gets functions and variables which are strings followed by left round bracket e.g. the "if" in "if(...)"
+  function extractStringsFollowedByBrackets(exprText) {
+    const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;   // all matches of strings followed by left round bracket 
+    const refs = new Set();
+    let m;
+    while ((m = regex.exec(exprText)) !== null) {
+      refs.add(m[1]);
+    }
+    return [...refs];
+  }
+
+
+  /* ===========================
+     4. FORMAT - make data structures readable by human users
+     =========================== */
+  function formatModelResult({ features, obj, filename }) {
+    const {
+      indexSets,
+      variables,
+      resolvedVars,
+      dependencies
+    } = features;
+
+    return [
+      "✔ Model is structurally valid",
+      "",
+      "Index sets:",
+      indexSets.join(", ") || "(none)",
+      "",
+      "Variables:",
+      variables.join(", ") || "(none)",
+      "",
+      "Resolved variables:",
+      getStringfromObject(getObjectFromMap(resolvedVars)),
+      "",
+      "Dependencies:",
+      getStringfromObject(getObjectFromMapOfSets(dependencies)),
+      "",
+      `${filename} as object:`,
+      getStringfromObject(obj)
+    ].join("\n");
+  }
+
+  function formatModelError(err) {
+    const lines = [
+      "✖ Validation error:",
+      err.message
+    ];
+    if (err.context) {
+      lines.push(
+        "",
+        "Context:",
+        getStringfromObject(err.context)
+      );
+    }
+    return lines.join("\n");
+  }
+
+
   function formatLanguageLoaded(lang) {
-    return "Language loaded:\n " + getObjectAsString(
+    return "Language loaded:\n " + getStringfromObject(
       { functions: Object.fromEntries(lang.functions) }
     );
+  }
+
+
+
+
+
+
+  /* ===========================
+     Validate Step 4: Cycle detection
+     =========================== */
+
+  /* ===========================
+     HELPERS - helps code run
+     =========================== */
+  function asArray(x) {
+    if (x == null) return [];     // null or undefined
+    return Array.isArray(x) ? x : [x];
+  }
+  
+  function enableElement(el, qualifier){
+    el.disabled = !qualifier;
+  };
+
+  function getStringfromObject(obj) {
+    return  JSON.stringify(obj || {}, null, 2);
+  }
+
+  function getObjectFromMap(map) {
+    return Object.fromEntries(map);
+  }
+
+  function getObjectFromMapOfSets(map) {
+    return Object.fromEntries(
+      [...map.entries()].map(([k, v]) => [k, [...v]])
+    );
+  }
+
+
+  function parseXmlOrThrow(text, label) {
+    const xml = new DOMParser().parseFromString(text, "application/xml");
+    const err = xml.getElementsByTagName("parsererror")[0];
+    if (err) {
+      throw new Error(`Invalid XML in ${label}`);
+    }
+    return xml;
+  }
+
+  function setLogText(s){
+      const log = ui.log;
+      log.textContent = s;
+  }
+
+  function throwModelError(message, context = {}) {
+    const err = new Error(message);
+    err.context = context;
+    throw err;
   }
 
   /* ===========================
@@ -345,224 +562,6 @@
     }
     return { model: getObjectFromNode(xml.documentElement) };
   }
-
-  function getModelFeatures(xmlModel, lang) {
-    const symbols = collectSymbols(xmlModel);
-    const resolvedVars = resolveDomains(symbols);
-    const dependencies = resolveReferences(symbols, resolvedVars, lang);
-    detectCycles(dependencies);
-    return {
-      indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
-      variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
-      resolvedVars,
-      dependencies   
-    };
-  }
-
-
-  /* ===========================
-     Validate Step 1: Collect symbols
-     =========================== */
-  function collectSymbols(xml) {
-    const indexSets = new Map();
-    const units = new Map();
-    const tables = new Map();
-    const variables = new Map();
-
-    for (const is of asArray(xml.model.indexSets?.indexSet)) {
-      if (indexSets.has(is.id)) {
-        throwModelError("Duplicate index set", { id: is.id });
-      }
-      indexSets.set(is.id, is);
-    }
-
-    for (const u of asArray(xml.model.units?.unit)) {
-      units.set(u.id, u);
-    }
-
-    for (const t of asArray(xml.model.tables?.table)) {
-      tables.set(t.id, t);
-    }
-
-    for (const v of asArray(xml.model.variables?.variable)) {
-      if (variables.has(v.id)) {
-        throwModelError("Duplicate variable", { id: v.id });
-      }
-      variables.set(v.id, v);
-    }
-
-    return { indexSets, units, tables, variables };
-  }
-
-  /* ===========================
-     Validate Step 2: Resolve domains
-     =========================== */
-  function resolveDomains(symbols) {
-    const resolved = new Map();
-
-    for (const [name, v] of symbols.variables) {
-      const args = [];
-
-      for (const arg of asArray(v.arguments?.arg)) {
-        const indexSet = symbols.indexSets.get(arg.indexSet);
-        if (!indexSet) {
-          throwModelError("Unknown index set", {
-            variable: name,
-            indexSet: arg.indexSet
-          });
-        }
-        args.push(indexSet.id);
-      }
-
-      resolved.set(name, {
-        name,
-        domain: args,
-        xml: v
-      });
-    }
-
-    return resolved;
-  }
-
-  /* ===========================
-     Validate Step 3: Resolve references
-     =========================== */
-  function resolveReferences(symbols, resolvedVars, lang) {
-    const dependencies = new Map();
-
-    for (const [name, resolvedVariable] of resolvedVars) {
-      dependencies.set(name, new Set());
-      const def = resolvedVariable.xml.definition;
-      if (!def) continue;
-
-      if (def.type === "expression") {
-        const refs = extractStringsFollowedByBrackets(def["#text"] || "");
-        for (const r of refs) {
-          if (symbols.variables.has(r)) {
-            dependencies.get(name).add(r);
-            continue;
-          }
-
-          if (lang.functions.has(r)) {
-            continue; // built-in function
-          }
-
-          throwModelError("Unknown identifier", {
-            variable: name,
-            reference: r
-          });
-        }
-      }
-
-      if (def.type === "table") {
-        const tableId = def.table?.ref;
-        if (!symbols.tables.has(tableId)) {
-          throwModelError("Unknown table", {
-            variable: name,
-            table: tableId
-          });
-        }
-      }
-    }
-
-    return dependencies;
-  }
-
-  function extractStringsFollowedByBrackets(exprText) {
-    const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;   // all matches of strings followed by left round bracket 
-    const refs = new Set();
-    let m;
-    while ((m = regex.exec(exprText)) !== null) {
-      refs.add(m[1]);
-    }
-    return [...refs];
-  }
-
-
-  /* ===========================
-     Validate Step 4: Cycle detection
-     =========================== */
-  function detectCycles(dependencies) {
-    const visited = new Set();
-    const stack = new Set();
-
-    function visit(v) {
-      if (stack.has(v)) return [v];
-      if (visited.has(v)) return null;
-
-      visited.add(v);
-      stack.add(v);
-
-      for (const d of dependencies.get(v) || []) {
-        const cycle = visit(d);
-        if (cycle) {
-          cycle.push(v);
-          return cycle;
-        }
-      }
-
-      stack.delete(v);
-      return null;
-    }
-
-    for (const v of dependencies.keys()) {
-      const cycle = visit(v);
-      if (cycle) {
-        throwModelError("Dependency cycle detected", { cycle });
-      }
-    }
-  }
-
-  /* ===========================
-     Helpers
-     =========================== */
-  function asArray(x){
-    return [].concat(x || []);
-  }
-  
-  function enableInput(el, qualifier){
-    el.disabled = !qualifier;
-  };
-
-  function getObjectAsString(obj) {
-    return  JSON.stringify(obj || {}, null, 2);
-  }
-
-  function mapToObject(map) {
-    return Object.fromEntries(map);
-  }
-
-  function mapOfSetsToObject(map) {
-    return Object.fromEntries(
-      [...map.entries()].map(([k, v]) => [k, [...v]])
-    );
-  }
-
-  function nullifyInputWithMessage(input, message) {
-    input.value = '';
-    setLogText(message);
-  }
-
-  function parseXmlOrThrow(text, label) {
-    const xml = new DOMParser().parseFromString(text, "application/xml");
-    const err = xml.getElementsByTagName("parsererror")[0];
-    if (err) {
-      throw new Error(`Invalid XML in ${label}`);
-    }
-    return xml;
-  }
-
-  function setLogText(s){
-      const log = ui.log;
-      log.textContent = s;
-  }
-
-  function throwModelError(message, context = {}) {
-    const err = new Error(message);
-    err.context = context;
-    throw err;
-  }
-
 
 
   </script>
