@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  
   <title>Model XML Validator</title>
   <style>
     body {
@@ -32,6 +33,36 @@
       resize: vertical;    /* optional: allow user resize */
     }
 
+    /* ======================================================
+       Mobile layout
+       ====================================================== */
+    @media (max-width: 768px) {
+
+      body {
+        padding: 1rem;
+      }
+
+      .editor-container {
+        flex-direction: column;   /* stack */
+        gap: 16px;
+      }
+
+      .editor textarea {
+        width: 100%;              /* ignore cols="80" */
+        min-height: 180px;
+        font-size: 16px;          /* stops iOS zoom */
+      }
+
+      input[type="file"],
+      button {
+        font-size: 16px;          /* easier tapping */
+      }
+
+      #log {
+        font-size: 14px;
+        overflow-x: auto;
+      }
+    }
 
   </style>
 </head>
