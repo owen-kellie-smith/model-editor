@@ -93,6 +93,9 @@
   <div id="log"></div>
 
   <script>
+  /* ===========================
+     GLOBALS
+     =========================== */
   let languageEnv = null;
   const ui = {
     loadLanguageFile: document.getElementById("loadLanguageFile"),
@@ -104,23 +107,24 @@
     log: document.getElementById("log"),
   };
 
+  /* ===========================
+     INITIALIZATION
+     =========================== */
   ui.loadLanguageFile
     .addEventListener("change", onLoadLanguageChange);
-
-  ui.loadModelFile
-    .addEventListener("change", onLoadModelChange);
 
   ui.loadLanguageText
     .addEventListener("click", onLoadLanguageText);
 
+  ui.loadModelFile
+    .addEventListener("change", onLoadModelChange);
+
   ui.loadModelText
     .addEventListener("click", onLoadModelText);
 
-  function enableControls(isLanguageLoaded){
-    enableInput(ui.loadModelFile, isLanguageLoaded);
-    enableInput(ui.modelText, isLanguageLoaded);
-    enableInput(ui.loadModelText, isLanguageLoaded);
-  }
+  /* ===========================
+     FUNCTIONS
+     =========================== */
 
   function onLoadLanguageChange(e){
     const file = e.target.files[0];
@@ -131,7 +135,6 @@
   function onLoadLanguageText() {
     const text = ui.languageText.value.trim();
     if (!text) return;
-
     try {
       const xml = parseXmlOrThrow(text, "pasted language.xml");
       const lang = parseAndValidateLanguage(xml, "pasted language.xml");
@@ -141,28 +144,21 @@
     }
   }
 
-  function onLoadModelChange(ev){
+  function onLoadModelChange(e){
     if (!languageEnv) {
       rejectModelInput("✖ Load language.xml first.\n");
       return;
     }
-    const file = ev.target.files[0];
+    const file = e.target.files[0];
     if (!file) return;
     parseAndValidateLoadedModel(file);
   };
-
-  function rejectModelInput(message) {
-    ui.loadModelFile.value = null;
-    ui.modelText.value = "";
-    setLogText(message);
-  }
 
   function onLoadModelText() {
     if (!languageEnv) {
       rejectModelInput("✖ Load language.xml first.\n");
       return;
     }
-
     const text = ui.modelText.value.trim();
     if (!text) return;
 
@@ -171,11 +167,6 @@
     } catch (er) {
       setLogText(formatModelError(er));
     }
-  }
-
-  function validateModelText(xmlText, filename) {
-    const result = validateModel(xmlText, filename, languageEnv);
-    setLogText(formatModelResult(result));
   }
 
   function setValidLanguage(file){
@@ -191,6 +182,23 @@
       }
     };
     reader.readAsText(file);
+  }
+
+  function enableControls(isLanguageLoaded){
+    enableInput(ui.loadModelFile, isLanguageLoaded);
+    enableInput(ui.modelText, isLanguageLoaded);
+    enableInput(ui.loadModelText, isLanguageLoaded);
+  }
+
+  function rejectModelInput(message) {
+    ui.loadModelFile.value = null;
+    ui.modelText.value = "";
+    setLogText(message);
+  }
+
+  function validateModelText(xmlText, filename) {
+    const result = validateModel(xmlText, filename, languageEnv);
+    setLogText(formatModelResult(result));
   }
 
   function commitLanguage(lang) {
@@ -259,8 +267,6 @@
       getObjectAsString(obj)
     ].join("\n");
   }
-
-
 
   function formatModelError(err) {
     const lines = [
@@ -518,15 +524,8 @@
     el.disabled = !qualifier;
   };
 
-  function setLogText(s){
-      const log = ui.log;
-      log.textContent = s;
-  }
-
-  function throwModelError(message, context = {}) {
-    const err = new Error(message);
-    err.context = context;
-    throw err;
+  function getObjectAsString(obj) {
+    return  JSON.stringify(obj || {}, null, 2);
   }
 
   function mapToObject(map) {
@@ -537,10 +536,6 @@
     return Object.fromEntries(
       [...map.entries()].map(([k, v]) => [k, [...v]])
     );
-  }
-
-  function getObjectAsString(obj) {
-    return  JSON.stringify(obj || {}, null, 2);
   }
 
   function nullifyInputWithMessage(input, message) {
@@ -556,6 +551,18 @@
     }
     return xml;
   }
+
+  function setLogText(s){
+      const log = ui.log;
+      log.textContent = s;
+  }
+
+  function throwModelError(message, context = {}) {
+    const err = new Error(message);
+    err.context = context;
+    throw err;
+  }
+
 
 
   </script>
