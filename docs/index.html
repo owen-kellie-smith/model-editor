@@ -182,6 +182,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
+        ui.languageText.value = reader.result;          // assuming common next action is to tweak it
         const xml = parseXmlOrThrow(reader.result, file.name);
         const lang = parseAndValidateLanguage(xml, file.name);
         commitLanguage(lang);
@@ -215,6 +216,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
+        ui.modelText.value = reader.result;          // assuming common next action is to tweak it
         validateModelText(reader.result, file.name);
       } catch (er) {
         setLogText(formatModelError(er));
