@@ -336,7 +336,7 @@
   // gets a map of dependencies
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
 function getDependencies(symbols, resolvedVarsWithArguments, lang) {
-  const dependencies = new Map();   // ⭐ THIS WAS MISSING
+  const dependencies = new Map(); 
 
   for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
     const deps = new Set();
@@ -348,7 +348,7 @@ function getDependencies(symbols, resolvedVarsWithArguments, lang) {
     );
   }
 
-  return dependencies;   // ⭐ and we return it
+  return dependencies;   
 }
   // throw an error if e.g. a depends on B which depends on C which depends on A.
 function throwErrorForCircularExpressions(dependencies) {
