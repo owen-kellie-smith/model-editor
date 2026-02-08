@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">  
-  <title>Model XML Validator</title>
+  <title>XMLV dependencies 0.4</title>
   <style>
     body {
       font-family: sans-serif;
@@ -28,7 +28,7 @@
     }
 
     .editor textarea {
-      flex: 1;              /* fills available space */
+/*      flex: 1;           */   /* fills available space, disabled so you can resize manually */
       min-height: 130px;    /* pick a height you like */
       resize: vertical;    /* optional: allow user resize */
     }
@@ -196,14 +196,14 @@
 
   // passes xmlModel and lang to parsers to get an object containing parsed model features (variables, dependencie i.e. immediate precedents) 
   function getModelFeatures(xmlModel, lang) {
-    const symbols = getMapsOfModelFeatures(xmlModel);
-    const resolvedVars = getConfirmationThatVariableArgumentsAreIndexSets(symbols);
-    const dependencies = getDependencies(symbols, resolvedVars, lang);
-    detectCircularExpressions(dependencies);
+    const symbols = getMapsOfModelProperties(xmlModel);
+    const resolvedVarsWithArguments = getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols);
+    const dependencies = getDependencies(symbols, resolvedVarsWithArguments, lang);
+    throwErrorForCircularExpressions(dependencies);
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
       variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
-      resolvedVars,
+      resolvedVarsWithArguments,
       dependencies   
     };
   }
@@ -259,7 +259,7 @@
      3. DOMAIN - return knowledge / analysis about arguments provided, with no unecessary side-effects 
      =========================== */
 
-  // determines if xmlDoc is an valid language and returns its functions or throws an error if it is an invalid language
+  // determines if xmlDoc is a valid language definition and returns its functions or throws an error if it is an invalid language definition
   // throws error if domain rules are broken (functions without a name or with non-numeric arity)
   function getFunctionsFromLanguage(xmlDoc, filename) {
     const functions = new Map();
@@ -282,7 +282,7 @@
 
   // returns in one object maps of indexSets, units, tables, variables in xml
   // throws error if domain rules are broken (duplicate index sets, duplicate variables)
-  function getMapsOfModelFeatures(xml) {
+  function getMapsOfModelProperties(xml) {
     const indexSets = new Map();
     const units = new Map();
     const tables = new Map();
@@ -310,7 +310,7 @@
 
   // returns map of variables whose arguments are verified to be IndexSets
   // throws error if domain rules are broken (arguments not recognised as IndexSets)
-  function getConfirmationThatVariableArgumentsAreIndexSets(symbols) {
+  function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
     const resolved = new Map();
     for (const [name, v] of symbols.variables) {
       const args = [];
@@ -335,67 +335,23 @@
 
   // gets a map of dependencies
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
-function getDependencies(symbols, resolvedVars, lang) {
-  const dependencies = new Map();
+function getDependencies(symbols, resolvedVarsWithArguments, lang) {
+  const dependencies = new Map();   // ⭐ THIS WAS MISSING
 
-  for (const [name, resolvedVariable] of resolvedVars) {
+  for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
     const deps = new Set();
     dependencies.set(name, deps);
 
-    const def = resolvedVariable.xml.definition;
-    if (!def) continue;
-
-    // ------------------------
-    // 1. expression
-    // ------------------------
-    if (def.type === "expression") {
-      getExpressionRefs(def["#text"], symbols, lang, name, deps);
-    }
-
-    // ------------------------
-    // 2. piecewise
-    // ------------------------
-    if (def.type === "piecewise") {
-      for (const c of asArray(def.case)) {
-        getExpressionRefs(c.when?.["#text"], symbols, lang, name, deps);
-        getExpressionRefs(c.value?.["#text"], symbols, lang, name, deps);
-      }
-    }
-
-    // ------------------------
-    // 3. table
-    // ------------------------
-    if (def.type === "table") {
-      const tableId = def.table?.ref;
-      if (!symbols.tables.has(tableId)) {
-        throwModelError("Unknown table", {
-          variable: name,
-          table: tableId
-        });
-      }
-    }
-
-    // ------------------------
-    // 4. tableLookup  ⭐ NEW
-    // ------------------------
-    if (def.type === "tableLookup") {
-      const tableId = def.table?.ref;
-      if (!symbols.tables.has(tableId)) {
-        throwModelError("Unknown table", {
-          variable: name,
-          table: tableId
-        });
-      }
-
-      getTableLookupRefs(def, symbols, name, deps);
-    }
+    const collector = makeDependencyCollector(symbols, lang, name, deps);
+    collector.addDependenciesFromDefinition(
+      resolvedVariable.xml.definition
+    );
   }
 
-  return dependencies;
+  return dependencies;   // ⭐ and we return it
 }
-
   // throw an error if e.g. a depends on B which depends on C which depends on A.
-function detectCircularExpressions(dependencies) {
+function throwErrorForCircularExpressions(dependencies) {
   const visited = new Set();
   const stack = [];
 
@@ -442,7 +398,7 @@ function detectCircularExpressions(dependencies) {
 }
      
   // gets functions and variables which are strings followed by left round bracket e.g. the "if" in "if(...)"
-  function extractStringsFollowedByBrackets(exprText) {
+  function getVariableLikeNames(exprText) {
     const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;   // all matches of strings followed by left round bracket 
     const refs = new Set();
     let m;
@@ -453,57 +409,100 @@ function detectCircularExpressions(dependencies) {
   }
 
 
-function getExpressionRefs(text, symbols, lang, ownerName, deps) {
-  const refs = extractStringsFollowedByBrackets(text || "");
-  for (const r of refs) {
-    if (symbols.variables.has(r)) {
-      deps.add(r);
-      continue;
-    }
-    if (lang.functions.has(r)) continue;
+function makeDependencyCollector(symbols, lang, ownerName, deps) {
 
-    throwModelError("Unknown identifier", {
-      variable: ownerName,
-      reference: r
-    });
-  }
-}
+  // --------------------------------------------------
+  // low level primitive
+  // --------------------------------------------------
+  function addDependencyIfVariable(ref, options = {}) {
+    const { label = "", ...extra } = options;
 
-function getTableLookupRefs(def, symbols, ownerName, deps) {
-  const row = def.row?.ref;
-  if (row) {
-    if (!symbols.variables.has(row)) {
-      throwModelError("Unknown identifier", {
+    if (!symbols.variables.has(ref)) {
+      const where = label ? ` for ${label}` : "";
+
+      throwModelError(`Unknown identifier${where}`, {
         variable: ownerName,
-        reference: row
+        reference: ref,
+        ...extra
       });
     }
-    deps.add(row);
+
+    deps.add(ref);
   }
 
-  const colSel = def.columnSelector?.ref;
-  if (colSel) {
-    if (!symbols.variables.has(colSel)) {
-      throwModelError("Unknown identifier", {
-        variable: ownerName,
-        reference: colSel
-      });
+  // --------------------------------------------------
+  // expression
+  // --------------------------------------------------
+  function addDependenciesFromExpression(node) {
+    const text = node?.["#text"] ?? "";
+
+    for (const r of getVariableLikeNames(text)) {
+      if (lang.functions.has(r)) continue;
+
+      addDependencyIfVariable(r, { text });
     }
-    deps.add(colSel);
   }
+
+  // --------------------------------------------------
+  // table lookup
+  // --------------------------------------------------
+  function addDependenciesFromTableLookup(def) {
+    const row = def.row?.ref;
+    if (row) {
+      addDependencyIfVariable(row, { label: "row selector" });
+    }
+
+    const colSel = def.columnSelector?.ref;
+    if (colSel) {
+      addDependencyIfVariable(colSel, { label: "column selector" });
+    }
+  }
+
+  // --------------------------------------------------
+  // dispatcher (the brain)
+  // --------------------------------------------------
+  function addDependenciesFromDefinition(def) {
+    if (!def) return;
+
+    if (def.type === "expression") {
+      addDependenciesFromExpression(def);
+      return;
+    }
+
+    if (def.type === "piecewise") {
+      for (const c of asArray(def.case)) {
+        addDependenciesFromExpression(c.when);
+        addDependenciesFromExpression(c.value);
+      }
+      return;
+    }
+
+    if (def.type === "tableLookup") {
+      addDependenciesFromTableLookup(def);
+      return;
+    }
+  }
+
+  return {
+    addDependenciesFromDefinition
+  };
 }
 
 
   /* ===========================
      4. FORMAT - make data structures readable by human users
      =========================== */
+
   function formatModelResult({ features, obj, filename }) {
     const {
       indexSets,
       variables,
-      resolvedVars,
+      resolvedVarsWithArguments,
       dependencies
     } = features;
+
+    const resolvedVarsAsObj = getObjectFromMap(resolvedVarsWithArguments);
+    const dependenciesAsObj = getObjectFromMapOfSets(dependencies);
 
     return [
       "✔ Model is structurally valid",
@@ -515,10 +514,10 @@ function getTableLookupRefs(def, symbols, ownerName, deps) {
       variables.join(", ") || "(none)",
       "",
       "Resolved variables:",
-      getStringfromObject(getObjectFromMap(resolvedVars)),
+      getStringfromObject(resolvedVarsAsObj),
       "",
       "Dependencies:",
-      getStringfromObject(getObjectFromMapOfSets(dependencies)),
+      getStringfromObject(dependenciesAsObj),
       "",
       `${filename} as object:`,
       getStringfromObject(obj)
@@ -540,21 +539,11 @@ function getTableLookupRefs(def, symbols, ownerName, deps) {
     return lines.join("\n");
   }
 
-
   function formatLanguageLoaded(lang) {
     return "Language loaded:\n " + getStringfromObject(
       { functions: Object.fromEntries(lang.functions) }
     );
   }
-
-
-
-
-
-
-  /* ===========================
-     Validate Step 4: Cycle detection
-     =========================== */
 
   /* ===========================
      HELPERS - helps code run
@@ -582,30 +571,6 @@ function getTableLookupRefs(def, symbols, ownerName, deps) {
     );
   }
 
-
-  function parseXmlOrThrow(text, label) {
-    const xml = new DOMParser().parseFromString(text, "application/xml");
-    const err = xml.getElementsByTagName("parsererror")[0];
-    if (err) {
-      throw new Error(`Invalid XML in ${label}`);
-    }
-    return xml;
-  }
-
-  function setLogText(s){
-      const log = ui.log;
-      log.textContent = s;
-  }
-
-  function throwModelError(message, context = {}) {
-    const err = new Error(message);
-    err.context = context;
-    throw err;
-  }
-
-  /* ===========================
-     XML → JS object
-     =========================== */
   function getObjectFromXML(xml) {
     function getObjectFromNode(node) {
       const obj = {};
@@ -639,6 +604,26 @@ function getTableLookupRefs(def, symbols, ownerName, deps) {
       return obj;
     }
     return { model: getObjectFromNode(xml.documentElement) };
+  }
+
+  function parseXmlOrThrow(text, label) {
+    const xml = new DOMParser().parseFromString(text, "application/xml");
+    const err = xml.getElementsByTagName("parsererror")[0];
+    if (err) {
+      throw new Error(`Invalid XML in ${label}`);
+    }
+    return xml;
+  }
+
+  function setLogText(s){
+      const log = ui.log;
+      log.textContent = s;
+  }
+
+  function throwModelError(message, context = {}) {
+    const err = new Error(message);
+    err.context = context;
+    throw err;
   }
 
 
