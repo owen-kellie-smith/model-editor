@@ -11,8 +11,7 @@ export function loadXml(path) {
   const doc = new DOMParser().parseFromString(text, "application/xml");
 
   // tiny shim
-//  doc.querySelectorAll = (q) => xpath.select("//" + q.replace(/>/g, "/"), doc);
-  doc.querySelectorAll = (q) => xpath.select(q.replace(/>/g, "/"), doc);
+  doc.querySelectorAll = (q) => xpath.select("//" + q.replace(/>/g, "/"), doc);
 
   return doc;
 }
