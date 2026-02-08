@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<ModelSpec>
+  <Title>AnnuityL1</Title>
+  <ModelPointFields>
+    <VariableDefinition
+      Name="MPF_ANNUAL_ANNUITY_AMOUNT"
+      DataType="Double" />
+    <VariableDefinition
+      Name="MPF_ANNUITY_START_AGE"
+      DataType="Double" />
+    <VariableDefinition
+      Name="MPF_CURRENT_AGE"
+      DataType="Double" />
+    <VariableDefinition
+      Name="MPF_MORTALITY_TABLE"
+      DataType="String" />
+  </ModelPointFields>
+  <DoubleTables>
+    <VariableDefinition
+      Name="SPOT_RATES" />
+  </DoubleTables>
+  <MultiUltMortalityTables>
+    <VariableDefinition
+      Name="MULTMORT" />
+  </MultiUltMortalityTables>
+  <Formulas>
+    <VariableDefinition
+      Name="ANNUAL_ANNUITY_AMOUNT"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="GetModelPoint(MPF_ANNUAL_ANNUITY_AMOUNT)"
+      Units="GBP per year" />
+    <VariableDefinition
+      Name="ANNUITY_START_AGE"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="GetModelPoint(MPF_ANNUITY_START_AGE)"
+      Units="years" />
+    <VariableDefinition
+      Name="CURRENT_AGE"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="GetModelPoint(MPF_CURRENT_AGE)"
+      Units="years" />
+    <VariableDefinition
+      Name="MORTALITY_TABLE"
+      DataType="String"
+      VariableType="Formula"
+      Formula="GetModelPoint(MPF_MORTALITY_TABLE)"
+      Units="" />
+    <VariableDefinition
+      Name="CalcTerm"
+      DataType="Int32"
+      VariableType="Formula"
+      Formula="ProjectionTerm"
+      Units="" />
+    <VariableDefinition
+      Name="STEP_LENGTH"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="1/12"
+      Units="Years" />
+    <VariableDefinition
+      Name="ATTAINED_AGE"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="CURRENT_AGE+t*STEP_LENGTH"
+      Units="" />
+    <VariableDefinition
+      Name="ATTAINED_AGE_YEARS_FLOOR"
+      DataType="Int32"
+      VariableType="Formula"
+      Formula="INT(ATTAINED_AGE(t))"
+      Units="" />
+    <VariableDefinition
+      Name="ANNUAL_MORTALITY_RATE"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="GetMultiUltMortRate(MULTMORT,ATTAINED_AGE_YEARS_FLOOR(t),MORTALITY_TABLE)"
+      Units="" />
+    <VariableDefinition
+      Name="MONTHLY_SURVIVAL_RATE"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="(1-ANNUAL_MORTALITY_RATE(t))^STEP_LENGTH"
+      Units="" />
+    <VariableDefinition
+      Name="SURVIVAL_TO_START_OF_MONTH"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="IF(t=0,&#10;1,&#10;SURVIVAL_TO_START_OF_MONTH(t-1)*MONTHLY_SURVIVAL_RATE(t-1)&#10;)"
+      Units="" />
+    <VariableDefinition
+      Name="PAYABLE_AT_START_OF_MONTH"
+      DataType="Boolean"
+      VariableType="Formula"
+      Formula="ATTAINED_AGE(t)&gt;=ANNUITY_START_AGE"
+      Units="" />
+    <VariableDefinition
+      Name="PAYMENT_INDICATOR"
+      DataType="Int32"
+      VariableType="Formula"
+      Formula="IF(PAYABLE_AT_START_OF_MONTH(t),1,0)"
+      Units="" />
+    <VariableDefinition
+      Name="CASHFLOW"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="ANNUAL_ANNUITY_AMOUNT*STEP_LENGTH*PAYMENT_INDICATOR(t)*SURVIVAL_TO_START_OF_MONTH(t)"
+      Units="" />
+    <VariableDefinition
+      Name="SPOT_RATE"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="GetDoubleTableValue(SPOT_RATES,t,&quot;Rate&quot;)"
+      Units="" />
+    <VariableDefinition
+      Name="DISCOUNT_FACTOR"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="(1+SPOT_RATE(t))^(-t*STEP_LENGTH)"
+      Units="" />
+    <VariableDefinition
+      Name="DISCOUNTED_CASHFLOW"
+      DataType="Double"
+      VariableType="Formula"
+      Formula="DISCOUNT_FACTOR(t)*CASHFLOW(t)"
+      Units="" />
+  </Formulas>
+</ModelSpec>\
