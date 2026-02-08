@@ -1,0 +1,41 @@
+
+  export const runtimeIdentifiers = new Set([
+    "PROJECTIONTERM",
+    "RECORDNUMBER",
+    "T"
+  ]);
+  
+  export function getFunctionsFromLanguage(xmlDoc, filename) {
+  const functions = new Map();
+  const fnNodes = xmlDoc.querySelectorAll("functions > function");
+
+  for (const fn of fnNodes) {
+    const name = fn.getAttribute("name");
+    const minArgs = Number(fn.getAttribute("minArgs"));
+    const maxArgs = Number(fn.getAttribute("maxArgs"));
+    const arity = Number(fn.getAttribute("arity"));
+
+    const serializer = new XMLSerializer();
+    const fnXml = serializer.serializeToString(fn);
+
+    if (!name) {
+      throw new Error(
+        "Invalid function declaration in " + filename + ": function without name\n" + fnXml
+      );
+    }
+    if (Number.isNaN(arity)) {
+      throw new Error("Invalid function declaration in " + filename);
+    }
+    if (Number.isNaN(minArgs)) {
+      throw new Error("Invalid function declaration in " + filename);
+    }
+    if (Number.isNaN(maxArgs)) {
+      throw new Error("Invalid function declaration in " + filename);
+    }
+
+    functions.set(name.toUpperCase(), { arity, minArgs, maxArgs });
+  }
+
+  return { functions };
+}
+

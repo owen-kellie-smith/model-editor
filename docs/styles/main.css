@@ -1,0 +1,59 @@
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    #log {
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      font-family: monospace;
+      border: 1px solid #ccc;
+      padding: 1rem;
+    }
+    .editor-container {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    
+    .editor {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor textarea {
+/*      flex: 1;           */   /* fills available space, disabled so you can resize manually */
+      min-height: 130px;    /* pick a height you like */
+      resize: vertical;    /* optional: allow user resize */
+    }
+
+    /* ======================================================
+       Mobile layout
+       ====================================================== */
+    @media (max-width: 768px) {
+
+      body {
+        padding: 1rem;
+      }
+
+      .editor-container {
+        flex-direction: column;   /* stack */
+        gap: 16px;
+      }
+
+      .editor textarea {
+        width: 100%;              /* ignore cols="80" */
+        min-height: 180px;
+        font-size: 16px;          /* stops iOS zoom */
+      }
+
+      input[type="file"],
+      button {
+        font-size: 16px;          /* easier tapping */
+      }
+
+      #log {
+        font-size: 14px;
+        overflow-x: auto;
+      }
+    }
+
