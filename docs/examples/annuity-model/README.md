@@ -1,6 +1,6 @@
 # Annuity model
 
-This directory contains a **small, fully declarative annuity cashflow model**.
+This directory contains 2 equivalent examples of a **small, fully declarative annuity cashflow model**.
 
 The model exists to:
 - exercise the model editor and its structural constraints,
