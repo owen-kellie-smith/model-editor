@@ -50,10 +50,16 @@ The current focus is on **parsing, validation, and dependency analysis** as a fo
 
 ## How to run
 
-1. Clone the repository
-2. Open `docs/index.html` in a modern browser
-3. Load or paste a `language.xml` (e.g. from docs/)
-4. Load or paste a `model.xml`(e.g. from docs/annuity-model)
+1. Clone or download the repository
+2. In the docs folder, serve locally:
+
+```bash
+python3 -m http.server 8080
+```
+then visit http://localhost:8080
+
+3. Load or paste a `language.xml` (e.g. from docs/examples/)
+4. Load or paste a `model.xml`(e.g. from docs/examples/annuity-model)
 5. Inspect validation and dependency output in the log panel
 
 No build step or server required.
