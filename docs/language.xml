@@ -12,6 +12,12 @@
     <function name="min" arity="2"/>
     <function name="max" arity="2"/>
     <function name="pow" arity="2"/>
+    <function name="GetModelPoint" arity="1"/>
+    <function name="GetDoubleTableValue" minArgs="3"/>
+    <function name="GetMultiUltMortRate" minArgs="3"/>
+    <function name="int" arity="1"/>
+    <function name="if" arity="3"/>
+
 
     <!-- logical / conditional helpers -->
     <function name="abs" arity="1"/>

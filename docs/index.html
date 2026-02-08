@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">  
-  <title>XMLV dependencies 0.4</title>
+  <title>XMLV dependencies 1.1</title>
   <style>
     body {
       font-family: sans-serif;
@@ -266,6 +266,8 @@
     const fnNodes = xmlDoc.querySelectorAll("functions > function");
     for (const fn of fnNodes) {
       const name = fn.getAttribute("name");
+      const minArgs = Number(fn.getAttribute("minArgs"));
+      const maxArgs = Number(fn.getAttribute("maxArgs"));
       const arity = Number(fn.getAttribute("arity"));
       const serializer = new XMLSerializer();
       const fnXml = serializer.serializeToString(fn);
@@ -275,7 +277,13 @@
       if (Number.isNaN(arity)) {
         throw new Error("Invalid function declaration in " + filename + ": function with non-numeric arity \n" + fnXml);
       }
-      functions.set(name, { arity });
+      if (Number.isNaN(minArgs)) {
+        throw new Error("Invalid function declaration in " + filename + ": function with non-numeric minArgs \n" + fnXml);
+      }
+      if (Number.isNaN(maxArgs)) {
+        throw new Error("Invalid function declaration in " + filename + ": function with non-numeric maxArgs \n" + fnXml);
+      }
+      functions.set(name.toUpperCase(), { arity, minArgs, maxArgs });
     }
     return { functions };
   }
@@ -291,27 +299,54 @@
       if (indexSets.has(indSet.id)) {
         throwModelError("Duplicate index set", { id: indSet.id });
       }
-      indexSets.set(indSet.id, indSet);
+      indexSets.set(indSet.id.toUpperCase(), indSet);
     }
     for (const u of asArray(xml.model.units?.unit)) {
-      units.set(u.id, u);
+      units.set(u.id.toUpperCase(), u);
     }
     for (const t of asArray(xml.model.tables?.table)) {
-      tables.set(t.id, t);
+      tables.set(t.id.toUpperCase(), t);
     }
     for (const v of asArray(xml.model.variables?.variable)) {
-      if (variables.has(v.id)) {
-        throwModelError("Duplicate variable", { id: v.id });
+      if (variables.has(v.id.toUpperCase())) {
+        throwModelError("Duplicate variable", { id: v.id.toUpperCase() });
       }
-      variables.set(v.id, v);
+      variables.set(v.id.toUpperCase(), v);
     }
+    // ------------------------------------------------------
+    // FALLBACK: ModelMaker style
+    // ------------------------------------------------------
+    if (variables.size === 0 && xml.model.ModelPointFields) {
+      console.log("Using ModelMaker fallback loader");
+
+      for (const v of asArray(xml.model.ModelPointFields.VariableDefinition)) {
+        variables.set(v.Name.toUpperCase(), {
+          id: v.Name.toUpperCase(),
+          definition: {
+            type: "expression",
+            "#text": v.Formula || ""
+          }
+        });
+      }
+
+      for (const v of asArray(xml.model.Formulas?.VariableDefinition)) {
+        variables.set(v.Name.toUpperCase(), {
+          id: v.Name.toUpperCase(),
+          definition: {
+            type: "expression",
+            "#text": v.Formula || ""
+          }
+        });
+      }
+    }
+
     return { indexSets, units, tables, variables };
   }
 
   // returns map of variables whose arguments are verified to be IndexSets
   // throws error if domain rules are broken (arguments not recognised as IndexSets)
   function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
-    const resolved = new Map();
+    const resolved = new Map(); 
     for (const [name, v] of symbols.variables) {
       const args = [];
       for (const arg of asArray(v.arguments?.arg)) {
@@ -324,8 +359,8 @@
         }
         args.push(indexSet.id);
       }
-      resolved.set(name, {
-        name,
+      resolved.set(name.toUpperCase(), {
+        name: name.toUpperCase(),
         domain: args,
         xml: v
       });
@@ -340,7 +375,7 @@ function getDependencies(symbols, resolvedVarsWithArguments, lang) {
 
   for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
     const deps = new Set();
-    dependencies.set(name, deps);
+    dependencies.set(name.toUpperCase(), deps);
 
     const collector = makeDependencyCollector(symbols, lang, name, deps);
     collector.addDependenciesFromDefinition(
@@ -435,12 +470,14 @@ function makeDependencyCollector(symbols, lang, ownerName, deps) {
   // --------------------------------------------------
   function addDependenciesFromExpression(node) {
     const text = node?.["#text"] ?? "";
-
     for (const r of getVariableLikeNames(text)) {
-      if (lang.functions.has(r)) continue;
+      const ref = r.toUpperCase();
 
-      addDependencyIfVariable(r, { text });
+      if (lang.functions.has(ref)) continue;
+
+      addDependencyIfVariable(ref, { text });
     }
+
   }
 
   // --------------------------------------------------
