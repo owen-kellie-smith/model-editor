@@ -1,10 +1,11 @@
 # model-editor
 
+![Tests](https://github.com/owen-kellie-smith/model-editor/actions/workflows/tests.yml/badge.svg)
+
 An experimental single web page for parsing, validating, and exploring large declarative models stored in XML.
 
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
-![Tests](https://github.com/owen-kellie-smith/model-editor/actions/workflows/tests.yml/badge.svg)
 ---
 
 The long-term goal of this project is a **constrained editor** for navigating and modifying models while preserving structural validity.  
