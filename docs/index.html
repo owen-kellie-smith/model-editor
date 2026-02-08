@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">  
-  <title>XMLV dependencies 1.1</title>
+  <title>XMLV dependencies 1.7</title>
   <style>
     body {
       font-family: sans-serif;
@@ -259,6 +259,13 @@
      3. DOMAIN - return knowledge / analysis about arguments provided, with no unecessary side-effects 
      =========================== */
 
+
+  const runtimeIdentifiers = new Set([
+    "PROJECTIONTERM",
+    "RECORDNUMBER",
+    "T"
+  ]);
+
   // determines if xmlDoc is a valid language definition and returns its functions or throws an error if it is an invalid language definition
   // throws error if domain rules are broken (functions without a name or with non-numeric arity)
   function getFunctionsFromLanguage(xmlDoc, filename) {
@@ -319,24 +326,34 @@
     if (variables.size === 0 && xml.model.ModelPointFields) {
       console.log("Using ModelMaker fallback loader");
 
+      // -------------------------
+      // variables
+      // -------------------------
       for (const v of asArray(xml.model.ModelPointFields.VariableDefinition)) {
         variables.set(v.Name.toUpperCase(), {
           id: v.Name.toUpperCase(),
-          definition: {
-            type: "expression",
-            "#text": v.Formula || ""
-          }
+          definition: { type: "expression", "#text": v.Formula || "" }
         });
       }
 
       for (const v of asArray(xml.model.Formulas?.VariableDefinition)) {
         variables.set(v.Name.toUpperCase(), {
           id: v.Name.toUpperCase(),
-          definition: {
-            type: "expression",
-            "#text": v.Formula || ""
-          }
+          definition: { type: "expression", "#text": v.Formula || "" }
         });
+      }
+
+      const tableContainers = [
+        xml.model.DoubleTables,
+        xml.model.IntegerTables,
+        xml.model.MortalityTables,
+        xml.model.MultiUltMortalityTables,
+      ];
+
+      for (const container of tableContainers) {
+        for (const t of asArray(container?.VariableDefinition)) {
+          tables.set(t.Name.toUpperCase(), t);
+        }
       }
     }
 
@@ -350,7 +367,7 @@
     for (const [name, v] of symbols.variables) {
       const args = [];
       for (const arg of asArray(v.arguments?.arg)) {
-        const indexSet = symbols.indexSets.get(arg.indexSet);
+        const indexSet = symbols.indexSets.get(arg.indexSet?.toUpperCase());
         if (!indexSet) {
           throwModelError("Unknown index set", {
             variable: name,
@@ -431,16 +448,20 @@ function throwErrorForCircularExpressions(dependencies) {
     }
   }
 }
-     
-  // gets functions and variables which are strings followed by left round bracket e.g. the "if" in "if(...)"
-  function getVariableLikeNames(exprText) {
-    const regex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;   // all matches of strings followed by left round bracket 
-    const refs = new Set();
-    let m;
-    while ((m = regex.exec(exprText)) !== null) {
-      refs.add(m[1]);
-    }
-    return [...refs];
+ 
+    
+  // gets words from exprText
+  function getIdentifierTokens(exprText) {
+  const regex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g; // \b is word boundary so \b ... \b encloses a word
+
+  const refs = new Set();
+  let m;
+
+  while ((m = regex.exec(exprText)) !== null) {
+    refs.add(m[1]);
+  }
+
+  return [...refs];
   }
 
 
@@ -469,11 +490,15 @@ function makeDependencyCollector(symbols, lang, ownerName, deps) {
   // expression
   // --------------------------------------------------
   function addDependenciesFromExpression(node) {
-    const text = node?.["#text"] ?? "";
-    for (const r of getVariableLikeNames(text)) {
+    const rawText = node?.["#text"] ?? "";
+    const text = removeStringLiterals(rawText);
+    for (const r of getIdentifierTokens(text)) {
       const ref = r.toUpperCase();
 
       if (lang.functions.has(ref)) continue;
+      if (runtimeIdentifiers.has(ref)) continue;
+      if (symbols.tables.has(ref)) continue;  
+      if (symbols.indexSets.has(ref)) continue;
 
       addDependencyIfVariable(ref, { text });
     }
@@ -484,12 +509,12 @@ function makeDependencyCollector(symbols, lang, ownerName, deps) {
   // table lookup
   // --------------------------------------------------
   function addDependenciesFromTableLookup(def) {
-    const row = def.row?.ref;
+    const row = def.row?.ref?.toUpperCase();
     if (row) {
       addDependencyIfVariable(row, { label: "row selector" });
     }
 
-    const colSel = def.columnSelector?.ref;
+    const colSel = def.columnSelector?.ref?.toUpperCase();
     if (colSel) {
       addDependencyIfVariable(colSel, { label: "column selector" });
     }
@@ -652,6 +677,10 @@ function makeDependencyCollector(symbols, lang, ownerName, deps) {
     return xml;
   }
 
+  function removeStringLiterals(text) {
+    return text.replace(/"[^"]*"/g, "");
+  }
+
   function setLogText(s){
       const log = ui.log;
       log.textContent = s;
@@ -662,6 +691,7 @@ function makeDependencyCollector(symbols, lang, ownerName, deps) {
     err.context = context;
     throw err;
   }
+
 
 
   </script>
