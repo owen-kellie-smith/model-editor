@@ -1,8 +1,7 @@
 import { ui } from "../ui.js";
-import { parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
 import { formatError, formatModelResult } from "../format/formatters.js";
 import { getLanguageEnv } from "./languageApp.js";
-import { getModelFeatures } from "../domain/model.js";
+import { validateModelCore } from "../domain/model.js";
 
 function setLogText(s) {
   ui.log.textContent = s;
@@ -18,10 +17,8 @@ function languageEnvIsSet() {
 
 function validateModel(text, filename, lang) {
   try {
-    const xml = parseXmlOrThrow(text, filename);
-    const obj = getObjectFromXML(xml);   // move helper later if needed
-    const features = getModelFeatures(obj, lang);
-    setLogText(formatModelResult({ features, obj, filename }));
+    const result = validateModelCore(text, filename, lang);
+    setLogText(formatModelResult(result));
   } catch (er) {
     setLogText(formatError(er));
   }

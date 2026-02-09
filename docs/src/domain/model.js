@@ -1,5 +1,14 @@
-import { asArray, throwModelError } from "../utils/helpers.js";
+import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
 import { makeDependencyCollector } from "./dependencyCollector.js";
+
+// returns xml, javascript object, model features
+export function validateModelCore(text, filename, lang) {
+  const xml = parseXmlOrThrow(text, filename);
+  const obj = getObjectFromXML(xml);
+  const features = getModelFeatures(obj, lang);
+
+  return { features, obj, filename };
+}
 
   // returns in one object maps of indexSets, units, tables, variables in xml
   // throws error if domain rules are broken (duplicate index sets, duplicate variables)
@@ -124,7 +133,10 @@ export function throwErrorForCircularExpressions(dependencies) {
     visited.add(v);
     stack.push(v);
 
-    for (const edge of dependencies.get(v) || []) {
+const d = dependencies.get(v);
+console.log("deps for", v, "=", d, "type:", typeof d);
+
+    for (const edge of Array.from(dependencies.get(v) ?? [])) {
       const cycle = visit(edge.name);
       if (cycle) {
         cycle.push(v);
