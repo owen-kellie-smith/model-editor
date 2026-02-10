@@ -53,42 +53,57 @@ export function parseXmlOrThrow(text, label) {
 
 
 export function getObjectFromXML(xml) {
-  function getObjectFromNode(node) {
-    const obj = {};
+  return { model: buildNodeObject(xml.documentElement) };
+}
 
-    if (node.attributes) {
-      for (let i = 0; i < node.attributes.length; i++) {
-        const attr = node.attributes.item(i);
-        obj[attr.name] = attr.value;
-      }
+function buildNodeObject(node) {
+  const result = {};
+
+  copyAttributes(node, result);
+  readChildren(node, result);
+
+  return result;
+}
+
+function copyAttributes(node, result) {
+  if (!node.attributes) return;
+
+  for (const attr of Array.from(node.attributes)) {
+    result[attr.name] = attr.value;
+  }
+}
+
+function readChildren(node, result) {
+  for (const child of Array.from(node.childNodes)) {
+    if (isElement(child)) {
+      appendChildObject(result, child.nodeName, buildNodeObject(child));
     }
 
-    for (const child of Array.from(node.childNodes)) {
-      if (child.nodeType === Node.ELEMENT_NODE) {
-        const name = child.nodeName;
-        const value = getObjectFromNode(child);
-
-        if (obj[name]) {
-          if (!Array.isArray(obj[name])) {
-            obj[name] = [obj[name]];
-          }
-          obj[name].push(value);
-        } else {
-          obj[name] = value;
-        }
-      }
-
-      if (child.nodeType === Node.TEXT_NODE) {
-        const text = child.nodeValue.trim();
-        if (text) {
-          obj["#text"] = text;
-        }
-      }
+    if (isText(child)) {
+      const text = child.nodeValue.trim();
+      if (text) result["#text"] = text;
     }
+  }
+}
 
-    return obj;
+function appendChildObject(result, name, value) {
+  if (!result[name]) {
+    result[name] = value;
+    return;
   }
 
-  return { model: getObjectFromNode(xml.documentElement) };
+  if (!Array.isArray(result[name])) {
+    result[name] = [result[name]];
+  }
+
+  result[name].push(value);
+}
+
+function isElement(node) {
+  return node.nodeType === Node.ELEMENT_NODE;
+}
+
+function isText(node) {
+  return node.nodeType === Node.TEXT_NODE;
 }
 
