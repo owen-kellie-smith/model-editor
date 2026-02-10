@@ -1,5 +1,14 @@
-import { asArray, throwModelError } from "../utils/helpers.js";
+import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
 import { makeDependencyCollector } from "./dependencyCollector.js";
+
+// returns xml, javascript object, model features
+export function validateModelCore(text, filename, lang) {
+  const xml = parseXmlOrThrow(text, filename);
+  const obj = getObjectFromXML(xml);
+  const features = getModelFeatures(obj, lang);
+
+  return { features, obj, filename };
+}
 
   // returns in one object maps of indexSets, units, tables, variables in xml
   // throws error if domain rules are broken (duplicate index sets, duplicate variables)
@@ -110,46 +119,56 @@ export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
 }
   // throw an error if e.g. a depends on B which depends on C which depends on A.
 export function throwErrorForCircularExpressions(dependencies) {
-  const visited = new Set();
-  const stack = [];
 
-  function visit(v) {
-    if (stack.includes(v)) {
-      // extract cycle
-      const start = stack.indexOf(v);
-      return stack.slice(start);
+  for (const root of dependencies.keys()) {
+
+    // nodes we must still expand
+    // key = `${name}@${offset}`
+    const total = new Map();   // key -> { name, offset }
+    const checked = new Set();
+
+    const startKey = `${root}@0`;
+    checked.add(startKey);
+
+    // seed with immediate dependencies of root at offset 0
+    for (const e of dependencies.get(root) ?? []) {
+      const off = e.shift ?? 0;
+      const key = `${e.name}@${off}`;
+      total.set(key, { name: e.name, offset: off });
     }
-    if (visited.has(v)) return null;
 
-    visited.add(v);
-    stack.push(v);
+    while (true) {
 
-    for (const edge of dependencies.get(v) || []) {
-      const cycle = visit(edge.name);
-      if (cycle) {
-        cycle.push(v);
-        return cycle;
+      // 🔥 real cycle = back to same variable AND same offset
+      if (total.has(startKey)) {
+        throwModelError("Circular expressions detected", {
+          cycle: [root],
+        });
       }
-    }
 
-    stack.pop();
-    return null;
-  }
+      // find something new to expand
+      const nextEntry = [...total.entries()]
+        .find(([k]) => !checked.has(k));
 
-  for (const v of dependencies.keys()) {
-    const cycle = visit(v);
-    if (cycle) {
-      // check shifts
-      const hasLag = cycle.some((name, i) => {
-        const from = cycle[i];
-        const to = cycle[(i + 1) % cycle.length];
-        return [...dependencies.get(from)].some(
-          e => e.name === to && e.shift < 0
-        );
-      });
+      if (!nextEntry) break;
 
-      if (!hasLag) {
-        throwModelError("Circular expressions detected", { cycle });
+      const [key, { name, offset }] = nextEntry;
+      checked.add(key);
+
+      // expand its dependencies
+      for (const e of dependencies.get(name) ?? []) {
+        const nextOffset = offset + (e.shift ?? 0);
+        const nextKey = `${e.name}@${nextOffset}`;
+
+        if ([...checked].some(k => k.startsWith(e.name + "@"))) {
+          continue;
+        }
+
+        if (!checked.has(nextKey)) {
+          // if we already checked same variable at ANY time,
+          // exploring another time gives nothing new
+          total.set(nextKey, { name: e.name, offset: nextOffset });
+        }
       }
     }
   }

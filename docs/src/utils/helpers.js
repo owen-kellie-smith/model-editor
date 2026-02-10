@@ -31,10 +31,24 @@ export function throwModelError(message, context = {}) {
   throw err;
 }
 
+import { createDOMParser } from "./domParser.js"
+
+
 export function parseXmlOrThrow(text, label) {
   console.log("Parsing:", label, text?.slice(0, 200));
 
-  const xml = new DOMParser().parseFromString(text, "application/xml");
+  const xml = createDOMParser().parseFromString(text, "application/xml");
+  console.log("ROOT:", xml.documentElement?.nodeName);
+  console.log(
+  "CHILDREN:",
+  Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
+console.log("XML", xml);
+console.log(
+  "FUNCTION CHILDREN:",
+  xml.documentElement?.childNodes[1]
+);
+
+
   const err = xml.getElementsByTagName("parsererror")[0];
   if (err) throw new Error(`Invalid XML in ${label}`);
   return xml;
@@ -46,12 +60,13 @@ export function getObjectFromXML(xml) {
     const obj = {};
 
     if (node.attributes) {
-      for (const attr of node.attributes) {
+      for (let i = 0; i < node.attributes.length; i++) {
+        const attr = node.attributes.item(i);
         obj[attr.name] = attr.value;
       }
     }
 
-    for (const child of node.childNodes) {
+    for (const child of Array.from(node.childNodes)) {
       if (child.nodeType === Node.ELEMENT_NODE) {
         const name = child.nodeName;
         const value = getObjectFromNode(child);
