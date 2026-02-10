@@ -8,76 +8,86 @@ export function logLogLevel() {
 
 const order = { debug: 0, info: 1, warn: 2, error: 3 };
 
+export function log(level, ...args) {
+  if (order[level] < order[LOG_LEVEL]) return;
+  const { functionName, location } = getCaller();
+  console.log(`[${level}] [${functionName}] ${location}`, ...args);
+}
 
-/**
- * Find the first stack frame that is outside the logger itself.
- */
 function getCaller() {
   const stack = new Error().stack;
+  if (!stack) return unknownCaller();
 
-  if (!stack) {
-    return { functionName: "<unknown>", location: "unknown" };
+  for (const frame of getStackFrames(stack)) {
+    if (isInternalLoggerFrame(frame)) continue;
+
+    const caller =
+      readBrowserCaller(frame) ||
+      readNodeCaller(frame) ||
+      readNodeTopLevelCaller(frame);
+
+    if (caller) return caller;
   }
 
-  const lines = stack.split("\n");
+  return unknownCaller();
+}
 
-  for (const raw of lines) {
-    const line = raw.trim();
-
-    // skip logger internals
-    if (
-      line.includes("getCaller") ||
-      line.includes("log@") ||
-      line.includes("log (") ||
-      line.includes("logger.js")
-    ) {
-      continue;
-    }
-
-    // =========================
-    // Browser: fn@file:line:col
-    // =========================
-    if (line.includes("@")) {
-      const [fn, loc] = line.split("@");
-      return {
-        functionName: fn || "<top-level>",
-        location: loc || "unknown",
-      };
-    }
-
-    // =========================
-    // Node: at fn (file:line:col)
-    // =========================
-    let match = line.match(/at (.+?) \((.+)\)/);
-    if (match) {
-      return {
-        functionName: match[1],
-        location: match[2],
-      };
-    }
-
-    // =========================
-    // Node: at file:line:col
-    // =========================
-    match = line.match(/at (.+)/);
-    if (match) {
-      return {
-        functionName: "<top-level>",
-        location: match[1],
-      };
-    }
-  }
-
+function unknownCaller() {
   return { functionName: "<unknown>", location: "unknown" };
 }
 
+function getStackFrames(stack) {
+  return stack.split("\n").map(cleanFrame);
+}
 
-export function log(level, ...args) {
-  if (order[level] < order[LOG_LEVEL]) return;
+function cleanFrame(frame) {
+  return frame.trim();
+}
 
-  const { functionName, location } = getCaller();
+/**
+ * We try hard not to depend on an exact filename.
+ * Function names are preferred, filename is fallback safety.
+ */
+function isInternalLoggerFrame(frame) {
+  return (
+    frame.includes("getCaller") ||
+    frame.includes("log@") ||
+    frame.includes("log (") ||
+    frame.match(/logger\.(js|ts)/)
+  );
+}
 
-  console.log(`[${level}] [${functionName}] ${location}`, ...args);
+// Browser format: fn@file:line:col
+function readBrowserCaller(frame) {
+  if (!frame.includes("@")) return null;
+
+  const [fn, loc] = frame.split("@");
+  return {
+    functionName: fn || "<top-level>",
+    location: loc || "unknown",
+  };
+}
+
+// Node format: at fn (file:line:col)
+function readNodeCaller(frame) {
+  const match = frame.match(/at (.+?) \((.+)\)/);
+  if (!match) return null;
+
+  return {
+    functionName: match[1],
+    location: match[2],
+  };
+}
+
+// Node format: at file:line:col
+function readNodeTopLevelCaller(frame) {
+  const match = frame.match(/at (.+)/);
+  if (!match) return null;
+
+  return {
+    functionName: "<top-level>",
+    location: match[1],
+  };
 }
 
 
