@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect,  beforeAll } from "vitest";
 import fs from "fs";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
@@ -16,29 +16,34 @@ describe("validateModelCore", () => {
 
   const readFixture = (name) =>
     fs.readFileSync(getFixture(name), "utf-8");
+  describe("when model contains a cycle",()=>{
+    it("throws a 'has cycle' error", () => {
+      const text = readFixture("modelCircular.xml");
 
-  it("throws when model contains a cycle", () => {
-    const text = readFixture("modelCircular.xml");
-
-    expect(() => {
-      validateModelCore(text, "modelCircular.xml", lang);
-    }).toThrow(/Circular/i);
+      expect(() => {
+        validateModelCore(text, "modelCircular.xml", lang);
+      }).toThrow(/Circular/i);
+    });
   });
 
-  it("does not throw when model has no cycle", () => {
-    const text = readFixture("model.xml");
+  describe("when model has no cycle",()=>{
+    it("does not throw any error", () => {
+      const text = readFixture("model.xml");
 
-    expect(() => {
-      validateModelCore(text, "model.xml", lang);
-    }).not.toThrow();
+      expect(() => {
+        validateModelCore(text, "model.xml", lang);
+      }).not.toThrow();
+    });
   });
 
-  it("does not throw when MM model has no cycle", () => {
-    const text = readFixture("toyMM_L1.xml");
+  describe("when model is MM format and has no cycle",()=>{
+    it("does not throw any error", () => {
+      const text = readFixture("toyMM_L1.xml");
 
-    expect(() => {
-      validateModelCore(text, "toyMM_L1.xml", lang);
-    }).not.toThrow();
+      expect(() => {
+        validateModelCore(text, "toyMM_L1.xml", lang);
+      }).not.toThrow();
+    });
   });
 });
 
