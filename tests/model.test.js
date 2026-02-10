@@ -21,7 +21,7 @@ describe("validateModelCore", () => {
     const text = readFixture("modelCircular.xml");
 
     expect(() => {
-      validateModelCore(text, "cycle.xml", lang);
+      validateModelCore(text, "modelCircular.xml", lang);
     }).toThrow(/Circular/i);
   });
 
@@ -29,7 +29,15 @@ describe("validateModelCore", () => {
     const text = readFixture("model.xml");
 
     expect(() => {
-      validateModelCore(text, "cycle.xml", lang);
+      validateModelCore(text, "model.xml", lang);
+    }).not.toThrow();
+  });
+
+  it("does not throw when MM model has no cycle", () => {
+    const text = readFixture("toyMM_L1.xml");
+
+    expect(() => {
+      validateModelCore(text, "toyMM_L1.xml", lang);
     }).not.toThrow();
   });
 });
