@@ -1,16 +1,5 @@
 import { createDOMParser } from "./domParser.js"
-import { LOG_LEVEL } from "../../config.js"
-
-export function log(level, ...args) {
-  const order = { debug: 0, info: 1, warn: 2, error: 3 };
-  if (order[level] >= order[LOG_LEVEL]) {
-    console.log(`[${level}]`, ...args);
-  }
-}
-
-export function logLogLevel() {
-    log("info", `LOG_LEVEL: ${LOG_LEVEL}`);   
-}
+import { log } from "../utils/logger.js"
 
 export function asArray(x) {
   if (x == null) return [];
@@ -53,11 +42,6 @@ export function parseXmlOrThrow(text, label) {
   log("debug",
     "CHILDREN:",
     Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
-  log("debug","XML", xml);
-  log("debug",
-    "FUNCTION CHILDREN:",
-    xml.documentElement?.childNodes[1]
-  );
 
   const err = xml.getElementsByTagName("parsererror")[0];
   if (err) throw new Error(`Invalid XML in ${label}`);

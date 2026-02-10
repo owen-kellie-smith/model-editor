@@ -1,6 +1,6 @@
 import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
 import { makeDependencyCollector } from "./dependencyCollector.js";
-import { log } from "../utils/helpers.js"
+import { log } from "../utils/logger.js"
 
 // returns xml, javascript object, model features
 export function validateModelCore(text, filename, lang) {

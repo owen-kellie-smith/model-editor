@@ -1,4 +1,4 @@
-import { log } from "../utils/helpers.js"
+import { log } from "../utils/logger.js"
 
 export const runtimeIdentifiers = new Set([
   "PROJECTIONTERM",
@@ -10,18 +10,9 @@ export function getFunctionsFromLanguage(xmlDoc, filename) {
   const functions = new Map();
   const fnNodes = xmlDoc.querySelectorAll("functions > function");
 
-  log("debug","fnNodes length:", fnNodes.length);
-
-  fnNodes.forEach((fn, i) => {
-    log("debug",
-      "function", i, "children:",
-      Array.from(fn.childNodes).map(n => n.nodeName)
-    );
-  });
-
   for (const fn of fnNodes) {
     if (!fn) {
-      log("debug","FUNCTION NODE IS NULL HERE");
+      log("warn","FUNCTION NODE IS NULL HERE");
     }
 
     const name = fn.getAttribute("name");
