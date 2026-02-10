@@ -1,29 +1,28 @@
+import { log } from "../utils/helpers.js"
 
-  export const runtimeIdentifiers = new Set([
-    "PROJECTIONTERM",
-    "RECORDNUMBER",
-    "T"
-  ]);
+export const runtimeIdentifiers = new Set([
+  "PROJECTIONTERM",
+  "RECORDNUMBER",
+  "T"
+]);
   
-  export function getFunctionsFromLanguage(xmlDoc, filename) {
+export function getFunctionsFromLanguage(xmlDoc, filename) {
   const functions = new Map();
   const fnNodes = xmlDoc.querySelectorAll("functions > function");
 
-console.log("fnNodes length:", fnNodes.length);
+  log("debug","fnNodes length:", fnNodes.length);
 
-fnNodes.forEach((fn, i) => {
-  console.log(
-    "function", i, "children:",
-    Array.from(fn.childNodes).map(n => n.nodeName)
-  );
-});
-
-
+  fnNodes.forEach((fn, i) => {
+    log("debug",
+      "function", i, "children:",
+      Array.from(fn.childNodes).map(n => n.nodeName)
+    );
+  });
 
   for (const fn of fnNodes) {
-if (!fn) {
-  console.log("FUNCTION NODE IS NULL HERE");
-}
+    if (!fn) {
+      log("debug","FUNCTION NODE IS NULL HERE");
+    }
 
     const name = fn.getAttribute("name");
     const minArgs = Number(fn.getAttribute("minArgs"));

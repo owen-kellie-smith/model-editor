@@ -1,3 +1,17 @@
+import { createDOMParser } from "./domParser.js"
+import { LOG_LEVEL } from "../../config.js"
+
+export function log(level, ...args) {
+  const order = { debug: 0, info: 1, warn: 2, error: 3 };
+  if (order[level] >= order[LOG_LEVEL]) {
+    console.log(`[${level}]`, ...args);
+  }
+}
+
+export function logLogLevel() {
+    log("info", `LOG_LEVEL: ${LOG_LEVEL}`);   
+}
+
 export function asArray(x) {
   if (x == null) return [];
   return Array.isArray(x) ? x : [x];
@@ -31,19 +45,16 @@ export function throwModelError(message, context = {}) {
   throw err;
 }
 
-import { createDOMParser } from "./domParser.js"
-
-
 export function parseXmlOrThrow(text, label) {
-  console.log("Parsing:", label, text?.slice(0, 200));
+  log("debug","Parsing:", label, text?.slice(0, 200));
 
   const xml = createDOMParser().parseFromString(text, "application/xml");
-  console.log("ROOT:", xml.documentElement?.nodeName);
-  console.log(
+  log("debug","ROOT:", xml.documentElement?.nodeName);
+  log("debug",
     "CHILDREN:",
     Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
-  console.log("XML", xml);
-  console.log(
+  log("debug","XML", xml);
+  log("debug",
     "FUNCTION CHILDREN:",
     xml.documentElement?.childNodes[1]
   );
