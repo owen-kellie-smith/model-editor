@@ -1,6 +1,21 @@
 import { removeStringLiterals, asArray, throwModelError } from "../utils/helpers.js";
 import { getIdentifierTokens } from "./model.js";
 import { runtimeIdentifiers } from "./language.js";
+
+function computeShift(ref, text) {
+  const re = new RegExp(ref + "\\s*\\(([^)]*)\\)", "i");
+  const m = re.exec(text);
+  if (!m) return 0;
+
+  const args = m[1];  // what's inside (...)
+  const shiftMatch = args.match(/step\s*([+-])\s*(\d+)/i);
+  if (!shiftMatch) return 0;
+
+  const sign = shiftMatch[1] === "-" ? -1 : 1;
+  return sign * Number(shiftMatch[2]);
+}
+
+
 export function makeDependencyCollector(symbols, lang, ownerName, deps) {
 
   // --------------------------------------------------
@@ -19,7 +34,8 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
       });
     }
 
-    deps.add(ref);
+    const shift = computeShift(ref, extra.text);
+    deps.add({ name: ref, shift });
   }
 
   // --------------------------------------------------

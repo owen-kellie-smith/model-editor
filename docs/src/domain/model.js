@@ -119,49 +119,34 @@ export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
 }
   // throw an error if e.g. a depends on B which depends on C which depends on A.
 export function throwErrorForCircularExpressions(dependencies) {
-  const visited = new Set();
-  const stack = [];
 
-  function visit(v) {
-    if (stack.includes(v)) {
-      // extract cycle
-      const start = stack.indexOf(v);
-      return stack.slice(start);
-    }
-    if (visited.has(v)) return null;
+  // for every variable as root
+  for (const root of dependencies.keys()) {
 
-    visited.add(v);
-    stack.push(v);
+    // immediate dependencies of root
+    const total = new Set(
+      Array.from(dependencies.get(root) ?? []).map(e => e.name)
+    );
 
-const d = dependencies.get(v);
-console.log("deps for", v, "=", d, "type:", typeof d);
+    const checked = new Set([root]);
 
-    for (const edge of Array.from(dependencies.get(v) ?? [])) {
-      const cycle = visit(edge.name);
-      if (cycle) {
-        cycle.push(v);
-        return cycle;
+    while (true) {
+      // if we ever need root again → real cycle
+      if (total.has(root)) {
+        throwModelError("Circular expressions detected", {
+          cycle: [...checked, root],
+        });
       }
-    }
 
-    stack.pop();
-    return null;
-  }
+      // find something new to expand
+      const next = [...total].find(v => !checked.has(v));
+      if (!next) break;
 
-  for (const v of dependencies.keys()) {
-    const cycle = visit(v);
-    if (cycle) {
-      // check shifts
-      const hasLag = cycle.some((name, i) => {
-        const from = cycle[i];
-        const to = cycle[(i + 1) % cycle.length];
-        return [...dependencies.get(from)].some(
-          e => e.name === to && e.shift < 0
-        );
-      });
+      checked.add(next);
 
-      if (!hasLag) {
-        throwModelError("Circular expressions detected", { cycle });
+      // add its dependencies
+      for (const e of dependencies.get(next) ?? []) {
+        total.add(e.name);
       }
     }
   }
