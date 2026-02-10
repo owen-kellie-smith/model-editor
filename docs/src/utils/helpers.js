@@ -1,3 +1,6 @@
+import { createDOMParser } from "./domParser.js"
+import { log } from "../utils/logger.js"
+
 export function asArray(x) {
   if (x == null) return [];
   return Array.isArray(x) ? x : [x];
@@ -26,28 +29,20 @@ export function removeStringLiterals(text) {
 }
 
 export function throwModelError(message, context = {}) {
+  log("debug","About to throw:", message + "\n" + getStringfromObject(context));
   const err = new Error(message);
   err.context = context;
   throw err;
 }
 
-import { createDOMParser } from "./domParser.js"
-
-
 export function parseXmlOrThrow(text, label) {
-  console.log("Parsing:", label, text?.slice(0, 200));
+  log("debug","Parsing:", label, text?.slice(0, 200));
 
   const xml = createDOMParser().parseFromString(text, "application/xml");
-  console.log("ROOT:", xml.documentElement?.nodeName);
-  console.log(
-  "CHILDREN:",
-  Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
-console.log("XML", xml);
-console.log(
-  "FUNCTION CHILDREN:",
-  xml.documentElement?.childNodes[1]
-);
-
+  log("debug","ROOT:", xml.documentElement?.nodeName);
+  log("debug",
+    "CHILDREN:",
+    Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
 
   const err = xml.getElementsByTagName("parsererror")[0];
   if (err) throw new Error(`Invalid XML in ${label}`);

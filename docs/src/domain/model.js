@@ -1,5 +1,6 @@
 import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
 import { makeDependencyCollector } from "./dependencyCollector.js";
+import { log } from "../utils/logger.js"
 
 // returns xml, javascript object, model features
 export function validateModelCore(text, filename, lang) {
@@ -39,7 +40,7 @@ export function getMapsOfModelProperties(xml) {
     // FALLBACK: ModelMaker style
     // ------------------------------------------------------
     if (variables.size === 0 && xml.model.ModelPointFields) {
-      console.log("Using ModelMaker fallback loader");
+      log("info","Using ModelMaker fallback loader");
 
       // -------------------------
       // variables
@@ -192,8 +193,11 @@ export  function getIdentifierTokens(exprText) {
 // passes xmlModel and lang to parsers to get an object containing parsed model features (variables, dependencie i.e. immediate precedents) 
 export  function getModelFeatures(xmlModel, lang) {
     const symbols = getMapsOfModelProperties(xmlModel);
+  log("debug","symbols:", symbols);
     const resolvedVarsWithArguments = getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols);
+  log("debug","resolvedVarsWithArguments:", resolvedVarsWithArguments);
     const dependencies = getDependencies(symbols, resolvedVarsWithArguments, lang);
+  log("debug","dependencies:", dependencies);
     throwErrorForCircularExpressions(dependencies);
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
