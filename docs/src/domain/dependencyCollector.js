@@ -3,16 +3,22 @@ import { getIdentifierTokens } from "./model.js";
 import { runtimeIdentifiers } from "./language.js";
 import { log } from "../utils/logger.js"
 
+/* computeShift(ref, text, keyword = "step")
+PARAMETERS:
+  ref – the name of the function or reference to look for  e.g. "foo"
+  text – the full input string  e.g. "foo(step + 3)"
+  keyword (optional) – the shift keyword - defaults to "step"
+*/
 function computeShift(ref, text, keyword = "step") {
-  log("debug","ref: ", ref);
-  log("debug","text: ", text);
+//  log("debug","ref: ", ref);
+//  log("debug","text: ", text);
 
   const re = new RegExp(ref + "\\s*\\(([^)]*)\\)", "i");
   const m = re.exec(text);
   if (!m) return 0;
 
   const args = m[1];
-  log("debug","args: ", args);
+//  log("debug","args: ", args);
 
   const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const shiftRe = new RegExp(`${escaped}\\s*([+-])\\s*(\\d+)`, "i");
@@ -20,7 +26,7 @@ function computeShift(ref, text, keyword = "step") {
   const shiftMatch = args.match(shiftRe);
   if (!shiftMatch) return 0;
 
-  log("debug","shiftMatch: ", shiftMatch);
+//  log("debug","shiftMatch: ", shiftMatch);
 
   const sign = shiftMatch[1] === "-" ? -1 : 1;
   return sign * Number(shiftMatch[2]);
@@ -45,9 +51,12 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
       });
     }
 
-//    log("debug","computeShift: " + ref + "; " + extra.text);
-
-    const shift = computeShift(ref, extra.text);
+    const shiftStd = computeShift(ref, extra.text);
+    log("debug","ref:" + ref);
+    log("debug","shiftStd:" + shiftStd);
+    const shift_t = computeShift(ref, extra.text, "t");
+    log("debug","shift_t:" + shift_t);
+    const shift = (shiftStd == 0) ? shift_t : shiftStd;
     log("debug","shift:" + shift);
     deps.add({ name: ref, shift });
   }
