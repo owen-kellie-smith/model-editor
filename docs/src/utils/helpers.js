@@ -40,14 +40,13 @@ export function parseXmlOrThrow(text, label) {
   const xml = createDOMParser().parseFromString(text, "application/xml");
   console.log("ROOT:", xml.documentElement?.nodeName);
   console.log(
-  "CHILDREN:",
-  Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
-console.log("XML", xml);
-console.log(
-  "FUNCTION CHILDREN:",
-  xml.documentElement?.childNodes[1]
-);
-
+    "CHILDREN:",
+    Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
+  console.log("XML", xml);
+  console.log(
+    "FUNCTION CHILDREN:",
+    xml.documentElement?.childNodes[1]
+  );
 
   const err = xml.getElementsByTagName("parsererror")[0];
   if (err) throw new Error(`Invalid XML in ${label}`);
