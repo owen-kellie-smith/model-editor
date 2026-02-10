@@ -19,9 +19,11 @@ export function getObjectFromMap(map) {
 }
 
 export function getObjectFromMapOfSets(map) {
-  return Object.fromEntries(
-    [...map.entries()].map(([k, v]) => [k, [...v]])
-  );
+  const result = {};
+  for (const [key, set] of map.entries()) {
+    result[key] = Array.from(set);
+  }
+  return result;
 }
 
 export function removeStringLiterals(text) {
