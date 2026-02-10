@@ -29,13 +29,13 @@ export function getFunctionsFromLanguage(xmlDoc, filename) {
       );
     }
     if (Number.isNaN(arity)) {
-      throw new Error("Invalid function declaration in " + filename);
+      throw new Error("Invalid function declaration in " + filename + ": function with non-numeric arity\n" + fnXml);
     }
     if (Number.isNaN(minArgs)) {
-      throw new Error("Invalid function declaration in " + filename);
+      throw new Error("Invalid function declaration in " + filename + ": function with non-numeric minArgs\n" + fnXml);
     }
     if (Number.isNaN(maxArgs)) {
-      throw new Error("Invalid function declaration in " + filename);
+      throw new Error("Invalid function declaration in " + filename + ": function with non-numeric maxArgs\n" + fnXml);
     }
 
     functions.set(name.toUpperCase(), { arity, minArgs, maxArgs });

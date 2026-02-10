@@ -1,15 +1,26 @@
 import { removeStringLiterals, asArray, throwModelError } from "../utils/helpers.js";
 import { getIdentifierTokens } from "./model.js";
 import { runtimeIdentifiers } from "./language.js";
+import { log } from "../utils/logger.js"
 
-function computeShift(ref, text) {
+function computeShift(ref, text, keyword = "step") {
+  log("debug","ref: ", ref);
+  log("debug","text: ", text);
+
   const re = new RegExp(ref + "\\s*\\(([^)]*)\\)", "i");
   const m = re.exec(text);
   if (!m) return 0;
 
-  const args = m[1];  // what's inside (...)
-  const shiftMatch = args.match(/step\s*([+-])\s*(\d+)/i);
+  const args = m[1];
+  log("debug","args: ", args);
+
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const shiftRe = new RegExp(`${escaped}\\s*([+-])\\s*(\\d+)`, "i");
+
+  const shiftMatch = args.match(shiftRe);
   if (!shiftMatch) return 0;
+
+  log("debug","shiftMatch: ", shiftMatch);
 
   const sign = shiftMatch[1] === "-" ? -1 : 1;
   return sign * Number(shiftMatch[2]);
@@ -34,7 +45,10 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
       });
     }
 
+//    log("debug","computeShift: " + ref + "; " + extra.text);
+
     const shift = computeShift(ref, extra.text);
+    log("debug","shift:" + shift);
     deps.add({ name: ref, shift });
   }
 

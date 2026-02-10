@@ -29,6 +29,7 @@ export function removeStringLiterals(text) {
 }
 
 export function throwModelError(message, context = {}) {
+  log("debug","About to throw:", message + "\n" + getStringfromObject(context));
   const err = new Error(message);
   err.context = context;
   throw err;
