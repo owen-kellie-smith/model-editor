@@ -120,33 +120,55 @@ export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
   // throw an error if e.g. a depends on B which depends on C which depends on A.
 export function throwErrorForCircularExpressions(dependencies) {
 
-  // for every variable as root
   for (const root of dependencies.keys()) {
 
-    // immediate dependencies of root
-    const total = new Set(
-      Array.from(dependencies.get(root) ?? []).map(e => e.name)
-    );
+    // nodes we must still expand
+    // key = `${name}@${offset}`
+    const total = new Map();   // key -> { name, offset }
+    const checked = new Set();
 
-    const checked = new Set([root]);
+    const startKey = `${root}@0`;
+    checked.add(startKey);
+
+    // seed with immediate dependencies of root at offset 0
+    for (const e of dependencies.get(root) ?? []) {
+      const off = e.shift ?? 0;
+      const key = `${e.name}@${off}`;
+      total.set(key, { name: e.name, offset: off });
+    }
 
     while (true) {
-      // if we ever need root again → real cycle
-      if (total.has(root)) {
+
+      // 🔥 real cycle = back to same variable AND same offset
+      if (total.has(startKey)) {
         throwModelError("Circular expressions detected", {
-          cycle: [...checked, root],
+          cycle: [root],
         });
       }
 
       // find something new to expand
-      const next = [...total].find(v => !checked.has(v));
-      if (!next) break;
+      const nextEntry = [...total.entries()]
+        .find(([k]) => !checked.has(k));
 
-      checked.add(next);
+      if (!nextEntry) break;
 
-      // add its dependencies
-      for (const e of dependencies.get(next) ?? []) {
-        total.add(e.name);
+      const [key, { name, offset }] = nextEntry;
+      checked.add(key);
+
+      // expand its dependencies
+      for (const e of dependencies.get(name) ?? []) {
+        const nextOffset = offset + (e.shift ?? 0);
+        const nextKey = `${e.name}@${nextOffset}`;
+
+        if ([...checked].some(k => k.startsWith(e.name + "@"))) {
+          continue;
+        }
+
+        if (!checked.has(nextKey)) {
+          // if we already checked same variable at ANY time,
+          // exploring another time gives nothing new
+          total.set(nextKey, { name: e.name, offset: nextOffset });
+        }
       }
     }
   }

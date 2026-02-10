@@ -1,32 +1,39 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import fs from "fs";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
-import path from "path";
-import { validateModelCore } from "@/domain/model.js"
+import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
 
 describe("validateModelCore", () => {
-  describe("when model contains a cycle", () => {
-    it("throws an error", () => {
-      const fixture = getFixture("language.xml");
-      const xml = loadXml(fixture); 
-      const lang = getFunctionsFromLanguage(xml, "test");
-      const modelFile = getFixture("model.xml")
+  let lang;
 
+  beforeAll(() => {
+    const fixture = getFixture("language.xml");
+    const xml = loadXml(fixture);
+    lang = getFunctionsFromLanguage(xml, "test");
+  });
 
+  const readFixture = (name) =>
+    fs.readFileSync(getFixture(name), "utf-8");
 
-const text = fs.readFileSync(modelFile, "utf-8");
-console.log(text.slice(0, 50));
+  it("throws when model contains a cycle", () => {
+    const text = readFixture("modelCircular.xml");
 
+    expect(() => {
+      validateModelCore(text, "cycle.xml", lang);
+    }).toThrow(/Circular/i);
+  });
 
+  it("does not throw when model has no cycle", () => {
+    const text = readFixture("model.xml");
 
-      expect(() => {
-        validateModelCore(text, "cycle.xml", lang)
-      }).toThrow(/cycle/i)
-    })
-  })
-})
+    expect(() => {
+      validateModelCore(text, "cycle.xml", lang);
+    }).not.toThrow();
+  });
+});
+
 
 
 
