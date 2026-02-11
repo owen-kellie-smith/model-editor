@@ -48,21 +48,30 @@ describe("validateModelCore", () => {
     });
   });
   
-describe("round trip through serializer", () => {
-  it("preserves model semantics", () => {
-    const text = readFixture("model.xml");
-    log("debug","text:", text);
-
-    const first = validateModelCore(text, "model.xml", lang);
-
-    const exportedText = serializeModel(first.obj);
-    log("debug","exportedText:", exportedText);
-
-    const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
-
-    expect(second.features.indexSets).toEqual(first.features.indexSets);
+  describe("when model is vendor format", () => {
+    describe("round trip through serializer", () => {
+      it("preserves model semantics", () => {
+        const text = readFixture("model.xml");
+        const first = validateModelCore(text, "model.xml", lang);
+        const exportedText = serializeModel(first.obj);
+        const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+        expect(second.features.indexSets).toEqual(first.features.indexSets);
+      });
+    });
   });
-});
+
+  describe("when model is MM format", () => {
+    describe("round trip through serializer", () => {
+      it("preserves model semantics", () => {
+        const text = readFixture("toyMM_L1.xml");
+        const first = validateModelCore(text, "model.xml", lang);
+        const exportedText = serializeModel(first.obj);
+        const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+        expect(second.features.indexSets).toEqual(first.features.indexSets);
+      });
+    });
+  });
+
 });
 
 
