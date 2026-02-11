@@ -107,39 +107,3 @@ function isText(node) {
   return node.nodeType === Node.TEXT_NODE;
 }
 
-export function buildNode(node, tagName) {
-  if (node == null) return "";
-
-  // primitive
-  if (typeof node !== "object") {
-    return `<${tagName}>${node}</${tagName}>`;
-  }
-
-  // text node
-  if ("#text" in node && Object.keys(node).length === 1) {
-    return `<${tagName}>${node["#text"]}</${tagName}>`;
-  }
-
-  let attrs = "";
-  let children = "";
-
-  for (const [key, value] of Object.entries(node)) {
-    if (key === "#text") continue;
-
-    if (Array.isArray(value)) {
-      for (const v of value) {
-        children += buildNode(v, key);
-      }
-    } else if (typeof value === "object") {
-      children += buildNode(value, key);
-    } else {
-      // primitive → treat as attribute
-      attrs += ` ${key}="${value}"`;
-    }
-  }
-
-  const text = node["#text"] ?? "";
-
-  return `<${tagName}${attrs}>${text}${children}</${tagName}>`;
-}
-

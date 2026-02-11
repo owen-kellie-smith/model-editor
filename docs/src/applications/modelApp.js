@@ -3,6 +3,10 @@ import { formatError, formatModelResult } from "../format/formatters.js";
 import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
+import { serializeModel } from "../domain/serialize.js";
+
+
+let modelEnv = null;
 
 function setLogText(s) {
   ui.log.textContent = s;
@@ -20,16 +24,21 @@ function validateModel(text, filename, lang) {
   try {
     const result = validateModelCore(text, filename, lang);
     setLogText(formatModelResult(result));
+    modelEnv = result;
     ui.downloadModel.disabled = false;   // ✅ valid
   } catch (er) {
     setLogText(formatError(er));
+    modelEnv = null;
     ui.downloadModel.disabled = true;    // ❌ invalid
   }
 }
 
 export function wireModelHandlers() {
   ui.downloadModel.addEventListener("click", () => {
-    exportFile(ui.modelText.value, "exported_model.xml");
+    if (!modelEnv) return;
+    const xml = serializeModel(modelEnv.obj);
+    exportFile(xml, "exported_model.xml");
+    ui.modelText.value = xml;
   });
   ui.loadModelText.addEventListener("click", () => {
     if (!languageEnvIsSet()) return;
