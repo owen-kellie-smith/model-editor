@@ -4,6 +4,8 @@ import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
+import { serializeModel } from "@/domain/serializeModel.js";
+import { log } from "@/utils/logger.js"
 
 describe("validateModelCore", () => {
   let lang;
@@ -45,6 +47,22 @@ describe("validateModelCore", () => {
       }).not.toThrow();
     });
   });
+  
+describe("round trip through serializer", () => {
+  it("preserves model semantics", () => {
+    const text = readFixture("model.xml");
+
+    const first = validateModelCore(text, "model.xml", lang);
+    log("debug","first:", first.obj);
+
+    const exportedText = serializeModel(first.obj);
+    log("info","exportedText:", exportedText);
+
+    const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+
+    expect(second.features.indexSets).toEqual(first.features.indexSets);
+  });
+});
 });
 
 

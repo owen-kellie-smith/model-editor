@@ -2,6 +2,7 @@ import { ui } from "../ui.js";
 import { parseXmlOrThrow, enableElement } from "../utils/helpers.js";
 import { formatError, formatLanguageLoaded } from "../format/formatters.js";
 import { getFunctionsFromLanguage } from "../domain/language.js";
+import { exportFile } from "../utils/export.js";
 
 let languageEnv = null;
 
@@ -28,6 +29,7 @@ function commitLanguage(lang) {
   languageEnv = lang;
   setLogText(formatLanguageLoaded(lang));
   enableControls(true);
+  ui.downloadLanguage.disabled = false;   // ✅
   resetModelInputs();
 }
 
@@ -35,6 +37,7 @@ function rejectLanguage(er) {
   languageEnv = null;
   setLogText(formatError(er));
   enableControls(false);
+  ui.downloadLanguage.disabled = true;    // ❌
   resetModelInputs();
 }
 
@@ -50,6 +53,9 @@ function commitOrRejectLanguage(text, label) {
 }
 
 export function wireLanguageHandlers() {
+  ui.downloadLanguage.addEventListener("click", () => {
+    exportFile(ui.languageText.value, "exported_language.xml");
+  });
   ui.loadLanguageText.addEventListener("click", () => {
     commitOrRejectLanguage(ui.languageText.value.trim(), "language in textarea");
   });

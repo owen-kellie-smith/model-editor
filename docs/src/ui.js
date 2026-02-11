@@ -5,6 +5,8 @@ export const ui = {
   loadModelFile: document.getElementById("loadModelFile"),
   loadModelText: document.getElementById("loadModelText"),
   modelText: document.getElementById("modelText"),
+  downloadLanguage: document.getElementById("downloadLanguage"),
+  downloadModel: document.getElementById("downloadModel"),   
   log: document.getElementById("log"),
 };
 

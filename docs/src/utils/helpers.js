@@ -41,19 +41,19 @@ export function parseXmlOrThrow(text, label) {
   log("debug","Parsing:", label, text?.slice(0, 200));
 
   const xml = createDOMParser().parseFromString(text, "application/xml");
-  log("debug","ROOT:", xml.documentElement?.nodeName);
+  log("debug","ROOT:", xml?.documentElement?.nodeName);
   log("debug",
     "CHILDREN:",
-    Array.from(xml.documentElement?.childNodes ?? []).map(n => n.nodeName));
+    Array.from(xml?.documentElement?.childNodes ?? []).map(n => n.nodeName));
 
-  const err = xml.getElementsByTagName("parsererror")[0];
+  const err = xml?.getElementsByTagName("parsererror")[0];
   if (err) throw new Error(`Invalid XML in ${label}`);
   return xml;
 }
 
 
 export function getObjectFromXML(xml) {
-  return { model: buildNodeObject(xml.documentElement) };
+  return { model: buildNodeObject(xml?.documentElement) };
 }
 
 function buildNodeObject(node) {
@@ -66,7 +66,7 @@ function buildNodeObject(node) {
 }
 
 function copyAttributes(node, result) {
-  if (!node.attributes) return;
+  if (!node?.attributes) return;
 
   for (const attr of Array.from(node.attributes)) {
     result[attr.name] = attr.value;
@@ -74,7 +74,7 @@ function copyAttributes(node, result) {
 }
 
 function readChildren(node, result) {
-  for (const child of Array.from(node.childNodes)) {
+  for (const child of Array.from(node?.childNodes || [])) {
     if (isElement(child)) {
       appendChildObject(result, child.nodeName, buildNodeObject(child));
     }
@@ -105,5 +105,45 @@ function isElement(node) {
 
 function isText(node) {
   return node.nodeType === Node.TEXT_NODE;
+}
+
+export function convertObjectBackToXml(obj) {
+  return buildNode(obj);
+}
+
+function buildNode(node, tagName) {
+  if (node == null) return "";
+
+  // primitive
+  if (typeof node !== "object") {
+    return `<${tagName}>${node}</${tagName}>`;
+  }
+
+  // text node
+  if ("#text" in node && Object.keys(node).length === 1) {
+    return `<${tagName}>${node["#text"]}</${tagName}>`;
+  }
+
+  let attrs = "";
+  let children = "";
+
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "#text") continue;
+
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        children += buildNode(v, key);
+      }
+    } else if (typeof value === "object") {
+      children += buildNode(value, key);
+    } else {
+      // primitive → treat as attribute
+      attrs += ` ${key}="${value}"`;
+    }
+  }
+
+  const text = node["#text"] ?? "";
+
+  return `<${tagName}${attrs}>${text}${children}</${tagName}>`;
 }
 
