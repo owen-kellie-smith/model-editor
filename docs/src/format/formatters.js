@@ -5,7 +5,7 @@ import {
 } from "../utils/helpers.js";
 
 export function formatError(err) {
-  const lines = ["✖ Validation error:", err.message];
+  const lines = ["✖ Validation error:", err.message + " in " + err.stack];
   if (err.context) {
     lines.push("", "Context:", getStringfromObject(err.context));
   }

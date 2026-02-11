@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
-import { loadXml } from "./helpers/xml.js";
+import { loadXml, loadXmlFromText } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
+import { getObjectFromXML } from "@/utils/helpers.js";
+import { serializeLanguage  } from "@/domain/serialize.js";
 import path from "path";
 
 
@@ -33,6 +35,19 @@ describe("language loading", () => {
         const xml = loadXml(fixture); 
         expect(() => getFunctionsFromLanguage(xml, "test"))
           .toThrow(/Invalid function/i);
+      });
+    });
+    describe("when vendor format language is loaded and exported", () => {
+      it("preserves language functions though it changes xml", () => {
+        const fixture = getFixture("language.xml");
+        const xml = loadXml(fixture); 
+        const obj = getObjectFromXML(xml);
+        const xml2Text = serializeLanguage(obj);
+        const xml2 = loadXmlFromText(xml2Text);
+        expect(xml2).not.toEqual(xml);
+        const lang = getFunctionsFromLanguage(xml, "test");
+        const lang2 = getFunctionsFromLanguage(xml2, "test");
+        expect(lang2).toEqual(lang);
       });
     });
   });

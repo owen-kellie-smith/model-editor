@@ -50,24 +50,26 @@ describe("validateModelCore", () => {
   
   describe("when model is vendor format", () => {
     describe("round trip through serializer", () => {
-      it("preserves model semantics", () => {
+      it("preserves model semantics though it changes xml", () => {
         const text = readFixture("model.xml");
         const first = validateModelCore(text, "model.xml", lang);
         const exportedText = serializeModel(first.obj);
         const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
         expect(second.features.indexSets).toEqual(first.features.indexSets);
+        expect(text).not.toEqual(exportedText);
       });
     });
   });
 
   describe("when model is MM format", () => {
     describe("round trip through serializer", () => {
-      it("preserves model semantics", () => {
+      it("preserves model semantics though it changes xml", () => {
         const text = readFixture("toyMM_L1.xml");
         const first = validateModelCore(text, "model.xml", lang);
         const exportedText = serializeModel(first.obj);
         const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
         expect(second.features.indexSets).toEqual(first.features.indexSets);
+        expect(text).not.toEqual(exportedText);
       });
     });
   });
