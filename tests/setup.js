@@ -1,6 +1,8 @@
 import * as xmldom from "@xmldom/xmldom"
+import { log } from "@/utils/logger.js"
 
-console.log("xmldom =", xmldom)
+
+log("debug","xmldom =", xmldom);
 
 global.DOMParser = xmldom.DOMParser
 

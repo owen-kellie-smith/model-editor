@@ -4,6 +4,8 @@ import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
+import { serializeModel } from "@/domain/serializeModel.js";
+import { log } from "@/utils/logger.js"
 
 describe("validateModelCore", () => {
   let lang;
@@ -45,6 +47,31 @@ describe("validateModelCore", () => {
       }).not.toThrow();
     });
   });
+  
+  describe("when model is vendor format", () => {
+    describe("round trip through serializer", () => {
+      it("preserves model semantics", () => {
+        const text = readFixture("model.xml");
+        const first = validateModelCore(text, "model.xml", lang);
+        const exportedText = serializeModel(first.obj);
+        const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+        expect(second.features.indexSets).toEqual(first.features.indexSets);
+      });
+    });
+  });
+
+  describe("when model is MM format", () => {
+    describe("round trip through serializer", () => {
+      it("preserves model semantics", () => {
+        const text = readFixture("toyMM_L1.xml");
+        const first = validateModelCore(text, "model.xml", lang);
+        const exportedText = serializeModel(first.obj);
+        const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+        expect(second.features.indexSets).toEqual(first.features.indexSets);
+      });
+    });
+  });
+
 });
 
 
