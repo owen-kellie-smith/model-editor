@@ -1,10 +1,12 @@
 import { ui } from "../ui.js";
-import { parseXmlOrThrow, enableElement } from "../utils/helpers.js";
+import { parseXmlOrThrow, enableElement, getObjectFromXML } from "../utils/helpers.js";
 import { formatError, formatLanguageLoaded } from "../format/formatters.js";
 import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
+import { serializeLanguage } from "../domain/serialize.js";
 
 let languageEnv = null;
+let languageObj = null;
 
 export function getLanguageEnv() {
   return languageEnv;
@@ -25,8 +27,9 @@ function enableControls(isLoaded) {
   enableElement(ui.loadModelText, isLoaded);
 }
 
-function commitLanguage(lang) {
+function commitLanguage(lang, obj) {
   languageEnv = lang;
+  languageObj = obj;
   setLogText(formatLanguageLoaded(lang));
   enableControls(true);
   ui.downloadLanguage.disabled = false;   // ✅
@@ -35,6 +38,7 @@ function commitLanguage(lang) {
 
 function rejectLanguage(er) {
   languageEnv = null;
+  languageObj = null;
   setLogText(formatError(er));
   enableControls(false);
   ui.downloadLanguage.disabled = true;    // ❌
@@ -45,8 +49,9 @@ function commitOrRejectLanguage(text, label) {
   if (!text) return;
   try {
     const xml = parseXmlOrThrow(text, label);
+    const obj = getObjectFromXML(xml);
     const lang = getFunctionsFromLanguage(xml, label);
-    commitLanguage(lang);
+    commitLanguage(lang, obj);
   } catch (er) {
     rejectLanguage(er);
   }
@@ -54,7 +59,10 @@ function commitOrRejectLanguage(text, label) {
 
 export function wireLanguageHandlers() {
   ui.downloadLanguage.addEventListener("click", () => {
-    exportFile(ui.languageText.value, "exported_language.xml");
+    if (!languageObj) return;
+    const xml = serializeLanguage(languageObj);
+    exportFile(xml, "exported_language.xml");
+    ui.languageText.value = xml;
   });
   ui.loadLanguageText.addEventListener("click", () => {
     commitOrRejectLanguage(ui.languageText.value.trim(), "language in textarea");

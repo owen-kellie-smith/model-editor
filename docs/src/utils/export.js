@@ -1,4 +1,13 @@
 export function exportFile(content, filename, mime = "application/xml") {
+  if (typeof content !== "string") {
+	return;
+  }
+
+  if (!content || !content.trim()) {
+    alert("Nothing to export");
+    return;
+  }
+
   if (!content || !content.trim()) {
     alert("Nothing to export");
     return;

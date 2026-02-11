@@ -5,7 +5,7 @@ export function serializeModel(obj) {
 
 export function serializeLanguage(obj) {
   return `<?xml version="1.0"?>\n` +
-         buildNode(obj, "language", 0);
+         buildNode(obj.model, "language", 0);
 }
 
 function buildNode(node, tagName, depth) {

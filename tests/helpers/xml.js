@@ -8,6 +8,11 @@ global.XMLSerializer = XMLSerializer;
 
 export function loadXml(path) {
   const text = fs.readFileSync(path, "utf8");
+  const doc = loadXmlFromText(text);
+  return doc;
+}
+
+export function loadXmlFromText(text) {
   const doc = new DOMParser().parseFromString(text, "application/xml");
 
   // tiny shim
