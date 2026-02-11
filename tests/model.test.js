@@ -4,7 +4,7 @@ import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
-import { serializeModel } from "@/domain/serializeModel.js";
+import { serializeModel } from "@/domain/serialize.js";
 import { log } from "@/utils/logger.js"
 
 describe("validateModelCore", () => {
