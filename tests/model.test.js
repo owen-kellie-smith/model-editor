@@ -51,12 +51,12 @@ describe("validateModelCore", () => {
 describe("round trip through serializer", () => {
   it("preserves model semantics", () => {
     const text = readFixture("model.xml");
+    log("debug","text:", text);
 
     const first = validateModelCore(text, "model.xml", lang);
-    log("debug","first:", first.obj);
 
     const exportedText = serializeModel(first.obj);
-    log("info","exportedText:", exportedText);
+    log("debug","exportedText:", exportedText);
 
     const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
 

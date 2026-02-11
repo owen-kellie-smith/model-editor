@@ -107,11 +107,7 @@ function isText(node) {
   return node.nodeType === Node.TEXT_NODE;
 }
 
-export function convertObjectBackToXml(obj) {
-  return buildNode(obj);
-}
-
-function buildNode(node, tagName) {
+export function buildNode(node, tagName) {
   if (node == null) return "";
 
   // primitive

@@ -1,7 +1,9 @@
-import { convertObjectBackToXml } from "../utils/helpers.js"
-
+import { buildNode } from "../utils/helpers.js"
 
 export function serializeModel(obj) {
-  return convertObjectBackToXml(obj);
+  return `<?xml version="1.0"?>\n` +
+         buildNode(obj.model, "model");
 }
+
+
 
