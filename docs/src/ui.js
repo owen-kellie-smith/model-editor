@@ -1,6 +1,8 @@
 export const ui = {
   loadLanguageFile: document.getElementById("loadLanguageFile"),
   loadLanguageText: document.getElementById("loadLanguageText"),
+  languageLoaded: document.getElementById("languageLoaded"),
+  languageDirty: document.getElementById("languageDirty"),
   languageText: document.getElementById("languageText"),
   languageStatus: document.getElementById("languageStatus"),
   loadModelFile: document.getElementById("loadModelFile"),
