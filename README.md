@@ -36,10 +36,10 @@ No build step or server required.
 
 | ID | Requirement | Tested by | Which shows that
 |----|-------------|-------------|-----------------|
-| R1 | Language XML is only loaded if it is valid | `language.tests.js::when XML has a funciton with no name, when XML has a function with non-numeric arity"` | An invalid language.xml (with a function without a name or with non-numeric arities) throws an error
+| R1 | Language XML is only loaded if it is valid | `language.tests.js::when XML has a funciton with no name, when XML has a function with non-numeric arity"` | Loading a language.xml with a function without a name or with non-numeric arities throws an error
 | R2 | Language XML round-trip from import to export preserves its meaning | `language.tests.js::when vendor format language is loaded and exported` | The functions inferred by a valid language file are identical to the functions inferred by the standardised export of that file
 | R3 | Missing model references are rejected | `model.tests.js::rejects_unknown_symbol` | Loading a model formula that contains a string which is neither a function defined in the loaded language nor a variable defined in the model throws a "missing reference" error
-| R4 | Circular logic in the model is rejected | `model.tests.js::when model contains a cycle` | Loading a model that contains circular logic (a formula that requires its own value) throws an error
+| R4 | Circular logic in the model is rejected | `model.tests.js::when model contains a cycle` | Loading a model that contains a formula that requires its own value throws an error
 | R5 | Duplicate model definitions are rejected | to show | Loading a model that contains duplicate identifiers throws an error
 | R6 | Model XML round-trip from import to export preserves its meaning | `model.tests.js::round trip through serializer` | The model features inferred by a valid model file are identical to the features inferred by the standardised export of that file
 | R7 | Precedents of a variable can be calculated from model formulae| to show |
