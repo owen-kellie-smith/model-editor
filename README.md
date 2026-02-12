@@ -32,7 +32,7 @@ No build step or server required.
 
 ---
 
-## Road map - features and the test which verify them
+## Road map - requirements and associated tests
 
 | ID | Requirement | Tested by | Which shows that
 |----|-------------|-------------|-----------------|
