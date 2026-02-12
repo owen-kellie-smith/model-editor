@@ -57,6 +57,7 @@ body {
   padding: 0.25rem 0.5rem;
   background-color: #e8e8e8; 
   border-radius: 3px;
+  word-break: break-word;
 }
 
 .dirty {
@@ -86,6 +87,14 @@ body {
   .editor textarea {
     min-height: 200px;
     font-size: 16px; /* Prevents auto-zoom on iOS */
+  }
+  .loaded-info {
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .loaded-info span {
+    padding: 0.2rem 0.4rem;
   }
 }
 
