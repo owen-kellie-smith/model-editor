@@ -45,6 +45,9 @@ No build step or server required.
 | R7 | Precedents of a variable can be calculated from model formulae| to show |
 | R8 | Dependents of a variable can be calculated from model formulae| to do |
 | R9 | Precedents and dependents can be rendered in graphs | to do |
+| R10 | A single valid variable definition can be created, read, updated, deleted | to do 
+| R11 | Single variable edits are prevented if they are invalid (duplicates, or breaking required references or circular) | to do 
+| R12 | A single variable can be copied (with a different name) | to do 
 
 
 ### UI prototype
