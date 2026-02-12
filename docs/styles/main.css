@@ -87,7 +87,6 @@ body {
 
 @media (max-width: 768px) {
   .editor textarea {
-    min-height: 200px;
     font-size: 16px; /* Prevents auto-zoom on iOS */
     height: auto;
   }
