@@ -1,6 +1,6 @@
 import { ui } from "../ui.js";
 import { parseXmlOrThrow, enableElement, getObjectFromXML } from "../utils/helpers.js";
-import { formatError, formatLanguageLoaded } from "../format/formatters.js";
+import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../format/formatters.js";
 import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
 import { serializeLanguage } from "../domain/serialize.js";
@@ -81,7 +81,7 @@ function validateLanguageContent(text) {
     updateLanguageStatus("✓ Valid", "success");
     ui.loadLanguageText.disabled = false;
   } catch (er) {
-    updateLanguageStatus(er.message, "error");
+    updateLanguageStatus(formatErrorNoStack(er), "error");
     ui.loadLanguageText.disabled = true;
   }
 }

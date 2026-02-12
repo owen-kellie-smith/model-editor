@@ -12,6 +12,14 @@ export function formatError(err) {
   return lines.join("\n");
 }
 
+export function formatErrorNoStack(err) {
+  const lines = [err.message ];
+  if (err.context) {
+    lines.push("", "Context:", getStringfromObject(err.context));
+  }
+  return lines.join("\n");
+}
+
 export function formatLanguageLoaded(lang) {
   return (
     "Language loaded:\n " +
