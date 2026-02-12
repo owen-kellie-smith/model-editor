@@ -8,6 +8,8 @@ import { serializeLanguage } from "../domain/serialize.js";
 let languageEnv = null;
 let languageObj = null;
 let validationTimeout = null;
+let languageCommitTime = null;
+let lastCommittedText = null;
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
@@ -30,14 +32,40 @@ function enableControls(isLoaded) {
   enableElement(ui.loadModelText, isLoaded);
 }
 
+function updateLoadedInfo() {
+  if (languageCommitTime) {
+    ui.languageLoaded.textContent = `Loaded: ${languageCommitTime.toLocaleString()}`;
+  } else {
+    ui.languageLoaded.textContent = "";
+  }
+}
+
+function updateDirtyIndicator() {
+  const currentText = ui.languageText.value;
+  const isDirty = lastCommittedText !== null && currentText !== lastCommittedText;
+  
+  if (isDirty) {
+    ui.languageDirty.textContent = "✖ Unsaved changes";
+    ui.languageDirty.style.display = "inline";
+  } else {
+    ui.languageDirty.textContent = "";
+    ui.languageDirty.style.display = "none";
+  }
+}
+
 function commitLanguage(lang, obj) {
   languageEnv = lang;
   languageObj = obj;
+  languageCommitTime = new Date();
+  lastCommittedText = ui.languageText.value;
+  
   setLogText(formatLanguageLoaded(lang));
   enableControls(true);
   ui.downloadLanguage.disabled = false;   // ✅
   resetModelInputs();
   updateLanguageStatus("✓ Valid", "success");
+  updateLoadedInfo();
+  updateDirtyIndicator();
 }
 
 function rejectLanguage(er) {
@@ -92,6 +120,9 @@ function debouncedValidateLanguage(text) {
     clearTimeout(validationTimeout);
   }
 
+  // Update dirty indicator immediately
+  updateDirtyIndicator();
+
   // Set a new timeout
   validationTimeout = setTimeout(() => {
     validateLanguageContent(text);
@@ -109,7 +140,10 @@ export function wireLanguageHandlers() {
     const xml = serializeLanguage(languageObj);
     exportFile(xml, "exported_language.xml");
     ui.languageText.value = xml;
+    lastCommittedText = xml;
+    updateDirtyIndicator();
   });
+  
   ui.loadLanguageText.addEventListener("click", () => {
     commitOrRejectLanguage(ui.languageText.value.trim(), "language in textarea");
   });

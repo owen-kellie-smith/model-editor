@@ -1,49 +1,109 @@
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-    }
-    #log {
-      margin-top: 1rem;
-      white-space: pre-wrap;
-      font-family: monospace;
-      border: 1px solid #ccc;
-      padding: 1rem;
-    }
-    .editor-container {
-      display: flex;
-      gap: 24px;
-      align-items: flex-start;
-    }
-    
-    .editor {
-      display: flex;
-      flex-direction: column;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    .editor textarea {
-/*      flex: 1;           */   /* fills available space, disabled so you can resize manually */
-      min-height: 130px;    /* pick a height you like */
-      resize: vertical;    /* optional: allow user resize */
-    }
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 1rem;
+}
 
-.hidden { display: none; }
+.editor-container {
+  display: flex;
+  gap: 2rem;
+  flex-direction: column;
+/*  height: calc(100vh - 150px); */
+}
+
+@media (max-width: 768px) {
+  .editor-container {
+    flex-direction: column;
+    height: auto;
+    gap: 1rem;
+  }
+}
+
+.editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: #f9f9f9;  
+}
+
+@media (max-width: 768px) {
+  .editor {
+    min-height: 400px;
+  }
+}
+
+.editor h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
 
 .loaded-info {
-  font-size: 0.9em;
-  margin-bottom: 4px;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.loaded-info span {
+  padding: 0.25rem 0.5rem;
+  background-color: #e8e8e8; 
+  border-radius: 3px;
 }
 
 .dirty {
-  margin-left: 8px;
-  color: #ed6c02;
-  font-weight: 500;
+  color: #d9534f;
+}
+
+.editor input[type="file"] {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.editor textarea {
+  flex: 0 1 auto; 
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+  min-height: 100px;
+  height: 300px;
+}
+
+@media (max-width: 768px) {
+  .editor textarea {
+    min-height: 200px;
+    font-size: 16px; /* Prevents auto-zoom on iOS */
+  }
+}
+
+.editor textarea:disabled {
+  background-color: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .status {
-  margin-top: 0.5rem;
+  min-height: 1.5em;
+  max-height: 4em;
   padding: 0.5rem;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+  word-wrap: break-word;
 }
 
 .status.success {
@@ -57,34 +117,72 @@
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
-    /* ======================================================
-       Mobile layout
-       ====================================================== */
-    @media (max-width: 768px) {
 
-      body {
-        padding: 1rem;
-      }
+.editor button {
+  padding: 0.75rem 1rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-color: #007bff; 
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
 
-      .editor-container {
-        flex-direction: column;   /* stack */
-        gap: 16px;
-      }
+@media (max-width: 768px) {
+  .editor button {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
 
-      .editor textarea {
-        width: 100%;              /* ignore cols="80" */
-        min-height: 180px;
-        font-size: 16px;          /* stops iOS zoom */
-      }
+.editor button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
 
-      input[type="file"],
-      button {
-        font-size: 16px;          /* easier tapping */
-      }
+.editor button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
 
-      #log {
-        font-size: 14px;
-        overflow-x: auto;
-      }
-    }
+hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid #ddd;
+}
 
+#log {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 100px;
+/*  
+  max-height: 300px;
+  overflow-y: auto;
+*/
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 0.5rem;
+  }
+
+  .editor-container {
+    gap: 1rem;
+  }
+
+  #log {
+    min-height: 150px;
+  }
+}
