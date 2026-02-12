@@ -1,12 +1,15 @@
 import { ui } from "../ui.js";
 import { parseXmlOrThrow, enableElement, getObjectFromXML } from "../utils/helpers.js";
-import { formatError, formatLanguageLoaded } from "../format/formatters.js";
+import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../format/formatters.js";
 import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
 import { serializeLanguage } from "../domain/serialize.js";
 
 let languageEnv = null;
 let languageObj = null;
+let validationTimeout = null;
+
+const DEBOUNCE_DELAY = 500; // milliseconds
 
 export function getLanguageEnv() {
   return languageEnv;
@@ -34,6 +37,7 @@ function commitLanguage(lang, obj) {
   enableControls(true);
   ui.downloadLanguage.disabled = false;   // ✅
   resetModelInputs();
+  updateLanguageStatus("✓ Valid", "success");
 }
 
 function rejectLanguage(er) {
@@ -43,6 +47,7 @@ function rejectLanguage(er) {
   enableControls(false);
   ui.downloadLanguage.disabled = true;    // ❌
   resetModelInputs();
+  updateLanguageStatus(er.message, "error");
 }
 
 function commitOrRejectLanguage(text, label) {
@@ -57,7 +62,48 @@ function commitOrRejectLanguage(text, label) {
   }
 }
 
+function updateLanguageStatus(message, statusClass) {
+  ui.languageStatus.textContent = message;
+  ui.languageStatus.className = `status ${statusClass}`;
+}
+
+function validateLanguageContent(text) {
+  if (!text.trim()) {
+    updateLanguageStatus("", "error");
+    ui.loadLanguageText.disabled = true;
+    return;
+  }
+
+  try {
+    const xml = parseXmlOrThrow(text, "language in textarea");
+    const obj = getObjectFromXML(xml);
+    getFunctionsFromLanguage(xml, "language in textarea");
+    updateLanguageStatus("✓ Valid", "success");
+    ui.loadLanguageText.disabled = false;
+  } catch (er) {
+    updateLanguageStatus(formatErrorNoStack(er), "error");
+    ui.loadLanguageText.disabled = true;
+  }
+}
+
+function debouncedValidateLanguage(text) {
+  // Clear any pending validation
+  if (validationTimeout) {
+    clearTimeout(validationTimeout);
+  }
+
+  // Set a new timeout
+  validationTimeout = setTimeout(() => {
+    validateLanguageContent(text);
+  }, DEBOUNCE_DELAY);
+}
+
 export function wireLanguageHandlers() {
+  // Add input event listener with debouncing
+  ui.languageText.addEventListener("input", (e) => {
+    debouncedValidateLanguage(e.target.value);
+  });
+
   ui.downloadLanguage.addEventListener("click", () => {
     if (!languageObj) return;
     const xml = serializeLanguage(languageObj);
