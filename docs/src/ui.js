@@ -7,6 +7,8 @@ export const ui = {
   languageStatus: document.getElementById("languageStatus"),
   loadModelFile: document.getElementById("loadModelFile"),
   loadModelText: document.getElementById("loadModelText"),
+  modelLoaded: document.getElementById("modelLoaded"),
+  modelDirty: document.getElementById("modelDirty"),
   modelText: document.getElementById("modelText"),
   modelStatus: document.getElementById("modelStatus"),
   downloadLanguage: document.getElementById("downloadLanguage"),

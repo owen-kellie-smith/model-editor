@@ -1,6 +1,19 @@
 import { createDOMParser } from "./domParser.js"
 import { log } from "../utils/logger.js"
 
+export function setElementContent(ele, content) {
+  // If it's a string, set as text
+  if (typeof content === 'string') {
+    ele.textContent = content;
+  } 
+  // If it's an element, append it
+  else if (content instanceof Element) {
+    // Clear existing content
+    ele.innerHTML = "";  
+    ele.appendChild(content);
+  }
+}
+
 export function asArray(x) {
   if (x == null) return [];
   return Array.isArray(x) ? x : [x];

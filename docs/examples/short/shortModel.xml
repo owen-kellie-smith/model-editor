@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<model id="dud_constant">
+  <variables>
+    <variable id="XXX">
+      <definition type="constant">
+        999
+      </definition>
+    </variable>
+  </variables>
+</model>

@@ -1,5 +1,5 @@
 import { ui } from "../ui.js";
-import { parseXmlOrThrow, enableElement, getObjectFromXML } from "../utils/helpers.js";
+import { parseXmlOrThrow, enableElement, getObjectFromXML, setElementContent } from "../utils/helpers.js";
 import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../format/formatters.js";
 import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
@@ -18,8 +18,10 @@ export function getLanguageEnv() {
 }
 
 function setLogText(s) {
-  ui.log.textContent = s;
+  setElementContent(ui.log, s)
 }
+ 
+
 
 function resetModelInputs() {
   ui.loadModelFile.value = null;

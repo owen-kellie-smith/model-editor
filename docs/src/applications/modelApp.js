@@ -4,16 +4,19 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
+import { setElementContent } from "../utils/helpers.js";
 
 
 let modelEnv = null;
 let modelValidationTimeout = null;
 let validationTimeout = null;
+let modelCommitTime = null;
+let lastCommittedText = null;
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
 function setLogText(s) {
-  ui.log.textContent = s;
+  setElementContent(ui.log, s)
 }
 
 function languageEnvIsSet() {
@@ -24,21 +27,49 @@ function languageEnvIsSet() {
   return true;
 }
 
+function updateLoadedInfo() {
+  if (modelCommitTime) {
+    ui.modelLoaded.textContent = `Loaded: ${modelCommitTime.toLocaleString()}`;
+  } else {
+    ui.modelLoaded.textContent = "";
+  }
+}
+
+function updateDirtyIndicator() {
+debugger;
+const copy = lastCommittedText;
+  const currentText = ui.modelText.value.trim();
+  const isDirty = lastCommittedText !== null && currentText !== lastCommittedText;
+  
+  if (isDirty) {
+    ui.modelDirty.textContent = "✖ Unsaved changes";
+    ui.modelDirty.style.display = "inline";
+  } else {
+    ui.modelDirty.textContent = "";
+    ui.modelDirty.style.display = "none";
+  }
+}
+
 function validateModel(text, filename, lang) {
   try {
+    text = text.trim();
     const result = validateModelCore(text, filename, lang);
     setLogText(formatModelResult(result));
     modelEnv = result;
+    modelCommitTime = new Date();
+    lastCommittedText = text;
     ui.downloadModel.disabled = false;   // ✅ valid
     updateModelStatus("✓ Valid", "success");
- } catch (er) {
+    updateLoadedInfo();
+    updateDirtyIndicator();
+  } catch (er) {
     setLogText(formatError(er));
     modelEnv = null;
     ui.downloadModel.disabled = true;    // ❌ invalid
     updateModelStatus(formatErrorNoStack(er), "error");
+    updateDirtyIndicator();  // ✅ ADD THIS - also update on error
   }
 }
-
 function validateModelContent(text, lang) {
   if (!text.trim()) {
     updateModelStatus("", "error");
@@ -66,6 +97,9 @@ function debouncedValidateModel(text, lang) {
     clearTimeout(validationTimeout);
   }
 
+  // Update dirty indicator immediately
+  updateDirtyIndicator();  // ✅ ADD THIS
+
   // Set a new timeout
   validationTimeout = setTimeout(() => {
     validateModelContent(text, lang);
@@ -83,13 +117,16 @@ export function wireModelHandlers() {
     if (!modelEnv) return;
     const xml = serializeModel(modelEnv.obj);
     exportFile(xml, "exported_model.xml");
-    ui.modelText.value = xml;
+    ui.modelText.value = xml.trim();
+    lastCommittedText = xml.trim();
+    updateDirtyIndicator();
   });
   ui.loadModelText.addEventListener("click", () => {
     if (!languageEnvIsSet()) return;
     const text = ui.modelText.value.trim();
     if (!text) return;
     validateModel(text, "model in textarea", getLanguageEnv());
+    updateDirtyIndicator();
   });
 
   ui.loadModelFile.addEventListener("change", (e) => {
@@ -102,8 +139,8 @@ export function wireModelHandlers() {
     reader.onload = () => {
       ui.modelText.value = reader.result;
       validateModel(reader.result, file.name, getLanguageEnv());
+      updateDirtyIndicator();
     };
     reader.readAsText(file);
   });
 }
-
