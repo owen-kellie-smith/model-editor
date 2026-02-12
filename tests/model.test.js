@@ -56,6 +56,9 @@ describe("validateModelCore", () => {
         const exportedText = serializeModel(first.obj);
         const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
         expect(second.features.indexSets).toEqual(first.features.indexSets);
+        expect(second.features.variables).toEqual(first.features.variables);
+        expect(second.features.resolvedVarsWithArguments).toEqual(first.features.resolvedVarsWithArguments);
+        expect(second.features.dependencies).toEqual(first.features.dependencies);
         expect(text).not.toEqual(exportedText);
       });
     });
