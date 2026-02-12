@@ -34,7 +34,7 @@ No build step or server required.
 
 ## Road map - requirements and associated tests
 
-| ID | Requirement | Tested by | Which shows that
+| ID | Requirement | Tested by | Which shows 
 |----|-------------|-------------|-----------------|
 | R1 | Language XML is only loaded if it is valid | `language.tests.js::when XML has a funciton with no name, when XML has a function with non-numeric arity"` | Loading a language.xml with a function without a name or with non-numeric arities throws an error
 | R2 | Language XML round-trip from import to export preserves its meaning | `language.tests.js::when vendor format language is loaded and exported` | The functions inferred by a valid language file are identical to the functions inferred by the standardised export of that file
