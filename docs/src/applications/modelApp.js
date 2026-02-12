@@ -4,6 +4,7 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
+import { setElementContent } from "../utils/helpers.js";
 
 
 let modelEnv = null;
@@ -13,7 +14,7 @@ let validationTimeout = null;
 const DEBOUNCE_DELAY = 500; // milliseconds
 
 function setLogText(s) {
-  ui.log.textContent = s;
+  setElementContent(ui.log, s)
 }
 
 function languageEnvIsSet() {
