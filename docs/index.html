@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>XMLE export 1.1.1</title>
+  <title>XMLE 1.2.0 validation_inline</title>
 
   <link rel="stylesheet" href="./styles/main.css">
 </head>
@@ -12,10 +12,19 @@
   <div class="editor-container">
     <div class="editor">
       <h3>Language</h3>
+      <div id="languageLoadedInfo" class="loaded-info">
+        <span id="languageLoaded">
+        </span>
+        <span id="languageDirty" class="dirty">
+                </span>
+      </div>
       <input type="file" id="loadLanguageFile" accept=".xml">
       <br>
       <textarea id="languageText" cols="80"
         placeholder="Paste language.xml here"></textarea>
+      <!-- Validation refers to the editor content -->
+      <div id="languageStatus" class="status error">
+      </div>
       <br>
       <button id="loadLanguageText">Load language from text</button>
       <button id="downloadLanguage" disabled>Export language</button>
@@ -23,10 +32,19 @@
 
     <div class="editor">
       <h3>Model</h3>
+      <div id="modelLoadedInfo" class="loaded-info">
+        <span id="modelLoaded">
+        </span>
+        <span id="modelDirty" class="dirty">
+        </span>
+      </div>
       <input type="file" id="loadModelFile" accept=".xml" disabled>
       <br>
       <textarea id="modelText" cols="80" disabled
         placeholder="Paste model.xml here"></textarea>
+      <!-- Validation refers to the editor content -->
+      <div id="modelStatus" class="status error">
+      </div>
       <br>
       <button id="loadModelText" disabled>Load model from text</button>
       <button id="downloadModel" disabled>Export model</button>
