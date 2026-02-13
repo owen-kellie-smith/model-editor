@@ -58,8 +58,8 @@ describe("validateModelCore", () => {
         expect(second.features.indexSets).toEqual(first.features.indexSets);
         expect(second.features.variables).toEqual(first.features.variables);
         expect(second.features.resolvedVarsWithArguments).toEqual(first.features.resolvedVarsWithArguments);
-        expect(second.features.precedents).toEqual(first.features.precedents);
-        expect(second.features.dependents).toEqual(first.features.dependents);
+        expect(second.features.incoming).toEqual(first.features.incoming);
+        expect(second.features.outgoing).toEqual(first.features.outgoing);
         expect(text).not.toEqual(exportedText);
       });
     });
@@ -98,64 +98,64 @@ describe("validateModelCore", () => {
     });
   });
 
-  describe("when model contains precedents", () => {
-    it("calculates variable precedents from formulae", () => {
+  describe("when model contains incoming variables", () => {
+    it("calculates incoming variables from formulae", () => {
       const text = readFixture("modelPrecedents.xml");
       const result = validateModelCore(text, "modelPrecedents.xml", lang);
       
       // total_rate has formula: max(base_rate + spread, 0)
-      // Expected precedents: BASE_RATE, SPREAD
+      // Expected incoming variables: BASE_RATE, SPREAD
       // NOT expected: MAX (language function)
-      const totalRatePrecedents = result.features.precedents.get("TOTAL_RATE");
+      const totalRateIncoming = result.features.incoming.get("TOTAL_RATE");
       
-      expect(totalRatePrecedents).toBeDefined();
-      expect(totalRatePrecedents.size).toBe(2);
+      expect(totalRateIncoming).toBeDefined();
+      expect(totalRateIncoming.size).toBe(2);
       
       // Convert Set to array and extract names
-      const precedentArray = Array.from(totalRatePrecedents);
-      const precedentNames = precedentArray.map(d => d.name);
+      const incomingArray = Array.from(totalRateIncoming);
+      const incomingNames = incomingArray.map(d => d.name);
       
       // Check that both variables are present
-      expect(precedentNames.includes("BASE_RATE")).toBe(true);
-      expect(precedentNames.includes("SPREAD")).toBe(true);
+      expect(incomingNames.includes("BASE_RATE")).toBe(true);
+      expect(incomingNames.includes("SPREAD")).toBe(true);
       // Check that the function MAX is not present
-      expect(precedentNames.includes("MAX")).toBe(false);
+      expect(incomingNames.includes("MAX")).toBe(false);
 
     });
   });
 
-  describe("when model contains dependents", () => {
-    it("calculates variable dependents from formulae", () => {
+  describe("when model contains outgoing variables", () => {
+    it("calculates outgoing variables from formulae", () => {
       const text = readFixture("modelPrecedents.xml");
       const result = validateModelCore(text, "modelPrecedents.xml", lang);
       
       // In modelPrecedents.xml:
-      // - base_rate = 0.05 (no precedents)
-      // - spread = 0.02 (no precedents)
-      // - total_rate = max(base_rate + spread, 0) (precedents: base_rate, spread)
+      // - base_rate = 0.05 (no incoming variables)
+      // - spread = 0.02 (no incoming variables)
+      // - total_rate = max(base_rate + spread, 0) (incoming: base_rate, spread)
       // 
-      // Expected dependents (inverse of precedents):
-      // - base_rate should have total_rate as a dependent
-      // - spread should have total_rate as a dependent
-      // - total_rate should have no dependents
+      // Expected outgoing variables (inverse of incoming):
+      // - base_rate should have total_rate as an outgoing variable
+      // - spread should have total_rate as an outgoing variable
+      // - total_rate should have no outgoing variables
       
-      expect(result.features.dependents).toBeDefined();
+      expect(result.features.outgoing).toBeDefined();
       
-      const baseRateDependents = result.features.dependents.get("BASE_RATE");
-      expect(baseRateDependents).toBeDefined();
-      expect(baseRateDependents.size).toBe(1);
-      const baseRateDependentNames = Array.from(baseRateDependents).map(d => d.name);
-      expect(baseRateDependentNames.includes("TOTAL_RATE")).toBe(true);
+      const baseRateOutgoing = result.features.outgoing.get("BASE_RATE");
+      expect(baseRateOutgoing).toBeDefined();
+      expect(baseRateOutgoing.size).toBe(1);
+      const baseRateOutgoingNames = Array.from(baseRateOutgoing).map(d => d.name);
+      expect(baseRateOutgoingNames.includes("TOTAL_RATE")).toBe(true);
       
-      const spreadDependents = result.features.dependents.get("SPREAD");
-      expect(spreadDependents).toBeDefined();
-      expect(spreadDependents.size).toBe(1);
-      const spreadDependentNames = Array.from(spreadDependents).map(d => d.name);
-      expect(spreadDependentNames.includes("TOTAL_RATE")).toBe(true);
+      const spreadOutgoing = result.features.outgoing.get("SPREAD");
+      expect(spreadOutgoing).toBeDefined();
+      expect(spreadOutgoing.size).toBe(1);
+      const spreadOutgoingNames = Array.from(spreadOutgoing).map(d => d.name);
+      expect(spreadOutgoingNames.includes("TOTAL_RATE")).toBe(true);
       
-      const totalRateDependents = result.features.dependents.get("TOTAL_RATE");
-      expect(totalRateDependents).toBeDefined();
-      expect(totalRateDependents.size).toBe(0);
+      const totalRateOutgoing = result.features.outgoing.get("TOTAL_RATE");
+      expect(totalRateOutgoing).toBeDefined();
+      expect(totalRateOutgoing.size).toBe(0);
     });
   });
 

@@ -37,7 +37,7 @@ function formatModelResultText({ features, obj, filename }) {
     indexSets,
     variables,
     resolvedVarsWithArguments,
-    precedents,
+    incoming,
   } = features;
 
   return [
@@ -49,8 +49,8 @@ function formatModelResultText({ features, obj, filename }) {
     "Variables:",
     variables.join(", ") || "(none)",
     "",
-    "Precedents:",
-    getStringfromObject(getObjectFromMapOfSets(precedents)),
+    "Incoming variables:",
+    getStringfromObject(getObjectFromMapOfSets(incoming)),
     "",
     "Resolved variables:",
     getStringfromObject(getObjectFromMap(resolvedVarsWithArguments)),
@@ -126,7 +126,7 @@ function formatModelResultHTML({ features, obj, filename }) {
     indexSets,
     variables,
     resolvedVarsWithArguments,
-    precedents,
+    incoming,
   } = features;
 
   const d = document.createElement("div");
@@ -135,7 +135,7 @@ function formatModelResultHTML({ features, obj, filename }) {
   d.appendChild(p);
   appendModelResultSection(d,"Index sets",indexSets);
   appendModelResultSection(d,"Variables",variables);
-  appendModelResultSection(d,"Precedents",getObjectFromMapOfSets(precedents));
+  appendModelResultSection(d,"Incoming variables",getObjectFromMapOfSets(incoming));
   appendModelResultSection(d,"Resolved variables",getObjectFromMap(resolvedVarsWithArguments));
   appendModelResultSection(d,`${filename} as object`,obj);
 

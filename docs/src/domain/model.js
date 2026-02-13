@@ -101,14 +101,14 @@ export function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
     return resolved;
   }
 
-  // gets a map of precedents (what each variable depends on)
+  // gets a map of incoming variables (variables that flow into each variable)
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
-export function getPrecedents(symbols, resolvedVarsWithArguments, lang) {
-  const precedents = new Map(); 
+export function getIncoming(symbols, resolvedVarsWithArguments, lang) {
+  const incoming = new Map(); 
 
   for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
     const deps = new Set();
-    precedents.set(name.toUpperCase(), deps);
+    incoming.set(name.toUpperCase(), deps);
 
     const collector = makeDependencyCollector(symbols, lang, name, deps);
     collector.addDependenciesFromDefinition(
@@ -116,40 +116,40 @@ export function getPrecedents(symbols, resolvedVarsWithArguments, lang) {
     );
   }
 
-  return precedents;   
+  return incoming;   
 }
 
-  // gets a map of dependents (inverse of precedents)
-  // for each variable, shows which variables depend on it
-export function getDependents(precedents, resolvedVarsWithArguments) {
-  const dependents = new Map();
+  // gets a map of outgoing variables (variables that this variable flows into)
+  // for each variable, shows which variables use it as input
+export function getOutgoing(incoming, resolvedVarsWithArguments) {
+  const outgoing = new Map();
   
   // Initialize all variables with empty sets
   for (const [name] of resolvedVarsWithArguments) {
-    dependents.set(name.toUpperCase(), new Set());
+    outgoing.set(name.toUpperCase(), new Set());
   }
   
-  // For each variable and its precedents,
-  // add this variable as a dependent of each precedent
-  for (const [varName, deps] of precedents) {
+  // For each variable and its incoming variables,
+  // add this variable as an outgoing variable of each incoming variable
+  for (const [varName, deps] of incoming) {
     for (const dep of deps) {
       const depName = dep.name.toUpperCase();
-      if (!dependents.has(depName)) {
-        dependents.set(depName, new Set());
+      if (!outgoing.has(depName)) {
+        outgoing.set(depName, new Set());
       }
-      // Add varName as a dependent of depName
-      // Include shift information to match the structure of precedents
-      dependents.get(depName).add({ name: varName, shift: -(dep.shift ?? 0) });
+      // Add varName as an outgoing variable of depName
+      // Include shift information to match the structure of incoming
+      outgoing.get(depName).add({ name: varName, shift: -(dep.shift ?? 0) });
     }
   }
   
-  return dependents;
+  return outgoing;
 }
 
   // throw an error if e.g. a depends on B which depends on C which depends on A.
-export function throwErrorForCircularExpressions(precedents) {
+export function throwErrorForCircularExpressions(incoming) {
 
-  for (const root of precedents.keys()) {
+  for (const root of incoming.keys()) {
 
     // nodes we must still expand
     // key = `${name}@${offset}`
@@ -159,8 +159,8 @@ export function throwErrorForCircularExpressions(precedents) {
     const startKey = `${root}@0`;
     checked.add(startKey);
 
-    // seed with immediate precedents of root at offset 0
-    for (const e of precedents.get(root) ?? []) {
+    // seed with immediate incoming variables of root at offset 0
+    for (const e of incoming.get(root) ?? []) {
       const off = e.shift ?? 0;
       const key = `${e.name}@${off}`;
       total.set(key, { name: e.name, offset: off });
@@ -184,8 +184,8 @@ export function throwErrorForCircularExpressions(precedents) {
       const [key, { name, offset }] = nextEntry;
       checked.add(key);
 
-      // expand its precedents
-      for (const e of precedents.get(name) ?? []) {
+      // expand its incoming variables
+      for (const e of incoming.get(name) ?? []) {
         const nextOffset = offset + (e.shift ?? 0);
         const nextKey = `${e.name}@${nextOffset}`;
 
@@ -218,23 +218,23 @@ export  function getIdentifierTokens(exprText) {
   return [...refs];
   }
 
-// passes xmlModel and lang to parsers to get an object containing parsed model features (variables, precedents i.e. immediate precedents, and dependents) 
+// passes xmlModel and lang to parsers to get an object containing parsed model features (variables, incoming and outgoing variables) 
 export  function getModelFeatures(xmlModel, lang) {
     const symbols = getMapsOfModelProperties(xmlModel);
   log("debug","symbols:", symbols);
     const resolvedVarsWithArguments = getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols);
   log("debug","resolvedVarsWithArguments:", resolvedVarsWithArguments);
-    const precedents = getPrecedents(symbols, resolvedVarsWithArguments, lang);
-  log("debug","precedents:", precedents);
-    const dependents = getDependents(precedents, resolvedVarsWithArguments);
-  log("debug","dependents:", dependents);
-    throwErrorForCircularExpressions(precedents);
+    const incoming = getIncoming(symbols, resolvedVarsWithArguments, lang);
+  log("debug","incoming:", incoming);
+    const outgoing = getOutgoing(incoming, resolvedVarsWithArguments);
+  log("debug","outgoing:", outgoing);
+    throwErrorForCircularExpressions(incoming);
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
       variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
       resolvedVarsWithArguments,
-      precedents,
-      dependents   
+      incoming,
+      outgoing   
     };
   }
 
