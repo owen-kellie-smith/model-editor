@@ -2,9 +2,9 @@ import { createDOMParser } from "./domParser.js"
 import { log } from "../utils/logger.js"
 
 export function setElementContent(ele, content) {
-  // If it's a string, set as text
+  // If it's a string, set as HTML
   if (typeof content === 'string') {
-    ele.textContent = content;
+    ele.innerHTML = content;
   } 
   // If it's an element, append it
   else if (content instanceof Element) {
