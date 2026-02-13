@@ -3,14 +3,28 @@ import { getModelEnv } from "./modelApp.js";
 import { setElementContent, escapeHtml } from "../utils/helpers.js";
 import { listVariables } from "../domain/variableCrud.js";
 
+let currentSelectedVariableId = null;
+
 /**
- * Renders the list of variables from the current model
+ * Renders the dropdown list of variables from the current model
  */
-export function renderVariableList() {
+export function renderVariableDropdown() {
   const modelEnv = getModelEnv();
   
+  // Clear the dropdown
+  ui.variableDropdown.innerHTML = "";
+  
+  // Hide details and form sections
+  ui.variableDetails.style.display = "none";
+  ui.variableFormSection.style.display = "none";
+  currentSelectedVariableId = null;
+  
   if (!modelEnv) {
-    setElementContent(ui.variableList, "<p>Load a model to see variables...</p>");
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Load a model to see variables...";
+    ui.variableDropdown.appendChild(option);
+    ui.variableDropdown.disabled = true;
     return;
   }
 
@@ -18,45 +32,93 @@ export function renderVariableList() {
     const variables = listVariables(modelEnv.obj);
     
     if (variables.length === 0) {
-      setElementContent(ui.variableList, "<p>No variables in model</p>");
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No variables in model";
+      ui.variableDropdown.appendChild(option);
+      ui.variableDropdown.disabled = true;
       return;
     }
 
-    const html = variables.map(variable => {
-      const definitionPreview = getDefinitionPreview(variable.definition);
-      const metadata = [];
-      
-      // Handle dataType which might be an object with #text or a string
-      if (variable.dataType) {
-        const dataType = typeof variable.dataType === 'object' ? variable.dataType['#text'] : variable.dataType;
-        metadata.push(`Type: ${escapeHtml(dataType)}`);
-      }
-      
-      // Handle unit which might be an object with #text or a string
-      if (variable.unit) {
-        const unit = typeof variable.unit === 'object' ? variable.unit['#text'] : variable.unit;
-        metadata.push(`Unit: ${escapeHtml(unit)}`);
-      }
-      
-      if (variable.arguments?.arg) {
-        const argCount = Array.isArray(variable.arguments.arg) 
-          ? variable.arguments.arg.length 
-          : 1;
-        metadata.push(`Args: ${argCount}`);
-      }
-      
-      return `
-        <div class="variable-item">
-          <strong>${escapeHtml(variable.id)}</strong>
-          ${metadata.length > 0 ? `<div style="font-size: 0.85em; color: #666;">${metadata.join(' | ')}</div>` : ''}
-          <small>${escapeHtml(definitionPreview)}</small>
-        </div>
-      `;
-    }).join('');
-
-    setElementContent(ui.variableList, html);
+    // Add default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select a variable...";
+    ui.variableDropdown.appendChild(defaultOption);
+    
+    // Add variable options
+    variables.forEach(variable => {
+      const option = document.createElement("option");
+      option.value = variable.id;
+      option.textContent = variable.id;
+      ui.variableDropdown.appendChild(option);
+    });
+    
+    ui.variableDropdown.disabled = false;
   } catch (error) {
-    setElementContent(ui.variableList, `<p style="color: red;">Error loading variables: ${escapeHtml(error.message)}</p>`);
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = `Error loading variables: ${error.message}`;
+    ui.variableDropdown.appendChild(option);
+    ui.variableDropdown.disabled = true;
+  }
+}
+
+/**
+ * Displays the details of the selected variable
+ */
+function showVariableDetails(variableId) {
+  const modelEnv = getModelEnv();
+  if (!modelEnv) return;
+  
+  try {
+    const variables = listVariables(modelEnv.obj);
+    const variable = variables.find(v => v.id === variableId);
+    
+    if (!variable) {
+      ui.variableDetails.style.display = "none";
+      return;
+    }
+    
+    currentSelectedVariableId = variableId;
+    
+    // Set variable name
+    setElementContent(ui.selectedVariableName, escapeHtml(variable.id));
+    
+    // Build features HTML
+    const features = [];
+    
+    // Handle dataType which might be an object with #text or a string
+    if (variable.dataType) {
+      const dataType = typeof variable.dataType === 'object' ? variable.dataType['#text'] : variable.dataType;
+      features.push(`<strong>Type:</strong> ${escapeHtml(dataType)}`);
+    }
+    
+    // Handle unit which might be an object with #text or a string
+    if (variable.unit) {
+      const unit = typeof variable.unit === 'object' ? variable.unit['#text'] : variable.unit;
+      features.push(`<strong>Unit:</strong> ${escapeHtml(unit)}`);
+    }
+    
+    // Display definition
+    const definitionPreview = getDefinitionPreview(variable.definition);
+    features.push(`<strong>Definition:</strong> <code>${escapeHtml(definitionPreview)}</code>`);
+    
+    // Display arguments if present
+    if (variable.arguments?.arg) {
+      const argCount = Array.isArray(variable.arguments.arg) 
+        ? variable.arguments.arg.length 
+        : 1;
+      features.push(`<strong>Arguments:</strong> ${argCount}`);
+    }
+    
+    setElementContent(ui.selectedVariableFeatures, features.join('<br>'));
+    
+    // Show the details section
+    ui.variableDetails.style.display = "block";
+  } catch (error) {
+    console.error("Error showing variable details:", error);
+    ui.variableDetails.style.display = "none";
   }
 }
 
@@ -64,7 +126,7 @@ export function renderVariableList() {
  * Gets a preview string for a variable definition
  */
 function getDefinitionPreview(definition) {
-  const MAX_PREVIEW_LENGTH = 60;
+  const MAX_PREVIEW_LENGTH = 80;
   
   if (!definition) return "No definition";
   
@@ -81,14 +143,150 @@ function getDefinitionPreview(definition) {
 }
 
 /**
+ * Shows the edit form for the selected variable
+ */
+function showEditForm() {
+  if (!currentSelectedVariableId) return;
+  
+  const modelEnv = getModelEnv();
+  if (!modelEnv) return;
+  
+  try {
+    const variables = listVariables(modelEnv.obj);
+    const variable = variables.find(v => v.id === currentSelectedVariableId);
+    
+    if (!variable) return;
+    
+    // Populate the form
+    ui.editVarId.value = variable.id;
+    
+    // Handle definition - extract text if available
+    if (variable.definition) {
+      const definitionText = variable.definition['#text'] || '';
+      ui.editVarDefinition.value = definitionText;
+    } else {
+      ui.editVarDefinition.value = '';
+    }
+    
+    // Handle dataType
+    const dataType = variable.dataType 
+      ? (typeof variable.dataType === 'object' ? variable.dataType['#text'] : variable.dataType)
+      : '';
+    ui.editVarDataType.value = dataType;
+    
+    // Handle unit
+    const unit = variable.unit 
+      ? (typeof variable.unit === 'object' ? variable.unit['#text'] : variable.unit)
+      : '';
+    ui.editVarUnit.value = unit;
+    
+    // Show the form section
+    ui.variableFormSection.style.display = "block";
+    ui.variableFormSection.scrollIntoView({ behavior: 'smooth' });
+  } catch (error) {
+    console.error("Error showing edit form:", error);
+    alert(`Error loading variable for editing: ${error.message}`);
+  }
+}
+
+/**
+ * Hides the edit form
+ */
+function hideEditForm() {
+  ui.variableFormSection.style.display = "none";
+  
+  // Clear form fields
+  ui.editVarId.value = '';
+  ui.editVarDefinition.value = '';
+  ui.editVarDataType.value = '';
+  ui.editVarUnit.value = '';
+}
+
+/**
+ * Shows a message that a feature is not yet implemented
+ */
+function showNotImplementedMessage(action, variableId) {
+  alert(`${action} functionality is not yet available.\n\nVariable: "${variableId}"`);
+}
+
+/**
+ * Handles the copy variable action
+ */
+function handleCopyVariable() {
+  if (!currentSelectedVariableId) return;
+  showNotImplementedMessage('Copy', currentSelectedVariableId);
+}
+
+/**
+ * Handles the delete variable action
+ */
+function handleDeleteVariable() {
+  if (!currentSelectedVariableId) return;
+  
+  const confirmed = confirm(`Are you sure you want to delete variable "${currentSelectedVariableId}"?`);
+  
+  if (!confirmed) return;
+  
+  showNotImplementedMessage('Delete', currentSelectedVariableId);
+}
+
+/**
+ * Handles the save variable action
+ */
+function handleSaveVariable() {
+  if (!currentSelectedVariableId) return;
+  
+  showNotImplementedMessage('Save', currentSelectedVariableId);
+  hideEditForm();
+}
+
+/**
  * Wire up event handlers for variable CRUD operations
  */
 export function wireVariableCrudHandlers() {
+  // Listen for dropdown selection changes
+  ui.variableDropdown.addEventListener('change', (event) => {
+    const selectedId = event.target.value;
+    
+    if (selectedId) {
+      showVariableDetails(selectedId);
+    } else {
+      ui.variableDetails.style.display = "none";
+      ui.variableFormSection.style.display = "none";
+      currentSelectedVariableId = null;
+    }
+  });
+  
+  // Edit button handler
+  ui.editVariableBtn.addEventListener('click', () => {
+    showEditForm();
+  });
+  
+  // Copy button handler
+  ui.copyVariableBtn.addEventListener('click', () => {
+    handleCopyVariable();
+  });
+  
+  // Delete button handler
+  ui.deleteVariableBtn.addEventListener('click', () => {
+    handleDeleteVariable();
+  });
+  
+  // Save button handler
+  ui.saveVariableBtn.addEventListener('click', () => {
+    handleSaveVariable();
+  });
+  
+  // Cancel button handler
+  ui.cancelEditBtn.addEventListener('click', () => {
+    hideEditForm();
+  });
+  
   // Listen for model loaded events to refresh the variable list
   window.addEventListener('modelLoaded', () => {
-    renderVariableList();
+    renderVariableDropdown();
   });
 
   // Initial render (will show "Load a model..." message)
-  renderVariableList();
+  renderVariableDropdown();
 }

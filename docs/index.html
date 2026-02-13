@@ -58,8 +58,45 @@
     <div class="editor">
       <details>
         <summary>Variables</summary>
-        <div id="variableList" class="variable-list">
-          <p>Load a model to see variables...</p>
+        <div class="variable-selector">
+          <label for="variableDropdown">Select Variable:</label>
+          <select id="variableDropdown">
+            <option value="">Load a model to see variables...</option>
+          </select>
+        </div>
+        <div id="variableDetails" class="variable-details" style="display: none;">
+          <div class="variable-info">
+            <h4 id="selectedVariableName"></h4>
+            <div id="selectedVariableFeatures"></div>
+          </div>
+          <div class="variable-actions">
+            <button id="editVariableBtn" class="btn-secondary">Edit</button>
+            <button id="copyVariableBtn" class="btn-secondary">Copy</button>
+            <button id="deleteVariableBtn" class="btn-danger">Delete</button>
+          </div>
+        </div>
+        <div id="variableFormSection" class="variable-form-section" style="display: none;">
+          <h4>Edit Variable</h4>
+          <div class="variable-form">
+            <div class="form-group">
+              <label>Variable ID:</label>
+              <input type="text" id="editVarId" disabled>
+            </div>
+            <div class="form-group">
+              <label for="editVarDefinition">Definition:</label>
+              <textarea id="editVarDefinition"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="editVarDataType">Data Type:</label>
+              <input type="text" id="editVarDataType">
+            </div>
+            <div class="form-group">
+              <label for="editVarUnit">Unit:</label>
+              <input type="text" id="editVarUnit">
+            </div>
+            <button id="saveVariableBtn" class="btn-primary">Save</button>
+            <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+          </div>
         </div>
       </details>
     </div>
