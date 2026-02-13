@@ -34,12 +34,20 @@ function populateVariableDropdown() {
     return;
   }
   
+  // Store the currently selected value
+  const currentSelection = ui.graphVariable.value;
+  
   // Clear existing options except the first one
   ui.graphVariable.innerHTML = '<option value="">Select a variable...</option>';
   
-  // Get all variables from the model
+  // Get all variables from the model (Map preserves insertion order = model order)
   const variables = Array.from(modelEnv.features.incoming.keys());
-  variables.sort();
+  
+  // Sort alphabetically if checkbox is checked
+  if (ui.graphSortAlphabetically.checked) {
+    variables.sort();
+  }
+  // Otherwise keep model order (already in insertion order from Map)
   
   // Add each variable as an option
   for (const varName of variables) {
@@ -47,6 +55,11 @@ function populateVariableDropdown() {
     option.value = varName;
     option.textContent = varName;
     ui.graphVariable.appendChild(option);
+  }
+  
+  // Restore previous selection if it still exists in the variables list
+  if (currentSelection && variables.includes(currentSelection)) {
+    ui.graphVariable.value = currentSelection;
   }
   
   // Enable the controls
@@ -285,6 +298,11 @@ export function wireGraphHandlers() {
   
   // Add event listener for fit-to-screen checkbox
   ui.graphFitToScreen.addEventListener('change', applyFitToScreen);
+  
+  // Add event listener for sort alphabetically checkbox
+  ui.graphSortAlphabetically.addEventListener('change', () => {
+    populateVariableDropdown();
+  });
   
   // Add event listeners for download links
   ui.downloadSvg.addEventListener('click', downloadSvg);
