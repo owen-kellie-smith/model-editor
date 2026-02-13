@@ -10,6 +10,7 @@ import {
   copyVariable, 
   readVariable 
 } from "../domain/variableCrud.js";
+import { serializeModel } from "../domain/serialize.js";
 
 let currentSelectedVariableId = null;
 let isCreatingNew = false;
@@ -60,7 +61,7 @@ export function renderVariableDropdown() {
   }
 
   try {
-    const variables = listVariables(modelEnv.obj);
+    let variables = listVariables(modelEnv.obj);
     
     if (variables.length === 0) {
       const option = document.createElement("option");
@@ -69,6 +70,11 @@ export function renderVariableDropdown() {
       ui.variableDropdown.appendChild(option);
       ui.variableDropdown.disabled = true;
       return;
+    }
+
+    // Sort alphabetically if checkbox is checked
+    if (ui.sortVariablesAlpha.checked) {
+      variables = [...variables].sort((a, b) => a.id.localeCompare(b.id));
     }
 
     // Add default option
@@ -349,8 +355,12 @@ function handleDeleteVariable() {
   try {
     const result = deleteVariable(modelEnv.obj, deletedVariableId, lang);
     
-    // Update the model environment
+    // Update the model environment (this also updates the last loaded date)
     setModelEnv(result);
+    
+    // Update the copy model in textarea
+    const xml = serializeModel(result.obj);
+    ui.modelText.value = xml.trim();
     
     // Refresh the variable dropdown
     renderVariableDropdown();
@@ -423,8 +433,12 @@ function handleSaveVariable() {
       alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
     }
     
-    // Update the model environment
+    // Update the model environment (this also updates the last loaded date)
     setModelEnv(result);
+    
+    // Update the copy model in textarea
+    const xml = serializeModel(result.obj);
+    ui.modelText.value = xml.trim();
     
     // Refresh the variable dropdown
     renderVariableDropdown();
@@ -492,6 +506,11 @@ export function wireVariableCrudHandlers() {
   // Cancel button handler
   ui.cancelEditBtn.addEventListener('click', () => {
     hideEditForm();
+  });
+  
+  // Sort checkbox handler
+  ui.sortVariablesAlpha.addEventListener('change', () => {
+    renderVariableDropdown();
   });
   
   // Listen for model loaded events to refresh the variable list
