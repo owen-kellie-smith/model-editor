@@ -38,8 +38,12 @@ function populateVariableDropdown() {
   ui.graphVariable.innerHTML = '<option value="">Select a variable...</option>';
   
   // Get all variables from the model
-  const variables = Array.from(modelEnv.features.incoming.keys());
-  variables.sort();
+  let variables = Array.from(modelEnv.features.incoming.keys());
+  
+  // Sort alphabetically if checkbox is checked
+  if (ui.sortGraphVariablesAlpha.checked) {
+    variables.sort();
+  }
   
   // Add each variable as an option
   for (const varName of variables) {
@@ -285,6 +289,11 @@ export function wireGraphHandlers() {
   
   // Add event listener for fit-to-screen checkbox
   ui.graphFitToScreen.addEventListener('change', applyFitToScreen);
+  
+  // Add event listener for sort checkbox
+  ui.sortGraphVariablesAlpha.addEventListener('change', () => {
+    populateVariableDropdown();
+  });
   
   // Add event listeners for download links
   ui.downloadSvg.addEventListener('click', downloadSvg);

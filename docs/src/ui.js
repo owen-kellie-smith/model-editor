@@ -37,5 +37,7 @@ export const ui = {
   editVarUnit: document.getElementById("editVarUnit"),
   saveVariableBtn: document.getElementById("saveVariableBtn"),
   cancelEditBtn: document.getElementById("cancelEditBtn"),
+  sortVariablesAlpha: document.getElementById("sortVariablesAlpha"),
+  sortGraphVariablesAlpha: document.getElementById("sortGraphVariablesAlpha"),
 };
 

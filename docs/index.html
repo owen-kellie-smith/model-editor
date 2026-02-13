@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>XMLE 1.5.2 edit </title>
+  <title>XMLE 1.5.3 edit </title>
 
   <link rel="stylesheet" href="./styles/main.css">
   <script src="https://cdn.jsdelivr.net/npm/viz.js@2.1.2/viz.js"></script>
@@ -63,6 +63,10 @@
           <select id="variableDropdown">
             <option value="">Load a model to see variables...</option>
           </select>
+          <label>
+            <input type="checkbox" id="sortVariablesAlpha">
+            Sort Alphabetically
+          </label>
           <button id="newVariableBtn" class="btn-primary">New</button>
         </div>
         <div id="variableDetails" class="variable-details" style="display: none;">
@@ -109,6 +113,10 @@
           <select id="graphVariable" disabled>
             <option value="">Select a variable...</option>
           </select>
+          <label>
+            <input type="checkbox" id="sortGraphVariablesAlpha">
+            Sort Alphabetically
+          </label>
           
           <label for="graphDepth">Depth:</label>
           <select id="graphDepth" disabled>
