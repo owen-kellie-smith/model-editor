@@ -1,5 +1,6 @@
 import { ui } from "../ui.js";
 import { getModelEnv, setModelEnv } from "./modelApp.js";
+import { getLanguageEnv } from "./languageApp.js";
 import { setElementContent, escapeHtml } from "../utils/helpers.js";
 import { 
   listVariables, 
@@ -12,6 +13,28 @@ import {
 
 let currentSelectedVariableId = null;
 let isCreatingNew = false;
+
+/**
+ * Validates that both model and language environments are loaded.
+ * Shows an alert if either is missing.
+ * 
+ * @returns {Object|null} Returns { modelEnv, lang } if both are loaded, null otherwise
+ */
+function validateEnvironments() {
+  const modelEnv = getModelEnv();
+  if (!modelEnv) {
+    alert("Model not loaded. Please load a model first.");
+    return null;
+  }
+  
+  const lang = getLanguageEnv();
+  if (!lang) {
+    alert("Language environment not loaded. Please load a language file first.");
+    return null;
+  }
+  
+  return { modelEnv, lang };
+}
 
 /**
  * Renders the dropdown list of variables from the current model
@@ -315,14 +338,16 @@ function handleDeleteVariable() {
   
   if (!confirmed) return;
   
-  const modelEnv = getModelEnv();
-  if (!modelEnv) return;
+  const env = validateEnvironments();
+  if (!env) return;
+  
+  const { modelEnv, lang } = env;
   
   // Store the variable ID before we set it to null
   const deletedVariableId = currentSelectedVariableId;
   
   try {
-    const result = deleteVariable(modelEnv.obj, deletedVariableId, modelEnv.lang);
+    const result = deleteVariable(modelEnv.obj, deletedVariableId, lang);
     
     // Update the model environment
     setModelEnv(result);
@@ -346,8 +371,10 @@ function handleDeleteVariable() {
  * Handles the save variable action
  */
 function handleSaveVariable() {
-  const modelEnv = getModelEnv();
-  if (!modelEnv) return;
+  const env = validateEnvironments();
+  if (!env) return;
+  
+  const { modelEnv, lang } = env;
   
   try {
     // Get form values
@@ -388,11 +415,11 @@ function handleSaveVariable() {
     if (isCreatingNew) {
       // Create new variable
       variableData.id = variableId;
-      result = createVariable(modelEnv.obj, variableData, modelEnv.lang);
+      result = createVariable(modelEnv.obj, variableData, lang);
       alert(`Variable "${variableId}" created successfully.`);
     } else {
       // Update existing variable
-      result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, modelEnv.lang);
+      result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
       alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
     }
     
