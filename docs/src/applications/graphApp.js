@@ -98,6 +98,17 @@ function hideDownloadLinks() {
 }
 
 /**
+ * Sanitize a string to make it safe for use as a filename
+ */
+function sanitizeFilename(name) {
+  if (!name) {
+    return 'export';
+  }
+  // Replace spaces with hyphens and remove invalid filename characters
+  return name.replace(/[<>:"/\\|?*\s]/g, '-').replace(/-+/g, '-');
+}
+
+/**
  * Download the SVG graph
  */
 function downloadSvg(event) {
@@ -116,7 +127,8 @@ function downloadSvg(event) {
   // Create a temporary link and trigger download
   const link = document.createElement('a');
   link.href = url;
-  link.download = `graph-${ui.graphVariable.value || 'export'}.svg`;
+  const filename = sanitizeFilename(ui.graphVariable.value);
+  link.download = `graph-${filename}.svg`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -173,7 +185,8 @@ function downloadPng(event) {
       const pngUrl = URL.createObjectURL(pngBlob);
       const link = document.createElement('a');
       link.href = pngUrl;
-      link.download = `graph-${ui.graphVariable.value || 'export'}.png`;
+      const filename = sanitizeFilename(ui.graphVariable.value);
+      link.download = `graph-${filename}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
