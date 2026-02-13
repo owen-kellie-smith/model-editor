@@ -85,8 +85,8 @@ function applyFitToScreen() {
  * Show download links
  */
 function showDownloadLinks() {
-  ui.downloadSvg.style.display = '';
-  ui.downloadPng.style.display = '';
+  ui.downloadSvg.style.display = 'inline-block';
+  ui.downloadPng.style.display = 'inline-block';
 }
 
 /**
@@ -153,17 +153,26 @@ function downloadPng(event) {
   // Get SVG dimensions - prefer viewBox, then width/height attributes, finally getBoundingClientRect
   // We check for > 0 because we need valid dimensions for canvas rendering (0 would be invalid)
   let svgWidth, svgHeight;
-  if (svgElement.viewBox.baseVal.width > 0 && svgElement.viewBox.baseVal.height > 0) {
-    svgWidth = svgElement.viewBox.baseVal.width;
-    svgHeight = svgElement.viewBox.baseVal.height;
-  } else if (svgElement.width.baseVal.value > 0 && svgElement.height.baseVal.value > 0) {
-    svgWidth = svgElement.width.baseVal.value;
-    svgHeight = svgElement.height.baseVal.value;
-  } else {
-    // Fallback to bounding rect
+  try {
+    if (svgElement.viewBox && svgElement.viewBox.baseVal && 
+        svgElement.viewBox.baseVal.width > 0 && svgElement.viewBox.baseVal.height > 0) {
+      svgWidth = svgElement.viewBox.baseVal.width;
+      svgHeight = svgElement.viewBox.baseVal.height;
+    } else if (svgElement.width && svgElement.width.baseVal && svgElement.height && svgElement.height.baseVal &&
+               svgElement.width.baseVal.value > 0 && svgElement.height.baseVal.value > 0) {
+      svgWidth = svgElement.width.baseVal.value;
+      svgHeight = svgElement.height.baseVal.value;
+    } else {
+      // Fallback to bounding rect
+      const svgRect = svgElement.getBoundingClientRect();
+      svgWidth = svgRect.width || 800;  // Default to 800 if all else fails
+      svgHeight = svgRect.height || 600; // Default to 600 if all else fails
+    }
+  } catch (e) {
+    // If there's any error accessing properties, fall back to bounding rect
     const svgRect = svgElement.getBoundingClientRect();
-    svgWidth = svgRect.width || 800;  // Default to 800 if all else fails
-    svgHeight = svgRect.height || 600; // Default to 600 if all else fails
+    svgWidth = svgRect.width || 800;
+    svgHeight = svgRect.height || 600;
   }
   
   // Set canvas size
