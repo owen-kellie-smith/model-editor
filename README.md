@@ -2,7 +2,7 @@
 
 ![Tests](https://github.com/owen-kellie-smith/model-editor/actions/workflows/tests.yml/badge.svg)
 
-An experimental single web page for parsing, validating, and exploring large declarative models stored in XML.
+A single web page for parsing, validating, and exploring large declarative models stored in XML.
 
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
