@@ -101,14 +101,14 @@ export function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
     return resolved;
   }
 
-  // gets a map of dependencies
+  // gets a map of precedents (what each variable depends on)
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
-export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
-  const dependencies = new Map(); 
+export function getPrecedents(symbols, resolvedVarsWithArguments, lang) {
+  const precedents = new Map(); 
 
   for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
     const deps = new Set();
-    dependencies.set(name.toUpperCase(), deps);
+    precedents.set(name.toUpperCase(), deps);
 
     const collector = makeDependencyCollector(symbols, lang, name, deps);
     collector.addDependenciesFromDefinition(
@@ -116,12 +116,12 @@ export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
     );
   }
 
-  return dependencies;   
+  return precedents;   
 }
 
-  // gets a map of dependents (inverse of dependencies)
+  // gets a map of dependents (inverse of precedents)
   // for each variable, shows which variables depend on it
-export function getDependents(dependencies, resolvedVarsWithArguments) {
+export function getDependents(precedents, resolvedVarsWithArguments) {
   const dependents = new Map();
   
   // Initialize all variables with empty sets
@@ -129,16 +129,16 @@ export function getDependents(dependencies, resolvedVarsWithArguments) {
     dependents.set(name.toUpperCase(), new Set());
   }
   
-  // For each variable and its dependencies (precedents),
+  // For each variable and its precedents,
   // add this variable as a dependent of each precedent
-  for (const [varName, deps] of dependencies) {
+  for (const [varName, deps] of precedents) {
     for (const dep of deps) {
       const depName = dep.name.toUpperCase();
       if (!dependents.has(depName)) {
         dependents.set(depName, new Set());
       }
       // Add varName as a dependent of depName
-      // Include shift information to match the structure of dependencies
+      // Include shift information to match the structure of precedents
       dependents.get(depName).add({ name: varName, shift: -(dep.shift ?? 0) });
     }
   }
@@ -147,9 +147,9 @@ export function getDependents(dependencies, resolvedVarsWithArguments) {
 }
 
   // throw an error if e.g. a depends on B which depends on C which depends on A.
-export function throwErrorForCircularExpressions(dependencies) {
+export function throwErrorForCircularExpressions(precedents) {
 
-  for (const root of dependencies.keys()) {
+  for (const root of precedents.keys()) {
 
     // nodes we must still expand
     // key = `${name}@${offset}`
@@ -159,8 +159,8 @@ export function throwErrorForCircularExpressions(dependencies) {
     const startKey = `${root}@0`;
     checked.add(startKey);
 
-    // seed with immediate dependencies of root at offset 0
-    for (const e of dependencies.get(root) ?? []) {
+    // seed with immediate precedents of root at offset 0
+    for (const e of precedents.get(root) ?? []) {
       const off = e.shift ?? 0;
       const key = `${e.name}@${off}`;
       total.set(key, { name: e.name, offset: off });
@@ -184,8 +184,8 @@ export function throwErrorForCircularExpressions(dependencies) {
       const [key, { name, offset }] = nextEntry;
       checked.add(key);
 
-      // expand its dependencies
-      for (const e of dependencies.get(name) ?? []) {
+      // expand its precedents
+      for (const e of precedents.get(name) ?? []) {
         const nextOffset = offset + (e.shift ?? 0);
         const nextKey = `${e.name}@${nextOffset}`;
 
@@ -218,22 +218,22 @@ export  function getIdentifierTokens(exprText) {
   return [...refs];
   }
 
-// passes xmlModel and lang to parsers to get an object containing parsed model features (variables, dependencies i.e. immediate precedents, and dependents) 
+// passes xmlModel and lang to parsers to get an object containing parsed model features (variables, precedents i.e. immediate precedents, and dependents) 
 export  function getModelFeatures(xmlModel, lang) {
     const symbols = getMapsOfModelProperties(xmlModel);
   log("debug","symbols:", symbols);
     const resolvedVarsWithArguments = getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols);
   log("debug","resolvedVarsWithArguments:", resolvedVarsWithArguments);
-    const dependencies = getDependencies(symbols, resolvedVarsWithArguments, lang);
-  log("debug","dependencies:", dependencies);
-    const dependents = getDependents(dependencies, resolvedVarsWithArguments);
+    const precedents = getPrecedents(symbols, resolvedVarsWithArguments, lang);
+  log("debug","precedents:", precedents);
+    const dependents = getDependents(precedents, resolvedVarsWithArguments);
   log("debug","dependents:", dependents);
-    throwErrorForCircularExpressions(dependencies);
+    throwErrorForCircularExpressions(precedents);
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
       variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
       resolvedVarsWithArguments,
-      dependencies,
+      precedents,
       dependents   
     };
   }

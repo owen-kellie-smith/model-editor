@@ -58,7 +58,7 @@ describe("validateModelCore", () => {
         expect(second.features.indexSets).toEqual(first.features.indexSets);
         expect(second.features.variables).toEqual(first.features.variables);
         expect(second.features.resolvedVarsWithArguments).toEqual(first.features.resolvedVarsWithArguments);
-        expect(second.features.dependencies).toEqual(first.features.dependencies);
+        expect(second.features.precedents).toEqual(first.features.precedents);
         expect(second.features.dependents).toEqual(first.features.dependents);
         expect(text).not.toEqual(exportedText);
       });
@@ -106,20 +106,20 @@ describe("validateModelCore", () => {
       // total_rate has formula: max(base_rate + spread, 0)
       // Expected precedents: BASE_RATE, SPREAD
       // NOT expected: MAX (language function)
-      const totalRateDeps = result.features.dependencies.get("TOTAL_RATE");
+      const totalRatePrecedents = result.features.precedents.get("TOTAL_RATE");
       
-      expect(totalRateDeps).toBeDefined();
-      expect(totalRateDeps.size).toBe(2);
+      expect(totalRatePrecedents).toBeDefined();
+      expect(totalRatePrecedents.size).toBe(2);
       
       // Convert Set to array and extract names
-      const depArray = Array.from(totalRateDeps);
-      const depNames = depArray.map(d => d.name);
+      const precedentArray = Array.from(totalRatePrecedents);
+      const precedentNames = precedentArray.map(d => d.name);
       
       // Check that both variables are present
-      expect(depNames.includes("BASE_RATE")).toBe(true);
-      expect(depNames.includes("SPREAD")).toBe(true);
+      expect(precedentNames.includes("BASE_RATE")).toBe(true);
+      expect(precedentNames.includes("SPREAD")).toBe(true);
       // Check that the function MAX is not present
-      expect(depNames.includes("MAX")).toBe(false);
+      expect(precedentNames.includes("MAX")).toBe(false);
 
     });
   });
