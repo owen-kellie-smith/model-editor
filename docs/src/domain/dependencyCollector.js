@@ -39,7 +39,7 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
     if (!symbols.variables.has(ref)) {
       const where = label ? ` for ${label}` : "";
 
-      throwModelError(`Unknown identifier${where}`, {
+      throwModelError(`Missing reference: undefined identifier${where}`, {
         variable: ownerName,
         reference: ref,
         ...extra

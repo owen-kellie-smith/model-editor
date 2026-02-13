@@ -1,5 +1,6 @@
 import { validateModelCore } from "./model.js";
 import { throwModelError } from "../utils/helpers.js";
+import { serializeModel } from "./serialize.js";
 
 /**
  * Creates a new variable in the model.
@@ -18,12 +19,69 @@ import { throwModelError } from "../utils/helpers.js";
  * @throws {Error} If variable ID already exists or if model becomes invalid
  */
 export function createVariable(modelObj, variableData, lang) {
-  // TODO: Implement createVariable
-  // 1. Check if variable with this ID already exists (case-insensitive)
-  // 2. Add the variable to the model's variables array
-  // 3. Validate the updated model
-  // 4. Return the validated model or throw if invalid
-  throw new Error("createVariable not yet implemented");
+  // Validate required fields
+  if (!variableData || !variableData.id) {
+    throw new Error("Variable ID is required");
+  }
+
+  if (!variableData.definition) {
+    throw new Error("Variable definition is required");
+  }
+
+  // Validate the variable ID format
+  validateVariableId(variableData.id);
+
+  // Check if variable with this ID already exists (case-insensitive)
+  const existingVariable = readVariable(modelObj, variableData.id);
+  if (existingVariable) {
+    throw new Error(`Variable with ID '${variableData.id}' already exists`);
+  }
+
+  // Create a deep copy of the model object to avoid mutating the original
+  const updatedModel = JSON.parse(JSON.stringify(modelObj));
+
+  // Ensure variables structure exists
+  if (!updatedModel.model.variables) {
+    updatedModel.model.variables = {};
+  }
+
+  // Build the new variable object
+  const newVariable = {
+    id: variableData.id,
+    definition: variableData.definition
+  };
+
+  // Add optional properties if provided
+  if (variableData.dataType) {
+    newVariable.dataType = variableData.dataType;
+  }
+  if (variableData.unit) {
+    newVariable.unit = variableData.unit;
+  }
+  if (variableData.arguments) {
+    newVariable.arguments = variableData.arguments;
+  }
+
+  // Add the variable to the model's variables
+  if (!updatedModel.model.variables.variable) {
+    // No variables exist yet, create as single object
+    updatedModel.model.variables.variable = newVariable;
+  } else if (Array.isArray(updatedModel.model.variables.variable)) {
+    // Multiple variables exist, add to array
+    updatedModel.model.variables.variable.push(newVariable);
+  } else {
+    // Single variable exists, convert to array
+    updatedModel.model.variables.variable = [
+      updatedModel.model.variables.variable,
+      newVariable
+    ];
+  }
+
+  // Serialize the updated model and validate it
+  const serializedModel = serializeModel(updatedModel);
+  const validatedResult = validateModelCore(serializedModel, "updated-model.xml", lang);
+
+  return validatedResult;
 }
 
 /**
@@ -34,10 +92,32 @@ export function createVariable(modelObj, variableData, lang) {
  * @returns {Object|null} The variable object if found, null otherwise
  */
 export function readVariable(modelObj, variableId) {
-  // TODO: Implement readVariable
-  // 1. Search for variable in model.variables array (case-insensitive)
-  // 2. Return the variable if found, null otherwise
-  throw new Error("readVariable not yet implemented");
+  // Return null for empty or invalid variable ID
+  if (!variableId || variableId.trim() === "") {
+    return null;
+  }
+
+  // Check if model has variables
+  if (!modelObj || !modelObj.model || !modelObj.model.variables) {
+    return null;
+  }
+
+  const variables = modelObj.model.variables.variable;
+  
+  if (!variables) {
+    return null;
+  }
+
+  // Normalize the search ID to uppercase for case-insensitive comparison
+  const searchId = variableId.toUpperCase();
+
+  // Handle both single variable (object) and multiple variables (array)
+  if (Array.isArray(variables)) {
+    return variables.find(v => v.id.toUpperCase() === searchId) || null;
+  }
+  
+  // Single variable case
+  return variables.id.toUpperCase() === searchId ? variables : null;
 }
 
 /**
@@ -55,12 +135,46 @@ export function readVariable(modelObj, variableId) {
  * @throws {Error} If variable not found or if model becomes invalid after update
  */
 export function updateVariable(modelObj, variableId, variableData, lang) {
-  // TODO: Implement updateVariable
-  // 1. Find the variable by ID (case-insensitive)
-  // 2. Update the variable properties
-  // 3. Validate the updated model
-  // 4. Return the validated model or throw if invalid
-  throw new Error("updateVariable not yet implemented");
+  // Find the variable by ID (case-insensitive)
+  const existingVariable = readVariable(modelObj, variableId);
+  
+  if (!existingVariable) {
+    throw new Error(`Variable with ID '${variableId}' not found`);
+  }
+
+  // Create a deep copy of the model object to avoid mutating the original
+  const updatedModel = JSON.parse(JSON.stringify(modelObj));
+
+  // Find the variable in the copied model
+  const variables = updatedModel.model.variables.variable;
+  const searchId = variableId.toUpperCase();
+  
+  let variableToUpdate;
+  if (Array.isArray(variables)) {
+    variableToUpdate = variables.find(v => v.id.toUpperCase() === searchId);
+  } else {
+    variableToUpdate = variables;
+  }
+
+  // Update the variable properties (partial update)
+  if (variableData.definition !== undefined) {
+    variableToUpdate.definition = variableData.definition;
+  }
+  if (variableData.dataType !== undefined) {
+    variableToUpdate.dataType = variableData.dataType;
+  }
+  if (variableData.unit !== undefined) {
+    variableToUpdate.unit = variableData.unit;
+  }
+  if (variableData.arguments !== undefined) {
+    variableToUpdate.arguments = variableData.arguments;
+  }
+
+  // Serialize the updated model and validate it
+  const serializedModel = serializeModel(updatedModel);
+  const validatedResult = validateModelCore(serializedModel, "updated-model.xml", lang);
+
+  return validatedResult;
 }
 
 /**
@@ -73,12 +187,45 @@ export function updateVariable(modelObj, variableId, variableData, lang) {
  * @throws {Error} If variable not found or if model becomes invalid after deletion
  */
 export function deleteVariable(modelObj, variableId, lang) {
-  // TODO: Implement deleteVariable
-  // 1. Find the variable by ID (case-insensitive)
-  // 2. Remove the variable from the model
-  // 3. Validate the updated model (this will catch if other variables depend on it)
-  // 4. Return the validated model or throw if invalid
-  throw new Error("deleteVariable not yet implemented");
+  // Find the variable by ID (case-insensitive)
+  const existingVariable = readVariable(modelObj, variableId);
+  
+  if (!existingVariable) {
+    throw new Error(`Variable with ID '${variableId}' not found`);
+  }
+
+  // Create a deep copy of the model object to avoid mutating the original
+  const updatedModel = JSON.parse(JSON.stringify(modelObj));
+
+  // Find and remove the variable from the copied model
+  const variables = updatedModel.model.variables.variable;
+  const searchId = variableId.toUpperCase();
+  
+  if (Array.isArray(variables)) {
+    // Multiple variables - filter out the one to delete
+    const filteredVariables = variables.filter(v => v.id.toUpperCase() !== searchId);
+    
+    if (filteredVariables.length === 0) {
+      // No variables left
+      delete updatedModel.model.variables.variable;
+    } else if (filteredVariables.length === 1) {
+      // Only one variable left - convert back to single object
+      updatedModel.model.variables.variable = filteredVariables[0];
+    } else {
+      // Multiple variables remain
+      updatedModel.model.variables.variable = filteredVariables;
+    }
+  } else {
+    // Single variable - delete the entire variable property
+    delete updatedModel.model.variables.variable;
+  }
+
+  // Serialize the updated model and validate it
+  // This will catch if other variables depend on the deleted variable
+  const serializedModel = serializeModel(updatedModel);
+  const validatedResult = validateModelCore(serializedModel, "updated-model.xml", lang);
+
+  return validatedResult;
 }
 
 /**
@@ -89,11 +236,22 @@ export function deleteVariable(modelObj, variableId, lang) {
  * @throws {Error} If ID is invalid
  */
 export function validateVariableId(id) {
-  // TODO: Implement validateVariableId
-  // 1. Check if ID is not empty
-  // 2. Check if ID contains only valid characters (alphanumeric and underscore)
-  // 3. Throw error with descriptive message if invalid
-  throw new Error("validateVariableId not yet implemented");
+  // Check if ID is not empty
+  if (!id || id.trim() === "") {
+    throw new Error("Variable ID is required and cannot be empty");
+  }
+
+  // Check if ID starts with a letter or underscore
+  if (!/^[a-zA-Z_]/.test(id)) {
+    throw new Error("Variable ID is invalid: must start with letter or underscore");
+  }
+
+  // Check if ID contains only valid characters (alphanumeric and underscore)
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(id)) {
+    throw new Error("Variable ID contains invalid characters. Only alphanumeric characters and underscores are allowed, and ID cannot contain special characters");
+  }
+
+  return true;
 }
 
 /**
