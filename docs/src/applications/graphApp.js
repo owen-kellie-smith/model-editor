@@ -55,11 +55,11 @@ function populateVariableDropdown() {
 }
 
 /**
- * Populate the depth dropdown (1-100)
+ * Populate the depth dropdown (1-20)
  */
 function populateDepthDropdown() {
   ui.graphDepth.innerHTML = '';
-  for (let i = 1; i <= 100; i++) {
+  for (let i = 1; i <= 20; i++) {
     const option = document.createElement('option');
     option.value = i;
     option.textContent = i;
@@ -134,13 +134,4 @@ export function wireGraphHandlers() {
     ui.graphDot.textContent = '';
     ui.graphSvg.innerHTML = '';
   });
-}
-
-/**
- * Call this when a model is successfully loaded
- */
-export function onModelLoaded() {
-  populateVariableDropdown();
-  ui.graphDot.textContent = '';
-  ui.graphSvg.innerHTML = '';
 }
