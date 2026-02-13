@@ -14,8 +14,56 @@
  * @returns {Set<string>} A set of variable names within the specified depth
  */
 export function getRelations(modelFeatures, rootVariable, depth) {
-  // TODO: Implement this function
-  throw new Error("getRelations not implemented yet");
+  const rootVarUpper = rootVariable.toUpperCase();
+  
+  // Start with the root variable
+  const result = new Set([rootVarUpper]);
+  
+  // If depth is 0, return only the root variable
+  if (depth === 0) {
+    return result;
+  }
+  
+  // Keep track of variables at each depth level
+  let currentLevel = new Set([rootVarUpper]);
+  
+  // Expand for each depth level
+  for (let i = 0; i < depth; i++) {
+    const nextLevel = new Set();
+    
+    for (const varName of currentLevel) {
+      // Add incoming variables (variables that flow into this variable)
+      const incoming = modelFeatures.incoming.get(varName);
+      if (incoming) {
+        for (const dep of incoming) {
+          if (!result.has(dep.name)) {
+            nextLevel.add(dep.name);
+            result.add(dep.name);
+          }
+        }
+      }
+      
+      // Add outgoing variables (variables that this variable flows into)
+      const outgoing = modelFeatures.outgoing.get(varName);
+      if (outgoing) {
+        for (const dep of outgoing) {
+          if (!result.has(dep.name)) {
+            nextLevel.add(dep.name);
+            result.add(dep.name);
+          }
+        }
+      }
+    }
+    
+    currentLevel = nextLevel;
+    
+    // If no new variables were found, we can stop early
+    if (currentLevel.size === 0) {
+      break;
+    }
+  }
+  
+  return result;
 }
 
 /**
@@ -32,6 +80,28 @@ export function getRelations(modelFeatures, rootVariable, depth) {
  * @returns {Object} An object with variables (Set) and edges (Map<string, Set<string>>)
  */
 export function getGraphOfRelations(modelFeatures, rootVariable, depth) {
-  // TODO: Implement this function
-  throw new Error("getGraphOfRelations not implemented yet");
+  // Get the set of variables within the specified depth
+  const variables = getRelations(modelFeatures, rootVariable, depth);
+  
+  // Build the edges map, including only connections between variables in the set
+  const edges = new Map();
+  
+  for (const varName of variables) {
+    const outgoingEdges = new Set();
+    
+    // Get all outgoing connections for this variable
+    const outgoing = modelFeatures.outgoing.get(varName);
+    if (outgoing) {
+      for (const dep of outgoing) {
+        // Only include the edge if the target variable is also in our set
+        if (variables.has(dep.name)) {
+          outgoingEdges.add(dep.name);
+        }
+      }
+    }
+    
+    edges.set(varName, outgoingEdges);
+  }
+  
+  return { variables, edges };
 }
