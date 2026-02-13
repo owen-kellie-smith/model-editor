@@ -30,6 +30,7 @@ export function formatLanguageLoaded(lang) {
 
 export function formatModelResult({ features, obj, filename }) {
   return formatModelResultHTML({ features, obj, filename });
+//  return formatModelResultText({ features, obj, filename });  // useful for testing
 }
 
 function formatModelResultText({ features, obj, filename }) {
@@ -38,6 +39,7 @@ function formatModelResultText({ features, obj, filename }) {
     variables,
     resolvedVarsWithArguments,
     incoming,
+    outgoing
   } = features;
 
   return [
@@ -48,6 +50,9 @@ function formatModelResultText({ features, obj, filename }) {
     "",
     "Variables:",
     variables.join(", ") || "(none)",
+    "",
+    "Outgoing variables:",
+    getStringfromObject(getObjectFromMapOfSets(outgoing)),
     "",
     "Incoming variables:",
     getStringfromObject(getObjectFromMapOfSets(incoming)),
@@ -127,6 +132,7 @@ function formatModelResultHTML({ features, obj, filename }) {
     variables,
     resolvedVarsWithArguments,
     incoming,
+    outgoing,
   } = features;
 
   const d = document.createElement("div");
@@ -135,6 +141,7 @@ function formatModelResultHTML({ features, obj, filename }) {
   d.appendChild(p);
   appendModelResultSection(d,"Index sets",indexSets);
   appendModelResultSection(d,"Variables",variables);
+  appendModelResultSection(d,"Outgoing variables",getObjectFromMapOfSets(outgoing));
   appendModelResultSection(d,"Incoming variables",getObjectFromMapOfSets(incoming));
   appendModelResultSection(d,"Resolved variables",getObjectFromMap(resolvedVarsWithArguments));
   appendModelResultSection(d,`${filename} as object`,obj);
