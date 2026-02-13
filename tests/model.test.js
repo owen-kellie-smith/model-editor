@@ -59,6 +59,7 @@ describe("validateModelCore", () => {
         expect(second.features.variables).toEqual(first.features.variables);
         expect(second.features.resolvedVarsWithArguments).toEqual(first.features.resolvedVarsWithArguments);
         expect(second.features.dependencies).toEqual(first.features.dependencies);
+        expect(second.features.dependents).toEqual(first.features.dependents);
         expect(text).not.toEqual(exportedText);
       });
     });
