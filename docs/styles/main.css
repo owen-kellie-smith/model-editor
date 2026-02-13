@@ -283,3 +283,31 @@ hr {
   max-height: 400px;
 }
 
+/* Variable list styles */
+.variable-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.variable-item {
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.variable-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+.variable-item small {
+  display: block;
+  color: #666;
+  font-family: monospace;
+  margin-top: 0.25rem;
+}
+

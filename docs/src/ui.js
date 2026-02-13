@@ -21,5 +21,6 @@ export const ui = {
   downloadPng: document.getElementById("downloadPng"),
   graphSvg: document.getElementById("graphSvg"),
   graphDot: document.getElementById("graphDot"),
+  variableList: document.getElementById("variableList"),
 };
 
