@@ -82,6 +82,139 @@ function applyFitToScreen() {
 }
 
 /**
+ * Show download links
+ */
+function showDownloadLinks() {
+  ui.downloadSvg.style.display = 'inline-block';
+  ui.downloadPng.style.display = 'inline-block';
+}
+
+/**
+ * Hide download links
+ */
+function hideDownloadLinks() {
+  ui.downloadSvg.style.display = 'none';
+  ui.downloadPng.style.display = 'none';
+}
+
+/**
+ * Sanitize a string to make it safe for use as a filename
+ */
+function sanitizeFilename(name) {
+  if (!name) {
+    return 'export';
+  }
+  // Replace spaces with hyphens, remove invalid filename characters, collapse multiple hyphens, and trim hyphens
+  return name
+    .replace(/[<>:"|?*\s/\\]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'export';
+}
+
+/**
+ * Download the SVG graph
+ */
+function downloadSvg(event) {
+  event.preventDefault();
+  
+  const svgElement = ui.graphSvg.querySelector('svg');
+  if (!svgElement) {
+    return;
+  }
+  
+  // Get the SVG content
+  const svgData = new XMLSerializer().serializeToString(svgElement);
+  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  
+  // Create a temporary link and trigger download
+  const link = document.createElement('a');
+  link.href = url;
+  const filename = sanitizeFilename(ui.graphVariable.value);
+  link.download = `graph-${filename}.svg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Download the graph as PNG
+ */
+function downloadPng(event) {
+  event.preventDefault();
+  
+  const svgElement = ui.graphSvg.querySelector('svg');
+  if (!svgElement) {
+    return;
+  }
+  
+  // Create a canvas to convert SVG to PNG
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Get SVG dimensions - prefer viewBox, then width/height attributes, finally getBoundingClientRect
+  // We check for > 0 because we need valid dimensions for canvas rendering (0 would be invalid)
+  let svgWidth, svgHeight;
+  try {
+    if (svgElement.viewBox && svgElement.viewBox.baseVal && 
+        typeof svgElement.viewBox.baseVal.width === 'number' && 
+        typeof svgElement.viewBox.baseVal.height === 'number' &&
+        svgElement.viewBox.baseVal.width > 0 && svgElement.viewBox.baseVal.height > 0) {
+      svgWidth = svgElement.viewBox.baseVal.width;
+      svgHeight = svgElement.viewBox.baseVal.height;
+    } else if (svgElement.width && svgElement.width.baseVal && 
+               svgElement.height && svgElement.height.baseVal &&
+               typeof svgElement.width.baseVal.value === 'number' && 
+               typeof svgElement.height.baseVal.value === 'number' &&
+               svgElement.width.baseVal.value > 0 && svgElement.height.baseVal.value > 0) {
+      svgWidth = svgElement.width.baseVal.value;
+      svgHeight = svgElement.height.baseVal.value;
+    } else {
+      // Fallback to bounding rect
+      const svgRect = svgElement.getBoundingClientRect();
+      svgWidth = svgRect.width || 800;  // Default to 800 if all else fails
+      svgHeight = svgRect.height || 600; // Default to 600 if all else fails
+    }
+  } catch (e) {
+    // If there's any error accessing properties, fall back to bounding rect
+    const svgRect = svgElement.getBoundingClientRect();
+    svgWidth = svgRect.width || 800;
+    svgHeight = svgRect.height || 600;
+  }
+  
+  // Set canvas size
+  canvas.width = svgWidth;
+  canvas.height = svgHeight;
+  
+  // Create an image from the SVG
+  const svgData = new XMLSerializer().serializeToString(svgElement);
+  const img = new Image();
+  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  
+  img.onload = function() {
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    
+    // Convert canvas to PNG and download
+    canvas.toBlob(function(pngBlob) {
+      const pngUrl = URL.createObjectURL(pngBlob);
+      const link = document.createElement('a');
+      link.href = pngUrl;
+      const filename = sanitizeFilename(ui.graphVariable.value);
+      link.download = `graph-${filename}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(pngUrl);
+    });
+  };
+  
+  img.src = url;
+}
+
+/**
  * Generate and display the graph
  */
 async function generateGraph() {
@@ -89,6 +222,7 @@ async function generateGraph() {
   if (!modelEnv || !modelEnv.features) {
     ui.graphDot.textContent = 'No model loaded';
     ui.graphSvg.innerHTML = '';
+    hideDownloadLinks();
     return;
   }
   
@@ -96,6 +230,7 @@ async function generateGraph() {
   if (!variable) {
     ui.graphDot.textContent = 'Please select a variable';
     ui.graphSvg.innerHTML = '';
+    hideDownloadLinks();
     return;
   }
   
@@ -115,12 +250,16 @@ async function generateGraph() {
       ui.graphSvg.innerHTML = svg;
       // Apply fit-to-screen setting after rendering
       applyFitToScreen();
+      // Show download links after successful render
+      showDownloadLinks();
     } catch (svgError) {
       ui.graphSvg.innerHTML = `<p style="color: orange;">SVG rendering not available: ${svgError.message}</p><p>Install viz.js to enable SVG rendering, or copy the DOT source above to your own renderer.</p>`;
+      hideDownloadLinks();
     }
   } catch (error) {
     ui.graphDot.textContent = `Error: ${error.message}`;
     ui.graphSvg.innerHTML = '';
+    hideDownloadLinks();
   }
 }
 
@@ -131,18 +270,25 @@ export function wireGraphHandlers() {
   // Populate depth dropdown once on load
   populateDepthDropdown();
   
-  // Enable generate button when both selections are made
-  function updateGenerateButton() {
-    ui.generateGraph.disabled = !ui.graphVariable.value || !ui.graphDepth.value;
-  }
+  // Wire change events to automatically generate graph
+  ui.graphVariable.addEventListener('change', () => {
+    if (ui.graphVariable.value) {
+      generateGraph();
+    }
+  });
   
-  ui.graphVariable.addEventListener('change', updateGenerateButton);
-  ui.graphDepth.addEventListener('change', updateGenerateButton);
-  
-  ui.generateGraph.addEventListener('click', generateGraph);
+  ui.graphDepth.addEventListener('change', () => {
+    if (ui.graphVariable.value) {
+      generateGraph();
+    }
+  });
   
   // Add event listener for fit-to-screen checkbox
   ui.graphFitToScreen.addEventListener('change', applyFitToScreen);
+  
+  // Add event listeners for download links
+  ui.downloadSvg.addEventListener('click', downloadSvg);
+  ui.downloadPng.addEventListener('click', downloadPng);
   
   // Listen for model load events to populate variables
   // We'll use a custom event or call this directly from modelApp
@@ -150,5 +296,6 @@ export function wireGraphHandlers() {
     populateVariableDropdown();
     ui.graphDot.textContent = '';
     ui.graphSvg.innerHTML = '';
+    hideDownloadLinks();
   });
 }
