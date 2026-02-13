@@ -56,9 +56,53 @@
      </details>
     </div>
     <div class="editor">
-      <details open>
-        <summary>Report</summary>
-        <div id="log"></div>
+      <details>
+        <summary>Variables</summary>
+        <div class="variable-selector">
+          <label for="variableDropdown">Select Variable:</label>
+          <select id="variableDropdown">
+            <option value="">Load a model to see variables...</option>
+          </select>
+          <label>
+            <input type="checkbox" id="sortVariablesAlpha">
+            Sort Alphabetically
+          </label>
+          <button id="newVariableBtn" class="btn-primary">New</button>
+        </div>
+        <div id="variableDetails" class="variable-details" style="display: none;">
+          <div class="variable-info">
+            <h4 id="selectedVariableName"></h4>
+            <div id="selectedVariableFeatures"></div>
+          </div>
+          <div class="variable-actions">
+            <button id="editVariableBtn" class="btn-secondary">Edit</button>
+            <button id="copyVariableBtn" class="btn-secondary">Copy</button>
+            <button id="deleteVariableBtn" class="btn-danger">Delete</button>
+          </div>
+        </div>
+        <div id="variableFormSection" class="variable-form-section" style="display: none;">
+          <h4 id="variableFormTitle">Edit Variable</h4>
+          <div class="variable-form">
+            <div class="form-group">
+              <label>Variable ID:</label>
+              <input type="text" id="editVarId">
+            </div>
+            <div class="form-group">
+              <label for="editVarDefinition">Definition:</label>
+              <textarea id="editVarDefinition"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="editVarDataType">Data Type:</label>
+              <input type="text" id="editVarDataType">
+            </div>
+            <div class="form-group">
+              <label for="editVarUnit">Unit:</label>
+              <input type="text" id="editVarUnit">
+            </div>
+            <button id="saveVariableBtn" class="btn-primary">Save</button>
+            <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+          </div>
+        </div>
       </details>
     </div>
     <div class="editor">
@@ -96,6 +140,12 @@
           <h4>DOT Source</h4>
           <pre id="graphDot" class="graph-dot"></pre>
         </div>
+      </details>
+    </div>
+    <div class="editor">
+      <details open>
+        <summary>Report</summary>
+        <div id="log"></div>
       </details>
     </div>
   </div>

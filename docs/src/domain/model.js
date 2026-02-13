@@ -189,6 +189,13 @@ export function throwErrorForCircularExpressions(incoming) {
         const nextOffset = offset + (e.shift ?? 0);
         const nextKey = `${e.name}@${nextOffset}`;
 
+        // Check for cycle before skipping - if this would create the start key, we have a cycle
+        if (nextKey === startKey) {
+          throwModelError("Circular expressions detected", {
+            cycle: [root, name],
+          });
+        }
+
         if ([...checked].some(k => k.startsWith(e.name + "@"))) {
           continue;
         }

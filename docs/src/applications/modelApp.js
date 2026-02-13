@@ -19,6 +19,15 @@ export function getModelEnv() {
   return modelEnv;
 }
 
+export function setModelEnv(newModelEnv) {
+  modelEnv = newModelEnv;
+  modelCommitTime = new Date();
+  updateLoadedInfo();
+  
+  // Trigger modelLoaded event so other components can update
+  window.dispatchEvent(new CustomEvent('modelLoaded'));
+}
+
 function setLogText(s) {
   setElementContent(ui.log, s)
 }
