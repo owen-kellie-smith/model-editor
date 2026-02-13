@@ -140,10 +140,10 @@ function downloadPng(event) {
   
   // Get SVG dimensions - prefer viewBox, then width/height attributes, finally getBoundingClientRect
   let svgWidth, svgHeight;
-  if (svgElement.viewBox.baseVal.width !== undefined && svgElement.viewBox.baseVal.height !== undefined) {
+  if (svgElement.viewBox.baseVal.width > 0 && svgElement.viewBox.baseVal.height > 0) {
     svgWidth = svgElement.viewBox.baseVal.width;
     svgHeight = svgElement.viewBox.baseVal.height;
-  } else if (svgElement.width.baseVal.value !== undefined && svgElement.height.baseVal.value !== undefined) {
+  } else if (svgElement.width.baseVal.value > 0 && svgElement.height.baseVal.value > 0) {
     svgWidth = svgElement.width.baseVal.value;
     svgHeight = svgElement.height.baseVal.value;
   } else {
