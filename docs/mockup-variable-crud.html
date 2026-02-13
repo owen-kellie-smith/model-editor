@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XMLE 1.4.1 - Variable CRUD Mockup</title>
+
+  <link rel="stylesheet" href="./styles/main.css">
+  <style>
+    /* Additional styles for the mockup */
+    .mockup-note {
+      background-color: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      color: #856404;
+    }
+    
+    .mockup-note h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal.active {
+      display: block;
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 2rem;
+      border: 1px solid #888;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      color: #333;
+    }
+
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #000;
+    }
+
+    .modal-body {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: #555;
+    }
+
+    .form-group input[type="text"],
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      font-family: monospace;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 0.25rem;
+      color: #666;
+      font-size: 0.85rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #ddd;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .btn-success {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: #218838;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #c82333;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+
+    .btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .variable-editor-controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .variable-editor-controls label {
+      font-weight: bold;
+    }
+
+    .variable-editor-controls select {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      min-width: 200px;
+    }
+
+    .variable-editor-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .variable-editor-actions button {
+      padding: 0.75rem 1rem;
+      margin: 0;
+    }
+
+    .variable-preview {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .variable-preview h4 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .variable-preview pre {
+      background-color: white;
+      padding: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+
+    .warning-box {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      color: #856404;
+    }
+
+    .warning-box strong {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .delete-confirmation {
+      background-color: #f8d7da;
+      border: 2px solid #dc3545;
+      border-radius: 4px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      color: #721c24;
+    }
+
+    .delete-confirmation h3 {
+      margin-top: 0;
+      color: #721c24;
+    }
+
+    .delete-confirmation code {
+      background-color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="mockup-note">
+    <h3>📋 Static Mockup - R10: CRUD for Single Variable</h3>
+    <p><strong>This is a non-functional mockup demonstrating the UI design for variable CRUD operations.</strong></p>
+    <p>Click the buttons in the "Variable Editor" section below to see modal dialogs for New, Edit, Copy, and Delete operations.</p>
+    <p><strong>Note:</strong> No actual functionality is implemented - this is purely a visual design reference.</p>
+  </div>
+
+  <div class="editor-container">
+    <div class="editor">
+     <details open>
+      <summary>Language</summary>
+      <div id="languageLoadedInfo" class="loaded-info">
+        <span id="languageLoaded">language.xml loaded</span>
+      </div>
+      <input type="file" id="loadLanguageFile" accept=".xml">
+      <br>
+      <textarea id="languageText" cols="80" placeholder="Paste language.xml here"></textarea>
+      <div id="languageStatus" class="status success">Language valid: 15 functions loaded</div>
+      <br>
+      <button id="loadLanguageText">Load language from text</button>
+      <button id="downloadLanguage">Export language</button>
+     </details>
+    </div>
+
+    <div class="editor">
+     <details open>
+      <summary>Model</summary>
+      <div id="modelLoadedInfo" class="loaded-info">
+        <span id="modelLoaded">model.xml loaded</span>
+      </div>
+      <input type="file" id="loadModelFile" accept=".xml">
+      <br>
+      <textarea id="modelText" cols="80" placeholder="Paste model.xml here"></textarea>
+      <div id="modelStatus" class="status success">Model valid: 25 variables, 3 index sets</div>
+      <br>
+      <button id="loadModelText">Load model from text</button>
+      <button id="downloadModel">Export model</button>
+     </details>
+    </div>
+
+    <!-- NEW SECTION: Variable Editor -->
+    <div class="editor">
+      <details open>
+        <summary>Variable Editor</summary>
+        
+        <div class="variable-editor-controls">
+          <label for="editVariable">Variable:</label>
+          <select id="editVariable">
+            <option value="">Select a variable...</option>
+            <option value="attained_age">attained_age</option>
+            <option value="annual_mortality_rate">annual_mortality_rate</option>
+            <option value="monthly_survival_rate">monthly_survival_rate</option>
+            <option value="survival_to_start_of_step">survival_to_start_of_step</option>
+            <option value="step_length">step_length</option>
+          </select>
+        </div>
+
+        <div class="variable-editor-actions">
+          <button class="btn btn-primary" onclick="openModal('newModal')">New Variable</button>
+          <button class="btn btn-primary" onclick="openModal('editModal')">Edit Variable</button>
+          <button class="btn btn-primary" onclick="openModal('copyModal')">Copy Variable</button>
+          <button class="btn btn-danger" onclick="openModal('deleteModal')">Delete Variable</button>
+        </div>
+
+        <div class="variable-preview">
+          <h4>Selected Variable Preview</h4>
+          <p><em>When a variable is selected, its XML definition will be shown here:</em></p>
+          <pre>&lt;variable id="attained_age"&gt;
+  &lt;arguments&gt;
+    &lt;arg indexSet="cohort"/&gt;
+    &lt;arg indexSet="step"/&gt;
+  &lt;/arguments&gt;
+  &lt;dataType&gt;real&lt;/dataType&gt;
+  &lt;unit&gt;years&lt;/unit&gt;
+  &lt;definition type="expression"&gt;
+    current_age(cohort) + step * step_length
+  &lt;/definition&gt;
+&lt;/variable&gt;</pre>
+        </div>
+      </details>
+    </div>
+
+    <div class="editor">
+      <details open>
+        <summary>Report</summary>
+        <div id="log">Model loaded successfully.
+Variables: 25
+Index Sets: 3
+Validation: All dependencies resolved.
+No circular references detected.</div>
+      </details>
+    </div>
+
+    <div class="editor">
+      <details open>
+        <summary>Graph</summary>
+        <div class="graph-controls">
+          <label for="graphVariable">Variable:</label>
+          <select id="graphVariable">
+            <option value="">Select a variable...</option>
+            <option value="attained_age">attained_age</option>
+            <option value="annual_mortality_rate">annual_mortality_rate</option>
+          </select>
+          
+          <label for="graphDepth">Depth:</label>
+          <select id="graphDepth">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+          
+          <label>
+            <input type="checkbox" id="graphFitToScreen" checked>
+            Fit to screen
+          </label>
+        </div>
+        
+        <div class="graph-output">
+          <h4>Graph Visualization</h4>
+          <div id="graphSvg" class="graph-svg">
+            <p><em>Graph visualization would appear here...</em></p>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- New Variable Modal -->
+  <div id="newModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>New Variable</h2>
+        <span class="close" onclick="closeModal('newModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="newVarId">Variable ID *</label>
+            <input type="text" id="newVarId" placeholder="e.g., my_new_variable" required>
+            <small>Unique identifier for the variable</small>
+          </div>
+
+          <div class="form-group">
+            <label for="newVarDataType">Data Type *</label>
+            <select id="newVarDataType" required>
+              <option value="">Select data type...</option>
+              <option value="real">real</option>
+              <option value="integer">integer</option>
+              <option value="string">string</option>
+              <option value="boolean">boolean</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="newVarUnit">Unit</label>
+            <input type="text" id="newVarUnit" placeholder="e.g., years, GBP">
+            <small>Optional: Physical unit for the variable</small>
+          </div>
+
+          <div class="form-group">
+            <label for="newVarDefinitionType">Definition Type *</label>
+            <select id="newVarDefinitionType" required>
+              <option value="">Select definition type...</option>
+              <option value="constant">constant</option>
+              <option value="expression">expression</option>
+              <option value="table">table</option>
+              <option value="tableLookup">tableLookup</option>
+              <option value="piecewise">piecewise</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="newVarDefinition">Definition *</label>
+            <textarea id="newVarDefinition" placeholder="e.g., 999 (for constant) or current_age(cohort) + step * step_length (for expression)" required></textarea>
+            <small>The value or formula for this variable</small>
+          </div>
+
+          <div class="form-group">
+            <label for="newVarDescription">Description</label>
+            <textarea id="newVarDescription" placeholder="Optional description of this variable"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('newModal')">Cancel</button>
+        <button class="btn btn-success">Create Variable</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Variable Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Variable: attained_age</h2>
+        <span class="close" onclick="closeModal('editModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="warning-box">
+          <strong>⚠️ Warning:</strong> Editing this variable may affect other variables that depend on it.
+        </div>
+        <form>
+          <div class="form-group">
+            <label for="editVarId">Variable ID *</label>
+            <input type="text" id="editVarId" value="attained_age" disabled>
+            <small>Variable ID cannot be changed (it may be referenced by other variables)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="editVarDataType">Data Type *</label>
+            <select id="editVarDataType" required>
+              <option value="real" selected>real</option>
+              <option value="integer">integer</option>
+              <option value="string">string</option>
+              <option value="boolean">boolean</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editVarUnit">Unit</label>
+            <input type="text" id="editVarUnit" value="years">
+          </div>
+
+          <div class="form-group">
+            <label for="editVarDefinitionType">Definition Type *</label>
+            <select id="editVarDefinitionType" required>
+              <option value="constant">constant</option>
+              <option value="expression" selected>expression</option>
+              <option value="table">table</option>
+              <option value="tableLookup">tableLookup</option>
+              <option value="piecewise">piecewise</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editVarDefinition">Definition *</label>
+            <textarea id="editVarDefinition" required>current_age(cohort) + step * step_length</textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="editVarArguments">Arguments</label>
+            <textarea id="editVarArguments" placeholder="e.g., cohort, step">cohort, step</textarea>
+            <small>Comma-separated list of index set arguments</small>
+          </div>
+
+          <div class="form-group">
+            <label for="editVarDescription">Description</label>
+            <textarea id="editVarDescription" placeholder="Optional description">Attained age at the start of each projection step</textarea>
+          </div>
+        </form>
+
+        <div class="variable-preview">
+          <h4>Current XML Definition</h4>
+          <pre>&lt;variable id="attained_age"&gt;
+  &lt;arguments&gt;
+    &lt;arg indexSet="cohort"/&gt;
+    &lt;arg indexSet="step"/&gt;
+  &lt;/arguments&gt;
+  &lt;dataType&gt;real&lt;/dataType&gt;
+  &lt;unit&gt;years&lt;/unit&gt;
+  &lt;definition type="expression"&gt;
+    current_age(cohort) + step * step_length
+  &lt;/definition&gt;
+&lt;/variable&gt;</pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+        <button class="btn btn-success">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Copy Variable Modal -->
+  <div id="copyModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Copy Variable: attained_age</h2>
+        <span class="close" onclick="closeModal('copyModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Create a copy of the selected variable with a new ID.</p>
+        
+        <form>
+          <div class="form-group">
+            <label for="copySourceVarId">Source Variable</label>
+            <input type="text" id="copySourceVarId" value="attained_age" disabled>
+          </div>
+
+          <div class="form-group">
+            <label for="copyNewVarId">New Variable ID *</label>
+            <input type="text" id="copyNewVarId" placeholder="e.g., attained_age_copy" required>
+            <small>Enter a unique identifier for the copied variable</small>
+          </div>
+
+          <div class="form-group">
+            <label for="copyVarDataType">Data Type *</label>
+            <select id="copyVarDataType" required>
+              <option value="real" selected>real</option>
+              <option value="integer">integer</option>
+              <option value="string">string</option>
+              <option value="boolean">boolean</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="copyVarUnit">Unit</label>
+            <input type="text" id="copyVarUnit" value="years">
+          </div>
+
+          <div class="form-group">
+            <label for="copyVarDefinitionType">Definition Type *</label>
+            <select id="copyVarDefinitionType" required>
+              <option value="constant">constant</option>
+              <option value="expression" selected>expression</option>
+              <option value="table">table</option>
+              <option value="tableLookup">tableLookup</option>
+              <option value="piecewise">piecewise</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="copyVarDefinition">Definition *</label>
+            <textarea id="copyVarDefinition" required>current_age(cohort) + step * step_length</textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="copyVarArguments">Arguments</label>
+            <textarea id="copyVarArguments">cohort, step</textarea>
+            <small>Comma-separated list of index set arguments</small>
+          </div>
+
+          <div class="form-group">
+            <label for="copyVarDescription">Description</label>
+            <textarea id="copyVarDescription" placeholder="Optional description">Attained age at the start of each projection step (copied)</textarea>
+          </div>
+        </form>
+
+        <div class="variable-preview">
+          <h4>Source Variable XML</h4>
+          <pre>&lt;variable id="attained_age"&gt;
+  &lt;arguments&gt;
+    &lt;arg indexSet="cohort"/&gt;
+    &lt;arg indexSet="step"/&gt;
+  &lt;/arguments&gt;
+  &lt;dataType&gt;real&lt;/dataType&gt;
+  &lt;unit&gt;years&lt;/unit&gt;
+  &lt;definition type="expression"&gt;
+    current_age(cohort) + step * step_length
+  &lt;/definition&gt;
+&lt;/variable&gt;</pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('copyModal')">Cancel</button>
+        <button class="btn btn-success">Create Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Variable Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Delete Variable</h2>
+        <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="delete-confirmation">
+          <h3>⚠️ Confirm Deletion</h3>
+          <p>You are about to delete the variable: <code>attained_age</code></p>
+          <p><strong>This action cannot be undone!</strong></p>
+        </div>
+
+        <div class="warning-box">
+          <strong>Impact Analysis:</strong>
+          <p>The following variables depend on <code>attained_age</code> and will be affected:</p>
+          <ul>
+            <li><code>attained_age_years_floor</code> - uses attained_age in its expression</li>
+            <li><code>annual_mortality_rate</code> - indirectly depends via attained_age_years_floor</li>
+            <li><code>monthly_survival_rate</code> - indirectly depends via annual_mortality_rate</li>
+          </ul>
+          <p><strong>Warning:</strong> Deleting this variable will break these dependencies and may cause validation errors.</p>
+        </div>
+
+        <div class="variable-preview">
+          <h4>Variable to be Deleted</h4>
+          <pre>&lt;variable id="attained_age"&gt;
+  &lt;arguments&gt;
+    &lt;arg indexSet="cohort"/&gt;
+    &lt;arg indexSet="step"/&gt;
+  &lt;/arguments&gt;
+  &lt;dataType&gt;real&lt;/dataType&gt;
+  &lt;unit&gt;years&lt;/unit&gt;
+  &lt;definition type="expression"&gt;
+    current_age(cohort) + step * step_length
+  &lt;/definition&gt;
+&lt;/variable&gt;</pre>
+        </div>
+
+        <form>
+          <div class="form-group">
+            <label for="deleteConfirmText">Type the variable ID to confirm deletion:</label>
+            <input type="text" id="deleteConfirmText" placeholder="Type 'attained_age' to confirm">
+            <small>This confirmation is required to prevent accidental deletion</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+        <button class="btn btn-danger" disabled>Really Really Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple modal control functions for the mockup
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('active');
+      }
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+      if (event.target.classList.contains('modal')) {
+        event.target.classList.remove('active');
+      }
+    }
+
+    // Enable delete button when correct text is entered
+    document.getElementById('deleteConfirmText').addEventListener('input', function(e) {
+      const deleteBtn = document.querySelector('#deleteModal .btn-danger');
+      if (e.target.value === 'attained_age') {
+        deleteBtn.disabled = false;
+      } else {
+        deleteBtn.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
