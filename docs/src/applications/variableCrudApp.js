@@ -22,32 +22,32 @@ export function renderVariableList() {
       return;
     }
 
-    const html = variables.map(v => {
-      const definitionPreview = getDefinitionPreview(v.definition);
+    const html = variables.map(variable => {
+      const definitionPreview = getDefinitionPreview(variable.definition);
       const metadata = [];
       
       // Handle dataType which might be an object with #text or a string
-      if (v.dataType) {
-        const dataType = typeof v.dataType === 'object' ? v.dataType['#text'] : v.dataType;
+      if (variable.dataType) {
+        const dataType = typeof variable.dataType === 'object' ? variable.dataType['#text'] : variable.dataType;
         metadata.push(`Type: ${dataType}`);
       }
       
       // Handle unit which might be an object with #text or a string
-      if (v.unit) {
-        const unit = typeof v.unit === 'object' ? v.unit['#text'] : v.unit;
+      if (variable.unit) {
+        const unit = typeof variable.unit === 'object' ? variable.unit['#text'] : variable.unit;
         metadata.push(`Unit: ${unit}`);
       }
       
-      if (v.arguments?.arg) {
-        const argCount = Array.isArray(v.arguments.arg) 
-          ? v.arguments.arg.length 
+      if (variable.arguments?.arg) {
+        const argCount = Array.isArray(variable.arguments.arg) 
+          ? variable.arguments.arg.length 
           : 1;
         metadata.push(`Args: ${argCount}`);
       }
       
       return `
         <div class="variable-item">
-          <strong>${v.id}</strong>
+          <strong>${variable.id}</strong>
           ${metadata.length > 0 ? `<div style="font-size: 0.85em; color: #666;">${metadata.join(' | ')}</div>` : ''}
           <small>${definitionPreview}</small>
         </div>
@@ -64,11 +64,13 @@ export function renderVariableList() {
  * Gets a preview string for a variable definition
  */
 function getDefinitionPreview(definition) {
+  const MAX_PREVIEW_LENGTH = 60;
+  
   if (!definition) return "No definition";
   
   if (definition['#text']) {
     const text = definition['#text'].trim();
-    return text.length > 60 ? text.substring(0, 57) + '...' : text;
+    return text.length > MAX_PREVIEW_LENGTH ? text.substring(0, MAX_PREVIEW_LENGTH - 3) + '...' : text;
   }
   
   if (definition.type) {

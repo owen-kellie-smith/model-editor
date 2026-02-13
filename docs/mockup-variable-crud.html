@@ -271,10 +271,12 @@
     }
     
     function getDefinitionPreview(definition) {
+      const MAX_PREVIEW_LENGTH = 60;
+      
       if (definition['#text']) {
-        return definition['#text'].substring(0, 60) + (definition['#text'].length > 60 ? '...' : '');
+        return definition['#text'].substring(0, MAX_PREVIEW_LENGTH) + (definition['#text'].length > MAX_PREVIEW_LENGTH ? '...' : '');
       }
-      return JSON.stringify(definition).substring(0, 60) + '...';
+      return JSON.stringify(definition).substring(0, MAX_PREVIEW_LENGTH) + '...';
     }
     
     function showMessage(elementId, message, type) {
