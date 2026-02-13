@@ -104,49 +104,49 @@ export function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
   // gets a map of incoming variables (variables that flow into each variable)
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
 export function getIncoming(symbols, resolvedVarsWithArguments, lang) {
-  const incoming = new Map(); 
+  const incomingAll = new Map(); 
 
   for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
-    const deps = new Set();
-    incoming.set(name.toUpperCase(), deps);
+    const incoming = new Set();
+    incomingAll.set(name.toUpperCase(), incoming);
 
-    const collector = makeDependencyCollector(symbols, lang, name, deps);
+    const collector = makeDependencyCollector(symbols, lang, name, incoming);
     collector.addDependenciesFromDefinition(
       resolvedVariable.xml.definition
     );
   }
 
-  return incoming;   
+  return incomingAll;   
 }
 
   // gets a map of outgoing variables (variables that this variable flows into)
   // for each variable, shows which variables use it as input
-export function getOutgoing(incoming, resolvedVarsWithArguments) {
-  const outgoing = new Map();
+export function getOutgoing(incomingAll, resolvedVarsWithArguments) {
+  const outgoingAll = new Map();
   
   // Initialize all variables with empty sets
   for (const [name] of resolvedVarsWithArguments) {
-    outgoing.set(name.toUpperCase(), new Set());
+    outgoingAll.set(name.toUpperCase(), new Set());
   }
   
   // For each variable and its incoming variables,
   // add this variable as an outgoing variable of each incoming variable
-  for (const [varName, deps] of incoming) {
-    for (const dep of deps) {
-      const depName = dep.name.toUpperCase();
-      if (!outgoing.has(depName)) {
-        outgoing.set(depName, new Set());
+  for (const [varName, incomings] of incomingAll) {
+    for (const incoming of incomings) {
+      const incomingName = incoming.name.toUpperCase();
+      if (!outgoingAll.has(incomingName)) {
+        outgoingAll.set(incomingName, new Set());
       }
-      // Add varName as an outgoing variable of depName
+      // Add varName as an outgoing variable of incomingName
       // Include shift information to match the structure of incoming
-      outgoing.get(depName).add({ name: varName, shift: -(dep.shift ?? 0) });
+      outgoingAll.get(incomingName).add({ name: varName, shift: -(incoming.shift ?? 0) });
     }
   }
   
-  return outgoing;
+  return outgoingAll;
 }
 
-  // throw an error if e.g. a depends on B which depends on C which depends on A.
+  // throw an error if e.g. A flows into C which flows into B which flows into A.
 export function throwErrorForCircularExpressions(incoming) {
 
   for (const root of incoming.keys()) {
