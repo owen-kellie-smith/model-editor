@@ -24,7 +24,7 @@ describe("Graph Relations", () => {
 
   describe("getRelations", () => {
     describe("when depth is 0", () => {
-      it("returns empty set for non-self-referential variable", () => {
+      it("always returns empty set", () => {
         const relations = getRelations(modelFeatures, "B", 0);
         
         expect(relations).toBeDefined();

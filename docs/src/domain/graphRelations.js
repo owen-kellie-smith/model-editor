@@ -9,28 +9,22 @@
  * Get all variables within a specified depth from a root variable.
  * 
  * A variable is only included in relations if it's connected to the root via dependencies.
- * The root variable itself is only included if it references itself in its formula (e.g., B(t) = B(t-1) * SCALE).
+ * The root variable itself is never included in the result, as it is at distance 0 from itself.
+ * Even for self-referential variables like B(t) = B(t-1) * C, the variable B is one step away
+ * from both C and B(t-1), so it's not included at depth 0.
  * 
  * @param {Object} modelFeatures - The model features object containing incoming and outgoing maps
  * @param {string} rootVariable - The name of the root variable to start from
- * @param {number} depth - The maximum depth to traverse (0 = no relations unless self-referential, 1 = immediate neighbors, etc.)
+ * @param {number} depth - The maximum depth to traverse (0 = always empty, 1 = immediate neighbors, etc.)
  * @returns {Set<string>} A set of variable names within the specified depth from root
  */
 export function getRelations(modelFeatures, rootVariable, depth) {
   const rootVarUpper = rootVariable.toUpperCase();
   
-  // Check if root variable references itself
-  const hasSelfReference = modelFeatures.incoming.get(rootVarUpper)
-    ? Array.from(modelFeatures.incoming.get(rootVarUpper)).some(inVar => inVar.name === rootVarUpper)
-    : false;
-  
-  // Start with empty set (root is only included if it has a self-reference)
+  // Start with empty set (root variable is never included)
   const allRelations = new Set();
-  if (hasSelfReference) {
-    allRelations.add(rootVarUpper);
-  }
   
-  // If depth is 0, return empty set (or just root if self-referential)
+  // If depth is 0, return empty set
   if (depth === 0) {
     return allRelations;
   }
@@ -47,8 +41,8 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       const incoming = modelFeatures.incoming.get(varName);
       if (incoming) {
         for (const inVar of incoming) {
-          // Skip if it's the root variable (unless it has self-reference, then it's already added)
-          if (inVar.name === rootVarUpper && !hasSelfReference) {
+          // Skip the root variable - it's never included in relations
+          if (inVar.name === rootVarUpper) {
             continue;
           }
           if (!allRelations.has(inVar.name) && !unexaminedVariables.has(inVar.name)) {
@@ -62,8 +56,8 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       const outgoing = modelFeatures.outgoing.get(varName);
       if (outgoing) {
         for (const outVar of outgoing) {
-          // Skip if it's the root variable (unless it has self-reference, then it's already added)
-          if (outVar.name === rootVarUpper && !hasSelfReference) {
+          // Skip the root variable - it's never included in relations
+          if (outVar.name === rootVarUpper) {
             continue;
           }
           if (!allRelations.has(outVar.name) && !unexaminedVariables.has(outVar.name)) {
