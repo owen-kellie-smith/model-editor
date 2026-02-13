@@ -42,7 +42,7 @@ No build step or server required.
 | R6 | Preserves semantic meaning across model import and export  | `model.tests.js::round trip through serializer` | Model features are identical after a round-trip
 | R7 | Calculate incoming variables from formulae | `model.test.js::when model contains incoming variables` | Variables that flow into a variable are exactly the non-functions in its formula
 | R8 | Calculate outgoing variables from formulae | `model.test.js::when model contains outgoing variables` | Variables that each variable flows into are exactly those in whose formulae it appears |
-| R9 | Visualize dependency relationships as graphs | to do |
+| R9 | Visualize dependency relationships as graphs | `graphRelations.test.js::getRelations, getGraphOfRelations` | Functions return variables and edges within specified depth from a root variable |
 | R10 | Implement CRUD operations for a single variable | to do 
 
 

@@ -14,5 +14,11 @@ export const ui = {
   downloadLanguage: document.getElementById("downloadLanguage"),
   downloadModel: document.getElementById("downloadModel"),   
   log: document.getElementById("log"),
+  graphVariable: document.getElementById("graphVariable"),
+  graphDepth: document.getElementById("graphDepth"),
+  graphFitToScreen: document.getElementById("graphFitToScreen"),
+  generateGraph: document.getElementById("generateGraph"),
+  graphSvg: document.getElementById("graphSvg"),
+  graphDot: document.getElementById("graphDot"),
 };
 
