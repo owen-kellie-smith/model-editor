@@ -103,8 +103,21 @@ export function validateVariableId(id) {
  * @returns {Array} Array of variable objects
  */
 export function listVariables(modelObj) {
-  // TODO: Implement listVariables
-  // 1. Extract all variables from the model
-  // 2. Return as an array
-  throw new Error("listVariables not yet implemented");
+  if (!modelObj || !modelObj.model || !modelObj.model.variables) {
+    return [];
+  }
+
+  const variables = modelObj.model.variables.variable;
+  
+  if (!variables) {
+    return [];
+  }
+
+  // Handle both single variable (object) and multiple variables (array)
+  if (Array.isArray(variables)) {
+    return variables;
+  }
+  
+  // Single variable case
+  return [variables];
 }
