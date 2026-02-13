@@ -97,6 +97,32 @@ describe("validateModelCore", () => {
     });
   });
 
+  describe("when model contains precedents", () => {
+    it("calculates variable precedents from formulae", () => {
+      const text = readFixture("modelPrecedents.xml");
+      const result = validateModelCore(text, "modelPrecedents.xml", lang);
+      
+      // total_rate has formula: max(base_rate + spread, 0)
+      // Expected precedents: BASE_RATE, SPREAD
+      // NOT expected: MAX (language function)
+      const totalRateDeps = result.features.dependencies.get("TOTAL_RATE");
+      
+      expect(totalRateDeps).toBeDefined();
+      expect(totalRateDeps.size).toBe(2);
+      
+      // Convert Set to array and extract names
+      const depArray = Array.from(totalRateDeps);
+      const depNames = depArray.map(d => d.name);
+      
+      // Check that both variables are present
+      expect(depNames.includes("BASE_RATE")).toBe(true);
+      expect(depNames.includes("SPREAD")).toBe(true);
+      // Check that the function MAX is not present
+      expect(depNames.includes("MAX")).toBe(false);
+
+    });
+  });
+
 });
 
 
