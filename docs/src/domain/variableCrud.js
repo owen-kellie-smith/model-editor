@@ -241,14 +241,13 @@ export function validateVariableId(id) {
     throw new Error("Variable ID is required and cannot be empty");
   }
 
-  // Check if ID starts with a letter or underscore
-  if (!/^[a-zA-Z_]/.test(id)) {
-    throw new Error("Variable ID is invalid: must start with letter or underscore");
-  }
-
-  // Check if ID contains only valid characters (alphanumeric and underscore)
+  // Check if ID contains only valid characters (alphanumeric and underscore) and starts with letter or underscore
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(id)) {
-    throw new Error("Variable ID contains invalid characters. Only alphanumeric characters and underscores are allowed, and ID cannot contain special characters");
+    // Provide more specific error message
+    if (!/^[a-zA-Z_]/.test(id)) {
+      throw new Error("Variable ID is invalid: must start with letter or underscore");
+    }
+    throw new Error("Variable ID contains invalid characters. Only alphanumeric characters and underscores are allowed.");
   }
 
   return true;
