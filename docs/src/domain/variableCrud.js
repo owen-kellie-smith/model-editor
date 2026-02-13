@@ -278,3 +278,51 @@ export function listVariables(modelObj) {
   // Single variable case
   return [variables];
 }
+
+/**
+ * Copies a variable to a new variable with a different ID.
+ * 
+ * @param {Object} modelObj - The model object (from validateModelCore result)
+ * @param {string} sourceVariableId - The identifier of the variable to copy
+ * @param {string} newVariableId - The identifier for the new variable
+ * @param {Object} lang - The language environment for validation
+ * @returns {Object} Updated model validation result
+ * @throws {Error} If source variable not found, new ID already exists, or if model becomes invalid
+ */
+export function copyVariable(modelObj, sourceVariableId, newVariableId, lang) {
+  // Find the source variable
+  const sourceVariable = readVariable(modelObj, sourceVariableId);
+  
+  if (!sourceVariable) {
+    throw new Error(`Source variable with ID '${sourceVariableId}' not found`);
+  }
+
+  // Validate the new variable ID
+  validateVariableId(newVariableId);
+
+  // Check if the new variable ID already exists
+  const existingVariable = readVariable(modelObj, newVariableId);
+  if (existingVariable) {
+    throw new Error(`Variable with ID '${newVariableId}' already exists`);
+  }
+
+  // Create a copy of the variable data
+  const copiedVariableData = {
+    id: newVariableId,
+    definition: JSON.parse(JSON.stringify(sourceVariable.definition))
+  };
+
+  // Copy optional properties if they exist
+  if (sourceVariable.dataType) {
+    copiedVariableData.dataType = sourceVariable.dataType;
+  }
+  if (sourceVariable.unit) {
+    copiedVariableData.unit = sourceVariable.unit;
+  }
+  if (sourceVariable.arguments) {
+    copiedVariableData.arguments = JSON.parse(JSON.stringify(sourceVariable.arguments));
+  }
+
+  // Use createVariable to add the copied variable
+  return createVariable(modelObj, copiedVariableData, lang);
+}
