@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="precedents-test-model">
+
+  <!-- ================= -->
+  <!-- Index sets        -->
+  <!-- ================= -->
+
+  <indexSets>
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+
+  <!-- ================= -->
+  <!-- Variables         -->
+  <!-- ================= -->
+
+  <variables>
+
+    <variable id="base_rate">
+      <dataType>real</dataType>
+      <definition type="expression">
+        0.05
+      </definition>
+    </variable>
+
+    <variable id="spread">
+      <dataType>real</dataType>
+      <definition type="expression">
+        0.02
+      </definition>
+    </variable>
+
+    <variable id="total_rate">
+      <dataType>real</dataType>
+      <definition type="expression">
+        max(base_rate + spread, 0)
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>
