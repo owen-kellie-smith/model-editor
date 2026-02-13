@@ -104,8 +104,11 @@ function sanitizeFilename(name) {
   if (!name) {
     return 'export';
   }
-  // Replace spaces with hyphens and remove invalid filename characters
-  return name.replace(/[<>:"/\\|?*\s]/g, '-').replace(/-+/g, '-');
+  // Replace spaces with hyphens, remove invalid filename characters, collapse multiple hyphens, and trim hyphens
+  return name
+    .replace(/[<>:"/\\|?*\s]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'export';
 }
 
 /**
@@ -155,10 +158,15 @@ function downloadPng(event) {
   let svgWidth, svgHeight;
   try {
     if (svgElement.viewBox && svgElement.viewBox.baseVal && 
+        typeof svgElement.viewBox.baseVal.width === 'number' && 
+        typeof svgElement.viewBox.baseVal.height === 'number' &&
         svgElement.viewBox.baseVal.width > 0 && svgElement.viewBox.baseVal.height > 0) {
       svgWidth = svgElement.viewBox.baseVal.width;
       svgHeight = svgElement.viewBox.baseVal.height;
-    } else if (svgElement.width && svgElement.width.baseVal && svgElement.height && svgElement.height.baseVal &&
+    } else if (svgElement.width && svgElement.width.baseVal && 
+               svgElement.height && svgElement.height.baseVal &&
+               typeof svgElement.width.baseVal.value === 'number' && 
+               typeof svgElement.height.baseVal.value === 'number' &&
                svgElement.width.baseVal.value > 0 && svgElement.height.baseVal.value > 0) {
       svgWidth = svgElement.width.baseVal.value;
       svgHeight = svgElement.height.baseVal.value;
