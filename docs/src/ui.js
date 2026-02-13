@@ -15,6 +15,7 @@ export const ui = {
   downloadModel: document.getElementById("downloadModel"),   
   log: document.getElementById("log"),
   graphVariable: document.getElementById("graphVariable"),
+  graphSortAlphabetically: document.getElementById("graphSortAlphabetically"),
   graphDepth: document.getElementById("graphDepth"),
   graphFitToScreen: document.getElementById("graphFitToScreen"),
   downloadSvg: document.getElementById("downloadSvg"),
