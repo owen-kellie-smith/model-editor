@@ -138,10 +138,20 @@ function downloadPng(event) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   
-  // Get SVG dimensions
-  const svgRect = svgElement.getBoundingClientRect();
-  const svgWidth = svgElement.viewBox.baseVal.width || svgRect.width;
-  const svgHeight = svgElement.viewBox.baseVal.height || svgRect.height;
+  // Get SVG dimensions - prefer viewBox, then width/height attributes, finally getBoundingClientRect
+  let svgWidth, svgHeight;
+  if (svgElement.viewBox.baseVal.width && svgElement.viewBox.baseVal.height) {
+    svgWidth = svgElement.viewBox.baseVal.width;
+    svgHeight = svgElement.viewBox.baseVal.height;
+  } else if (svgElement.width.baseVal.value && svgElement.height.baseVal.value) {
+    svgWidth = svgElement.width.baseVal.value;
+    svgHeight = svgElement.height.baseVal.value;
+  } else {
+    // Fallback to bounding rect
+    const svgRect = svgElement.getBoundingClientRect();
+    svgWidth = svgRect.width;
+    svgHeight = svgRect.height;
+  }
   
   // Set canvas size
   canvas.width = svgWidth;
