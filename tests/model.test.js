@@ -77,6 +77,26 @@ describe("validateModelCore", () => {
     });
   });
 
+  describe("when model contains duplicate variable identifiers", () => {
+    it("throws a 'Duplicate variable' error", () => {
+      const text = readFixture("modelDuplicateVariable.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelDuplicateVariable.xml", lang);
+      }).toThrow(/Duplicate variable/i);
+    });
+  });
+
+  describe("when model contains duplicate index set identifiers", () => {
+    it("throws a 'Duplicate index set' error", () => {
+      const text = readFixture("modelDuplicateIndexSet.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelDuplicateIndexSet.xml", lang);
+      }).toThrow(/Duplicate index set/i);
+    });
+  });
+
 });
 
 
