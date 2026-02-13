@@ -10,8 +10,6 @@ An experimental single web page for parsing, validating, and exploring large dec
 
 The long-term goal of this project is a **constrained editor** for modifying models while preserving their validity.
 
-> ⚠️ Status: Early prototype / active development
-
 ---
 
 ## How to run
@@ -32,22 +30,20 @@ No build step or server required.
 
 ---
 
-## Road map - requirements and associated tests
+## Requirements and Test Coverage
 
 | ID | Requirement | Tested by | Which shows 
 |----|-------------|-------------|-----------------|
-| R1 | Language XML is only loaded if it is valid | `language.tests.js::when XML has a funciton with no name, when XML has a function with non-numeric arity"` | Loading a language.xml with a function without a name or with non-numeric arities throws an error
-| R2 | Language XML round-trip from import to export preserves its meaning | `language.tests.js::when vendor format language is loaded and exported` | The functions inferred by a valid language file are identical to the functions inferred by the standardised export of that file
-| R3 | Missing model references are rejected | `model.tests.js::rejects_unknown_symbol` | Loading a model formula that contains a string which is neither a function defined in the loaded language nor a variable defined in the model throws a "missing reference" error
-| R4 | Circular logic in the model is rejected | `model.tests.js::when model contains a cycle` | Loading a model that contains a formula that requires its own value throws an error
-| R5 | Duplicate model definitions are rejected | to show | Loading a model that contains duplicate identifiers throws an error
-| R6 | Model XML round-trip from import to export preserves its meaning | `model.tests.js::round trip through serializer` | The model features inferred by a valid model file are identical to the features inferred by the standardised export of that file
-| R7 | Precedents of a variable can be calculated from model formulae| to show |
-| R8 | Dependents of a variable can be calculated from model formulae| to do |
-| R9 | Precedents and dependents can be rendered in graphs | to do |
-| R10 | A single valid variable definition can be created, read, updated, deleted | to do 
-| R11 | Single variable edits are prevented if they are invalid (duplicates, or breaking required references or circular) | to do 
-| R12 | A single variable can be copied (with a different name) | to do 
+| R1 | Reject invalid language definitions in import | `language.tests.js::when XML has a function with no name, when XML has a function with non-numeric arity"` | Errors are thrown when language functions are malformed
+| R2 | Preserves semantic meaning across language import and export  | `language.tests.js::when vendor format language is loaded and exported` | Inferred functions are identical after a round-trip
+| R3 | Prevent use of undefined symbols in models | `model.tests.js::rejects_unknown_symbol` | An "missing reference" error is thrown when a formula contains an unknown identifier 
+| R4 | Prevent circular logic in the model | `model.tests.js::when model contains a cycle` | An error is thrown when a formula requires its own value
+| R5 | Reject duplicate model definitions  | to show | An error is thrown when a model contains duplicate identifiers 
+| R6 | Preserves semantic meaning across model import and export  | `model.tests.js::round trip through serializer` | Model features are identical after a round-trip
+| R7 | Calculate variable precedents from formulae | to show |
+| R8 | Calculate variable dependents from formulae | to do |
+| R9 | Visualize dependency relationships as graphs | to do |
+| R10 | Implement CRUD operations for a single variable | to do 
 
 
 ### UI prototype
