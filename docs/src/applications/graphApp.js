@@ -57,8 +57,8 @@ function populateVariableDropdown() {
     ui.graphVariable.appendChild(option);
   }
   
-  // Restore previous selection if it still exists
-  if (currentSelection && Array.from(ui.graphVariable.options).some(opt => opt.value === currentSelection)) {
+  // Restore previous selection if it still exists in the variables list
+  if (currentSelection && variables.includes(currentSelection)) {
     ui.graphVariable.value = currentSelection;
   }
   
