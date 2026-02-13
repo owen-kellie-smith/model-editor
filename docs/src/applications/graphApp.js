@@ -106,7 +106,7 @@ function sanitizeFilename(name) {
   }
   // Replace spaces with hyphens, remove invalid filename characters, collapse multiple hyphens, and trim hyphens
   return name
-    .replace(/[<>:"/\\|?*\s]/g, '-')
+    .replace(/[<>:"|?*\s\/\\]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '') || 'export';
 }
