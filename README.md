@@ -38,7 +38,7 @@ No build step or server required.
 | R2 | Preserves semantic meaning across language import and export  | `language.tests.js::when vendor format language is loaded and exported` | Inferred functions are identical after a round-trip
 | R3 | Prevent use of undefined symbols in models | `model.tests.js::rejects_unknown_symbol` | An "missing reference" error is thrown when a formula contains an unknown identifier 
 | R4 | Prevent circular logic in the model | `model.tests.js::when model contains a cycle` | An error is thrown when a formula requires its own value
-| R5 | Reject duplicate model definitions  | to show | An error is thrown when a model contains duplicate identifiers 
+| R5 | Reject duplicate model definitions  | `model.tests.js::when model contains duplicate variable identifiers, when model contains duplicate index set identifiers` | An error is thrown when a model contains duplicate identifiers 
 | R6 | Preserves semantic meaning across model import and export  | `model.tests.js::round trip through serializer` | Model features are identical after a round-trip
 | R7 | Calculate variable precedents from formulae | to show |
 | R8 | Calculate variable dependents from formulae | to do |

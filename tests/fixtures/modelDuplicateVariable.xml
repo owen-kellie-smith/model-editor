@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model id="test-duplicate-variable">
+
+  <indexSets>
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+  <variables>
+    <variable id="step_length">
+      <dataType>real</dataType>
+      <definition type="constant">
+        1 / 12
+      </definition>
+    </variable>
+
+    <!-- Duplicate variable with same id -->
+    <variable id="step_length">
+      <dataType>real</dataType>
+      <definition type="constant">
+        1 / 6
+      </definition>
+    </variable>
+  </variables>
+
+</model>

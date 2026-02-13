@@ -19,7 +19,7 @@ export function getMapsOfModelProperties(xml) {
     const tables = new Map();
     const variables = new Map();
     for (const indSet of asArray(xml.model.indexSets?.indexSet)) {
-      if (indexSets.has(indSet.id)) {
+      if (indexSets.has(indSet.id.toUpperCase())) {
         throwModelError("Duplicate index set", { id: indSet.id });
       }
       indexSets.set(indSet.id.toUpperCase(), indSet);
