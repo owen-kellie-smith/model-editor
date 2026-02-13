@@ -17,7 +17,8 @@ export const ui = {
   graphVariable: document.getElementById("graphVariable"),
   graphDepth: document.getElementById("graphDepth"),
   graphFitToScreen: document.getElementById("graphFitToScreen"),
-  generateGraph: document.getElementById("generateGraph"),
+  downloadSvg: document.getElementById("downloadSvg"),
+  downloadPng: document.getElementById("downloadPng"),
   graphSvg: document.getElementById("graphSvg"),
   graphDot: document.getElementById("graphDot"),
 };
