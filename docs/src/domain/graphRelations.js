@@ -17,11 +17,11 @@ export function getRelations(modelFeatures, rootVariable, depth) {
   const rootVarUpper = rootVariable.toUpperCase();
   
   // Start with the root variable
-  const result = new Set([rootVarUpper]);
+  const allRelations = new Set([rootVarUpper]);
   
   // If depth is 0, return only the root variable
   if (depth === 0) {
-    return result;
+    return allRelations;
   }
   
   // Keep track of variables at each depth level
@@ -35,10 +35,10 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       // Add incoming variables (variables that flow into this variable)
       const incoming = modelFeatures.incoming.get(varName);
       if (incoming) {
-        for (const dep of incoming) {
-          if (!result.has(dep.name)) {
-            nextLevel.add(dep.name);
-            result.add(dep.name);
+        for (const inVar of incoming) {
+          if (!allRelations.has(inVar.name)) {
+            nextLevel.add(inVar.name);
+            allRelations.add(inVar.name);
           }
         }
       }
@@ -46,10 +46,10 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       // Add outgoing variables (variables that this variable flows into)
       const outgoing = modelFeatures.outgoing.get(varName);
       if (outgoing) {
-        for (const dep of outgoing) {
-          if (!result.has(dep.name)) {
-            nextLevel.add(dep.name);
-            result.add(dep.name);
+        for (const outVar of outgoing) {
+          if (!allRelations.has(outVar.name)) {
+            nextLevel.add(outVar.name);
+            allRelations.add(outVar.name);
           }
         }
       }
@@ -63,7 +63,7 @@ export function getRelations(modelFeatures, rootVariable, depth) {
     }
   }
   
-  return result;
+  return allRelations;
 }
 
 /**
