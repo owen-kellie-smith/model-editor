@@ -194,12 +194,31 @@ export function deleteVariable(modelObj, variableId, lang) {
     throw new Error(`Variable with ID '${variableId}' not found`);
   }
 
+  const searchId = variableId.toUpperCase();
+  
+  // First, validate the current model to get its features
+  const serializedCurrentModel = serializeModel(modelObj);
+  const currentModelValidation = validateModelCore(serializedCurrentModel, "current-model.xml", lang);
+  
+  // Check if this variable is referenced by other variables
+  if (currentModelValidation.features && currentModelValidation.features.outgoing) {
+    const outgoingDeps = currentModelValidation.features.outgoing.get(searchId);
+    
+    if (outgoingDeps && outgoingDeps.size > 0) {
+      // Variable is referenced by other variables, build error message
+      const dependentVariables = Array.from(outgoingDeps).map(dep => dep.name);
+      const exampleVars = dependentVariables.slice(0, 3).join(", ");
+      const moreCount = dependentVariables.length > 3 ? ` and ${dependentVariables.length - 3} more` : "";
+      
+      throw new Error(`Unable to delete variable '${variableId}' as it is referred to by another variable, e.g. ${exampleVars}${moreCount}`);
+    }
+  }
+
   // Create a deep copy of the model object to avoid mutating the original
   const updatedModel = JSON.parse(JSON.stringify(modelObj));
 
   // Find and remove the variable from the copied model
   const variables = updatedModel.model.variables.variable;
-  const searchId = variableId.toUpperCase();
   
   if (Array.isArray(variables)) {
     // Multiple variables - filter out the one to delete
@@ -221,7 +240,6 @@ export function deleteVariable(modelObj, variableId, lang) {
   }
 
   // Serialize the updated model and validate it
-  // This will catch if other variables depend on the deleted variable
   const serializedModel = serializeModel(updatedModel);
   const validatedResult = validateModelCore(serializedModel, "updated-model.xml", lang);
 
