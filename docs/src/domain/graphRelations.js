@@ -25,19 +25,19 @@ export function getRelations(modelFeatures, rootVariable, depth) {
   }
   
   // Keep track of variables at each depth level
-  let currentLevel = new Set([rootVarUpper]);
+  let unexaminedVariables = new Set([rootVarUpper]);
   
   // Expand for each depth level
   for (let i = 0; i < depth; i++) {
-    const nextLevel = new Set();
+    const newlyDiscoveredVariables = new Set();
     
-    for (const varName of currentLevel) {
+    for (const varName of unexaminedVariables) {
       // Add incoming variables (variables that flow into this variable)
       const incoming = modelFeatures.incoming.get(varName);
       if (incoming) {
         for (const inVar of incoming) {
           if (!allRelations.has(inVar.name)) {
-            nextLevel.add(inVar.name);
+            newlyDiscoveredVariables.add(inVar.name);
             allRelations.add(inVar.name);
           }
         }
@@ -48,17 +48,17 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       if (outgoing) {
         for (const outVar of outgoing) {
           if (!allRelations.has(outVar.name)) {
-            nextLevel.add(outVar.name);
+            newlyDiscoveredVariables.add(outVar.name);
             allRelations.add(outVar.name);
           }
         }
       }
     }
     
-    currentLevel = nextLevel;
+    unexaminedVariables = newlyDiscoveredVariables;
     
     // If no new variables were found, we can stop early
-    if (currentLevel.size === 0) {
+    if (unexaminedVariables.size === 0) {
       break;
     }
   }
