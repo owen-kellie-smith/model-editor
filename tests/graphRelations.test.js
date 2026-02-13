@@ -24,25 +24,25 @@ describe("Graph Relations", () => {
 
   describe("getRelations", () => {
     describe("when depth is 0", () => {
-      it("returns only the root variable", () => {
+      it("returns empty set for non-self-referential variable", () => {
         const relations = getRelations(modelFeatures, "B", 0);
         
         expect(relations).toBeDefined();
-        expect(relations.size).toBe(1);
-        expect(relations.has("B")).toBe(true);
+        expect(relations.size).toBe(0);
       });
     });
 
     describe("when depth is 1", () => {
-      it("returns root variable and its immediate incoming and outgoing variables", () => {
+      it("returns immediate incoming and outgoing variables (not including root)", () => {
         // For variable B in the test model:
         // - B = D (so D is incoming to B)
         // - A = B + C (so A is outgoing from B)
+        // B itself should NOT be included unless it references itself
         const relations = getRelations(modelFeatures, "B", 1);
         
         expect(relations).toBeDefined();
-        expect(relations.size).toBe(3);
-        expect(relations.has("B")).toBe(true);
+        expect(relations.size).toBe(2);
+        expect(relations.has("B")).toBe(false); // root not included
         expect(relations.has("D")).toBe(true); // incoming
         expect(relations.has("A")).toBe(true); // outgoing
       });
@@ -51,14 +51,14 @@ describe("Graph Relations", () => {
     describe("when depth is 2", () => {
       it("returns variables up to 2 steps away from root", () => {
         // For variable B with depth 2:
-        // Depth 0: B
         // Depth 1: D (incoming to B), A (outgoing from B)
         // Depth 2: E (incoming to D), C (incoming to A, since A = B + C)
+        // B itself is not included
         const relations = getRelations(modelFeatures, "B", 2);
         
         expect(relations).toBeDefined();
-        expect(relations.size).toBe(5);
-        expect(relations.has("B")).toBe(true);
+        expect(relations.size).toBe(4);
+        expect(relations.has("B")).toBe(false); // root not included
         expect(relations.has("D")).toBe(true);
         expect(relations.has("A")).toBe(true);
         expect(relations.has("E")).toBe(true); // incoming to D
@@ -67,14 +67,15 @@ describe("Graph Relations", () => {
     });
 
     describe("when depth is high", () => {
-      it("returns all connected variables in the component", () => {
+      it("returns all connected variables in the component (excluding root)", () => {
         // With high depth, should get all variables in the connected component
-        // Starting from B: B, D, E (chain going back), A, C (chain going forward)
+        // Starting from B: D, E (chain going back), A, C (chain going forward)
+        // B itself is not included
         const relations = getRelations(modelFeatures, "B", 10);
         
         expect(relations).toBeDefined();
-        expect(relations.size).toBe(5);
-        expect(relations.has("B")).toBe(true);
+        expect(relations.size).toBe(4);
+        expect(relations.has("B")).toBe(false); // root not included
         expect(relations.has("D")).toBe(true);
         expect(relations.has("E")).toBe(true);
         expect(relations.has("A")).toBe(true);
@@ -88,12 +89,11 @@ describe("Graph Relations", () => {
     });
 
     describe("when starting from an isolated variable", () => {
-      it("returns only the variable itself regardless of depth", () => {
+      it("returns empty set regardless of depth", () => {
         const relations = getRelations(modelFeatures, "K", 5);
         
         expect(relations).toBeDefined();
-        expect(relations.size).toBe(1);
-        expect(relations.has("K")).toBe(true);
+        expect(relations.size).toBe(0);
       });
     });
   });
@@ -104,23 +104,11 @@ describe("Graph Relations", () => {
         // From problem statement example:
         // Model: A = B + C; B = D; D = E
         // getGraphOfRelations(model, B, 1) should show:
-        // - A going into B (no, A doesn't go into B - B goes into A)
-        // - B going into D (no, D goes into B - B goes into A)
-        // Let me re-read...
-        // "A going into B and B going into D only"
-        // This seems backwards from the formula definitions
-        // But the requirement says "outgoing (only) for each variable in getRelations"
-        
-        // Let's interpret based on the definitions:
-        // B = D means D is incoming to B, B is outgoing to... nothing in the formula sense
-        // A = B + C means B is incoming to A, A is outgoing from B
-        
-        // So with depth 1 from B:
-        // Relations: {B, D, A}
+        // Relations at depth 1 from B: {D, A} (not including B itself)
         // Outgoing edges (limited to relations):
-        //   - B -> A (B flows into A)
-        //   - D -> B (D flows into B)
+        //   - D -> B (but B is not in relations, so this won't be included in edges)
         //   - A -> nothing in the set
+        // Since B is not in the relations, edges referencing it are filtered out
         
         const graph = getGraphOfRelations(modelFeatures, "B", 1);
         
@@ -128,23 +116,17 @@ describe("Graph Relations", () => {
         expect(graph.variables).toBeDefined();
         expect(graph.edges).toBeDefined();
         
-        // Should have the same variables as getRelations
-        expect(graph.variables.size).toBe(3);
-        expect(graph.variables.has("B")).toBe(true);
+        // Should have the same variables as getRelations (D and A, not B)
+        expect(graph.variables.size).toBe(2);
+        expect(graph.variables.has("B")).toBe(false); // B not included
         expect(graph.variables.has("D")).toBe(true);
         expect(graph.variables.has("A")).toBe(true);
         
         // Check edges - each edge is from a variable to its outgoing connections
         // that are also in the variable set
-        expect(graph.edges.has("B")).toBe(true);
-        const bOutgoing = graph.edges.get("B");
-        expect(bOutgoing.size).toBe(1);
-        expect(bOutgoing.has("A")).toBe(true);
-        
         expect(graph.edges.has("D")).toBe(true);
         const dOutgoing = graph.edges.get("D");
-        expect(dOutgoing.size).toBe(1);
-        expect(dOutgoing.has("B")).toBe(true);
+        expect(dOutgoing.size).toBe(0); // D -> B, but B is not in the set
         
         expect(graph.edges.has("A")).toBe(true);
         const aOutgoing = graph.edges.get("A");
@@ -157,29 +139,26 @@ describe("Graph Relations", () => {
         const graph = getGraphOfRelations(modelFeatures, "B", 2);
         
         expect(graph).toBeDefined();
-        expect(graph.variables.size).toBe(5);
-        expect(graph.variables.has("B")).toBe(true);
+        expect(graph.variables.size).toBe(4);
+        expect(graph.variables.has("B")).toBe(false); // B not included
         expect(graph.variables.has("D")).toBe(true);
         expect(graph.variables.has("A")).toBe(true);
         expect(graph.variables.has("E")).toBe(true);
         expect(graph.variables.has("C")).toBe(true);
         
-        // Check key edges
+        // Check key edges (only between variables in the set)
         expect(graph.edges.get("E").has("D")).toBe(true); // E -> D
-        expect(graph.edges.get("D").has("B")).toBe(true); // D -> B
-        expect(graph.edges.get("B").has("A")).toBe(true); // B -> A
+        expect(graph.edges.get("D").size).toBe(0); // D -> B, but B not in set
         expect(graph.edges.get("C").has("A")).toBe(true); // C -> A
       });
     });
 
     describe("when starting from an isolated variable", () => {
-      it("returns a graph with one variable and no edges", () => {
+      it("returns a graph with no variables and no edges", () => {
         const graph = getGraphOfRelations(modelFeatures, "K", 5);
         
         expect(graph).toBeDefined();
-        expect(graph.variables.size).toBe(1);
-        expect(graph.variables.has("K")).toBe(true);
-        expect(graph.edges.get("K").size).toBe(0);
+        expect(graph.variables.size).toBe(0);
       });
     });
   });
