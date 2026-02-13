@@ -1,6 +1,6 @@
 import { ui } from "../ui.js";
 import { getModelEnv } from "./modelApp.js";
-import { setElementContent } from "../utils/helpers.js";
+import { setElementContent, escapeHtml } from "../utils/helpers.js";
 import { listVariables } from "../domain/variableCrud.js";
 
 /**
@@ -29,13 +29,13 @@ export function renderVariableList() {
       // Handle dataType which might be an object with #text or a string
       if (variable.dataType) {
         const dataType = typeof variable.dataType === 'object' ? variable.dataType['#text'] : variable.dataType;
-        metadata.push(`Type: ${dataType}`);
+        metadata.push(`Type: ${escapeHtml(dataType)}`);
       }
       
       // Handle unit which might be an object with #text or a string
       if (variable.unit) {
         const unit = typeof variable.unit === 'object' ? variable.unit['#text'] : variable.unit;
-        metadata.push(`Unit: ${unit}`);
+        metadata.push(`Unit: ${escapeHtml(unit)}`);
       }
       
       if (variable.arguments?.arg) {
@@ -47,16 +47,16 @@ export function renderVariableList() {
       
       return `
         <div class="variable-item">
-          <strong>${variable.id}</strong>
+          <strong>${escapeHtml(variable.id)}</strong>
           ${metadata.length > 0 ? `<div style="font-size: 0.85em; color: #666;">${metadata.join(' | ')}</div>` : ''}
-          <small>${definitionPreview}</small>
+          <small>${escapeHtml(definitionPreview)}</small>
         </div>
       `;
     }).join('');
 
     setElementContent(ui.variableList, html);
   } catch (error) {
-    setElementContent(ui.variableList, `<p style="color: red;">Error loading variables: ${error.message}</p>`);
+    setElementContent(ui.variableList, `<p style="color: red;">Error loading variables: ${escapeHtml(error.message)}</p>`);
   }
 }
 
