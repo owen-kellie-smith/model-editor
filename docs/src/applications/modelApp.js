@@ -40,6 +40,8 @@ function updateLoadedInfo() {
 }
 
 function updateDirtyIndicator() {
+debugger;
+const copy = lastCommittedText;
   const currentText = ui.modelText.value.trim();
   const isDirty = lastCommittedText !== null && currentText !== lastCommittedText;
   
@@ -109,43 +111,6 @@ function debouncedValidateModel(text, lang) {
   validationTimeout = setTimeout(() => {
     validateModelContent(text, lang);
   }, DEBOUNCE_DELAY);
-}
-
-/**
- * Update the model textarea with the current serialized model
- * and refresh the last loaded date.
- * This should be called after CRUD operations on single variables.
- * @export
- */
-export function updateModelTextareaAndDate() {
-  if (!modelEnv) {
-    console.warn("Cannot update model textarea: no model loaded");
-    return;
-  }
-  
-  try {
-    // Serialize the current model
-    const xml = serializeModel(modelEnv.obj);
-    const trimmedXml = xml.trim();
-    
-    // Update the textarea
-    ui.modelText.value = trimmedXml;
-    
-    // Update the last committed text to match
-    lastCommittedText = trimmedXml;
-    
-    // Refresh the loaded date to current time
-    modelCommitTime = new Date();
-    updateLoadedInfo();
-    
-    // Update dirty indicator (should show clean state now)
-    updateDirtyIndicator();
-    
-    // Log the update
-    console.log("Model textarea and date updated after variable edit");
-  } catch (error) {
-    console.error("Error updating model textarea:", error);
-  }
 }
 
 export function wireModelHandlers() {
