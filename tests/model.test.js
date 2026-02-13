@@ -123,6 +123,41 @@ describe("validateModelCore", () => {
     });
   });
 
+  describe("when model contains dependents", () => {
+    it("calculates variable dependents from formulae", () => {
+      const text = readFixture("modelPrecedents.xml");
+      const result = validateModelCore(text, "modelPrecedents.xml", lang);
+      
+      // In modelPrecedents.xml:
+      // - base_rate = 0.05 (no precedents)
+      // - spread = 0.02 (no precedents)
+      // - total_rate = max(base_rate + spread, 0) (precedents: base_rate, spread)
+      // 
+      // Expected dependents (inverse of precedents):
+      // - base_rate should have total_rate as a dependent
+      // - spread should have total_rate as a dependent
+      // - total_rate should have no dependents
+      
+      expect(result.features.dependents).toBeDefined();
+      
+      const baseRateDependents = result.features.dependents.get("BASE_RATE");
+      expect(baseRateDependents).toBeDefined();
+      expect(baseRateDependents.size).toBe(1);
+      const baseRateDependentNames = Array.from(baseRateDependents).map(d => d.name);
+      expect(baseRateDependentNames.includes("TOTAL_RATE")).toBe(true);
+      
+      const spreadDependents = result.features.dependents.get("SPREAD");
+      expect(spreadDependents).toBeDefined();
+      expect(spreadDependents.size).toBe(1);
+      const spreadDependentNames = Array.from(spreadDependents).map(d => d.name);
+      expect(spreadDependentNames.includes("TOTAL_RATE")).toBe(true);
+      
+      const totalRateDependents = result.features.dependents.get("TOTAL_RATE");
+      expect(totalRateDependents).toBeDefined();
+      expect(totalRateDependents.size).toBe(0);
+    });
+  });
+
 });
 
 
