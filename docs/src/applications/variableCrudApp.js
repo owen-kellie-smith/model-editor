@@ -318,8 +318,11 @@ function handleDeleteVariable() {
   const modelEnv = getModelEnv();
   if (!modelEnv) return;
   
+  // Store the variable ID before we set it to null
+  const deletedVariableId = currentSelectedVariableId;
+  
   try {
-    const result = deleteVariable(modelEnv.obj, currentSelectedVariableId, modelEnv.lang);
+    const result = deleteVariable(modelEnv.obj, deletedVariableId, modelEnv.lang);
     
     // Update the model environment
     setModelEnv(result);
@@ -332,7 +335,7 @@ function handleDeleteVariable() {
     ui.variableFormSection.style.display = "none";
     currentSelectedVariableId = null;
     
-    alert(`Variable "${currentSelectedVariableId}" deleted successfully.`);
+    alert(`Variable "${deletedVariableId}" deleted successfully.`);
   } catch (error) {
     console.error("Error deleting variable:", error);
     alert(`Error deleting variable: ${error.message}`);
