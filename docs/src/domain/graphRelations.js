@@ -8,23 +8,23 @@
 /**
  * Get all variables within a specified depth from a root variable.
  * 
- * A variable is only included in relations if it's connected to the root via dependencies.
- * The root variable itself is never included in the result, as it is at distance 0 from itself.
- * Even for self-referential variables like B(t) = B(t-1) * C, the variable B is one step away
- * from both C and B(t-1), so it's not included at depth 0.
+ * Returns variables connected to the root via dependencies, including the root itself.
+ * The root variable is always included to enable drawing edges in graph visualizations.
+ * For example, if A = B and B = D, then at depth 1 from B we get {B, D, A} so we can
+ * draw edges D→B and B→A.
  * 
  * @param {Object} modelFeatures - The model features object containing incoming and outgoing maps
  * @param {string} rootVariable - The name of the root variable to start from
- * @param {number} depth - The maximum depth to traverse (0 = always empty, 1 = immediate neighbors, etc.)
+ * @param {number} depth - The maximum depth to traverse (0 = only root, 1 = root + immediate neighbors, etc.)
  * @returns {Set<string>} A set of variable names within the specified depth from root
  */
 export function getRelations(modelFeatures, rootVariable, depth) {
   const rootVarUpper = rootVariable.toUpperCase();
   
-  // Start with empty set (root variable is never included)
-  const allRelations = new Set();
+  // Always start with the root variable in the set
+  const allRelations = new Set([rootVarUpper]);
   
-  // If depth is 0, return empty set
+  // If depth is 0, return only the root variable
   if (depth === 0) {
     return allRelations;
   }
@@ -41,10 +41,6 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       const incoming = modelFeatures.incoming.get(varName);
       if (incoming) {
         for (const inVar of incoming) {
-          // Skip the root variable - it's never included in relations
-          if (inVar.name === rootVarUpper) {
-            continue;
-          }
           if (!allRelations.has(inVar.name) && !unexaminedVariables.has(inVar.name)) {
             newlyDiscoveredVariables.add(inVar.name);
             allRelations.add(inVar.name);
@@ -56,10 +52,6 @@ export function getRelations(modelFeatures, rootVariable, depth) {
       const outgoing = modelFeatures.outgoing.get(varName);
       if (outgoing) {
         for (const outVar of outgoing) {
-          // Skip the root variable - it's never included in relations
-          if (outVar.name === rootVarUpper) {
-            continue;
-          }
           if (!allRelations.has(outVar.name) && !unexaminedVariables.has(outVar.name)) {
             newlyDiscoveredVariables.add(outVar.name);
             allRelations.add(outVar.name);
@@ -87,14 +79,24 @@ export function getRelations(modelFeatures, rootVariable, depth) {
  * - edges: Map from variable name to Set of variables it flows into (outgoing connections)
  *          Limited to only include connections between variables in the relation set
  * 
+ * Special handling: Self-referential edges (e.g., B→B) are only included if the variable
+ * actually references itself in its formula (e.g., B(t) = B(t-1) * C).
+ * 
  * @param {Object} modelFeatures - The model features object containing incoming and outgoing maps
  * @param {string} rootVariable - The name of the root variable to start from
  * @param {number} depth - The maximum depth to traverse
  * @returns {Object} An object with variables (Set) and edges (Map<string, Set<string>>)
  */
 export function getGraphOfRelations(modelFeatures, rootVariable, depth) {
+  const rootVarUpper = rootVariable.toUpperCase();
+  
   // Get the set of variables within the specified depth
   const variables = getRelations(modelFeatures, rootVariable, depth);
+  
+  // Check if root variable references itself
+  const rootHasSelfReference = modelFeatures.incoming.get(rootVarUpper)
+    ? Array.from(modelFeatures.incoming.get(rootVarUpper)).some(inVar => inVar.name === rootVarUpper)
+    : false;
   
   // Build the edges map, including only connections between variables in the set
   const edges = new Map();
@@ -108,6 +110,10 @@ export function getGraphOfRelations(modelFeatures, rootVariable, depth) {
       for (const dep of outgoing) {
         // Only include the edge if the target variable is also in our set
         if (variables.has(dep.name)) {
+          // Special case: exclude self-referential edge for root unless it actually has self-reference
+          if (varName === rootVarUpper && dep.name === rootVarUpper && !rootHasSelfReference) {
+            continue;
+          }
           outgoingEdges.add(dep.name);
         }
       }
