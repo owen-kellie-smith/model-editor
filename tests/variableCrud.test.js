@@ -278,7 +278,7 @@ describe("Variable CRUD Operations", () => {
       // step_length is used by many other variables
       expect(() => {
         deleteVariable(baseModel, "step_length", lang);
-      }).toThrow(/missing reference|undefined/i);
+      }).toThrow(/unable to delete|referred to by another variable/i);
     });
 
     it("should throw error when variable not found", () => {
@@ -622,7 +622,7 @@ describe("Variable CRUD Operations", () => {
       // step_length is used by many other variables
       expect(() => {
         deleteVariable(baseModel, "step_length", lang);
-      }).toThrow(/missing reference|undefined/i);
+      }).toThrow(/unable to delete|referred to by another variable/i);
     });
 
     it("should handle deletion of non-existent variable", () => {
