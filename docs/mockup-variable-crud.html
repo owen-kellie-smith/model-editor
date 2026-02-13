@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Variable CRUD Mockup</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <style>
+    .variable-crud-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    
+    .variable-list {
+      margin: 15px 0;
+    }
+    
+    .variable-item {
+      padding: 10px;
+      margin: 5px 0;
+      background: #f5f5f5;
+      border-radius: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .variable-item-info {
+      flex: 1;
+    }
+    
+    .variable-item-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .variable-form {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 5px;
+    }
+    
+    .form-group {
+      margin: 10px 0;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    
+    .form-group textarea {
+      min-height: 80px;
+      font-family: monospace;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      margin: 5px 5px 5px 0;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 3px;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="editor-container">
+    <h1>Variable CRUD Operations - Mockup</h1>
+    
+    <div class="variable-crud-section">
+      <h2>Create New Variable</h2>
+      <div class="variable-form">
+        <div class="form-group">
+          <label for="newVarId">Variable ID:</label>
+          <input type="text" id="newVarId" placeholder="e.g., my_variable">
+        </div>
+        
+        <div class="form-group">
+          <label for="newVarDefinitionType">Definition Type:</label>
+          <select id="newVarDefinitionType">
+            <option value="expression">Expression</option>
+            <option value="constant">Constant</option>
+            <option value="table">Table</option>
+            <option value="tableLookup">Table Lookup</option>
+            <option value="piecewise">Piecewise</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="newVarDefinition">Definition (Formula/Expression):</label>
+          <textarea id="newVarDefinition" placeholder="e.g., some_var + 10"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="newVarDataType">Data Type (optional):</label>
+          <input type="text" id="newVarDataType" placeholder="e.g., real, integer, boolean">
+        </div>
+        
+        <div class="form-group">
+          <label for="newVarUnit">Unit (optional):</label>
+          <input type="text" id="newVarUnit" placeholder="e.g., years, GBP">
+        </div>
+        
+        <button class="btn btn-primary" id="createVariableBtn">Create Variable</button>
+        <button class="btn btn-secondary" id="clearFormBtn">Clear Form</button>
+      </div>
+      
+      <div id="createMessage"></div>
+    </div>
+    
+    <div class="variable-crud-section">
+      <h2>Variable List</h2>
+      <div id="variableList" class="variable-list">
+        <!-- Variables will be listed here -->
+        <p>Load a model to see variables...</p>
+      </div>
+    </div>
+    
+    <div class="variable-crud-section" id="editSection" style="display: none;">
+      <h2>Edit Variable</h2>
+      <div class="variable-form">
+        <div class="form-group">
+          <label>Variable ID:</label>
+          <input type="text" id="editVarId" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label for="editVarDefinitionType">Definition Type:</label>
+          <select id="editVarDefinitionType">
+            <option value="expression">Expression</option>
+            <option value="constant">Constant</option>
+            <option value="table">Table</option>
+            <option value="tableLookup">Table Lookup</option>
+            <option value="piecewise">Piecewise</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="editVarDefinition">Definition (Formula/Expression):</label>
+          <textarea id="editVarDefinition"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="editVarDataType">Data Type (optional):</label>
+          <input type="text" id="editVarDataType">
+        </div>
+        
+        <div class="form-group">
+          <label for="editVarUnit">Unit (optional):</label>
+          <input type="text" id="editVarUnit">
+        </div>
+        
+        <button class="btn btn-primary" id="updateVariableBtn">Update Variable</button>
+        <button class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+      </div>
+      
+      <div id="editMessage"></div>
+    </div>
+  </div>
+  
+  <script type="module">
+    // This is a mockup showing the intended UI flow
+    // The actual implementation will use the CRUD functions from variableCrud.js
+    
+    let currentEditId = null;
+    
+    // Mock data for demonstration
+    const mockVariables = [
+      {
+        id: 'step_length',
+        definition: { type: 'constant', '#text': '1 / 12' },
+        dataType: 'real',
+        unit: 'years'
+      },
+      {
+        id: 'annual_annuity_amount',
+        definition: { type: 'table', table: { ref: 'cohort_data' }, column: { ref: 'annual_annuity_amount' } },
+        dataType: 'real',
+        unit: 'GBP_per_year',
+        arguments: { arg: [{ indexSet: 'cohort' }] }
+      },
+      {
+        id: 'attained_age',
+        definition: { type: 'expression', '#text': 'current_age(cohort) + step * step_length' },
+        dataType: 'real',
+        unit: 'years',
+        arguments: { arg: [{ indexSet: 'cohort' }, { indexSet: 'step' }] }
+      }
+    ];
+    
+    function renderVariableList() {
+      const listEl = document.getElementById('variableList');
+      
+      if (mockVariables.length === 0) {
+        listEl.innerHTML = '<p>No variables in model</p>';
+        return;
+      }
+      
+      listEl.innerHTML = mockVariables.map(v => `
+        <div class="variable-item">
+          <div class="variable-item-info">
+            <strong>${v.id}</strong>
+            <div style="font-size: 0.9em; color: #666;">
+              Type: ${v.definition.type} | 
+              ${v.dataType ? `DataType: ${v.dataType} | ` : ''}
+              ${v.unit ? `Unit: ${v.unit}` : ''}
+            </div>
+            <div style="font-size: 0.85em; margin-top: 5px; font-family: monospace;">
+              ${getDefinitionPreview(v.definition)}
+            </div>
+          </div>
+          <div class="variable-item-actions">
+            <button class="btn btn-secondary" onclick="window.editVariable('${v.id}')">Edit</button>
+            <button class="btn btn-danger" onclick="window.deleteVariable('${v.id}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function getDefinitionPreview(definition) {
+      if (definition['#text']) {
+        return definition['#text'].substring(0, 60) + (definition['#text'].length > 60 ? '...' : '');
+      }
+      return JSON.stringify(definition).substring(0, 60) + '...';
+    }
+    
+    function showMessage(elementId, message, type) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = `<div class="message ${type}">${message}</div>`;
+      setTimeout(() => {
+        el.innerHTML = '';
+      }, 5000);
+    }
+    
+    // Create variable
+    document.getElementById('createVariableBtn').addEventListener('click', () => {
+      const id = document.getElementById('newVarId').value.trim();
+      const definitionType = document.getElementById('newVarDefinitionType').value;
+      const definitionText = document.getElementById('newVarDefinition').value.trim();
+      const dataType = document.getElementById('newVarDataType').value.trim();
+      const unit = document.getElementById('newVarUnit').value.trim();
+      
+      if (!id) {
+        showMessage('createMessage', 'Variable ID is required', 'error');
+        return;
+      }
+      
+      if (!definitionText) {
+        showMessage('createMessage', 'Definition is required', 'error');
+        return;
+      }
+      
+      // Check for duplicates
+      if (mockVariables.some(v => v.id.toUpperCase() === id.toUpperCase())) {
+        showMessage('createMessage', `Variable ${id} already exists`, 'error');
+        return;
+      }
+      
+      // Create new variable
+      const newVar = {
+        id,
+        definition: { type: definitionType, '#text': definitionText }
+      };
+      
+      if (dataType) newVar.dataType = dataType;
+      if (unit) newVar.unit = unit;
+      
+      mockVariables.push(newVar);
+      renderVariableList();
+      
+      // Clear form
+      document.getElementById('newVarId').value = '';
+      document.getElementById('newVarDefinition').value = '';
+      document.getElementById('newVarDataType').value = '';
+      document.getElementById('newVarUnit').value = '';
+      
+      showMessage('createMessage', `Variable ${id} created successfully`, 'success');
+    });
+    
+    // Clear form
+    document.getElementById('clearFormBtn').addEventListener('click', () => {
+      document.getElementById('newVarId').value = '';
+      document.getElementById('newVarDefinition').value = '';
+      document.getElementById('newVarDataType').value = '';
+      document.getElementById('newVarUnit').value = '';
+    });
+    
+    // Edit variable
+    window.editVariable = (id) => {
+      const variable = mockVariables.find(v => v.id === id);
+      if (!variable) return;
+      
+      currentEditId = id;
+      
+      document.getElementById('editVarId').value = variable.id;
+      document.getElementById('editVarDefinitionType').value = variable.definition.type;
+      document.getElementById('editVarDefinition').value = variable.definition['#text'] || '';
+      document.getElementById('editVarDataType').value = variable.dataType || '';
+      document.getElementById('editVarUnit').value = variable.unit || '';
+      
+      document.getElementById('editSection').style.display = 'block';
+      document.getElementById('editSection').scrollIntoView({ behavior: 'smooth' });
+    };
+    
+    // Update variable
+    document.getElementById('updateVariableBtn').addEventListener('click', () => {
+      if (!currentEditId) return;
+      
+      const definitionType = document.getElementById('editVarDefinitionType').value;
+      const definitionText = document.getElementById('editVarDefinition').value.trim();
+      const dataType = document.getElementById('editVarDataType').value.trim();
+      const unit = document.getElementById('editVarUnit').value.trim();
+      
+      const variable = mockVariables.find(v => v.id === currentEditId);
+      if (!variable) return;
+      
+      // Update variable
+      variable.definition = { type: definitionType, '#text': definitionText };
+      if (dataType) {
+        variable.dataType = dataType;
+      } else {
+        delete variable.dataType;
+      }
+      if (unit) {
+        variable.unit = unit;
+      } else {
+        delete variable.unit;
+      }
+      
+      renderVariableList();
+      
+      showMessage('editMessage', `Variable ${currentEditId} updated successfully`, 'success');
+      
+      setTimeout(() => {
+        document.getElementById('editSection').style.display = 'none';
+        currentEditId = null;
+      }, 2000);
+    });
+    
+    // Cancel edit
+    document.getElementById('cancelEditBtn').addEventListener('click', () => {
+      document.getElementById('editSection').style.display = 'none';
+      currentEditId = null;
+    });
+    
+    // Delete variable
+    window.deleteVariable = (id) => {
+      if (!confirm(`Are you sure you want to delete variable "${id}"?`)) {
+        return;
+      }
+      
+      const index = mockVariables.findIndex(v => v.id === id);
+      if (index === -1) return;
+      
+      mockVariables.splice(index, 1);
+      renderVariableList();
+      
+      showMessage('createMessage', `Variable ${id} deleted successfully`, 'success');
+    };
+    
+    // Initial render
+    renderVariableList();
+  </script>
+</body>
+</html>
