@@ -1,5 +1,6 @@
 import { ui } from "../ui.js";
 import { getModelEnv, setModelEnv } from "./modelApp.js";
+import { getLanguageEnv } from "./languageApp.js";
 import { setElementContent, escapeHtml } from "../utils/helpers.js";
 import { 
   listVariables, 
@@ -318,11 +319,17 @@ function handleDeleteVariable() {
   const modelEnv = getModelEnv();
   if (!modelEnv) return;
   
+  const lang = getLanguageEnv();
+  if (!lang) {
+    alert("Language environment not loaded. Please load a language file first.");
+    return;
+  }
+  
   // Store the variable ID before we set it to null
   const deletedVariableId = currentSelectedVariableId;
   
   try {
-    const result = deleteVariable(modelEnv.obj, deletedVariableId, modelEnv.lang);
+    const result = deleteVariable(modelEnv.obj, deletedVariableId, lang);
     
     // Update the model environment
     setModelEnv(result);
@@ -348,6 +355,12 @@ function handleDeleteVariable() {
 function handleSaveVariable() {
   const modelEnv = getModelEnv();
   if (!modelEnv) return;
+  
+  const lang = getLanguageEnv();
+  if (!lang) {
+    alert("Language environment not loaded. Please load a language file first.");
+    return;
+  }
   
   try {
     // Get form values
@@ -388,11 +401,11 @@ function handleSaveVariable() {
     if (isCreatingNew) {
       // Create new variable
       variableData.id = variableId;
-      result = createVariable(modelEnv.obj, variableData, modelEnv.lang);
+      result = createVariable(modelEnv.obj, variableData, lang);
       alert(`Variable "${variableId}" created successfully.`);
     } else {
       // Update existing variable
-      result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, modelEnv.lang);
+      result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
       alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
     }
     
