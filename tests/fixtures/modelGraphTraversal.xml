@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="graph-traversal-test-model">
+
+  <!-- ================= -->
+  <!-- Index sets        -->
+  <!-- ================= -->
+
+  <indexSets>
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+
+  <!-- ================= -->
+  <!-- Variables         -->
+  <!-- ================= -->
+
+  <variables>
+
+    <!-- Example from problem statement:
+         A = B + C
+         B = D
+         D = E
+         
+         Additional variables for more complex testing:
+         F = G + H
+         G = I
+         I = J
+         
+         Isolated variable:
+         K = 42
+    -->
+
+    <variable id="E">
+      <dataType>real</dataType>
+      <definition type="expression">
+        1.0
+      </definition>
+    </variable>
+
+    <variable id="D">
+      <dataType>real</dataType>
+      <definition type="expression">
+        E
+      </definition>
+    </variable>
+
+    <variable id="B">
+      <dataType>real</dataType>
+      <definition type="expression">
+        D
+      </definition>
+    </variable>
+
+    <variable id="C">
+      <dataType>real</dataType>
+      <definition type="expression">
+        2.0
+      </definition>
+    </variable>
+
+    <variable id="A">
+      <dataType>real</dataType>
+      <definition type="expression">
+        B + C
+      </definition>
+    </variable>
+
+    <variable id="J">
+      <dataType>real</dataType>
+      <definition type="expression">
+        3.0
+      </definition>
+    </variable>
+
+    <variable id="I">
+      <dataType>real</dataType>
+      <definition type="expression">
+        J
+      </definition>
+    </variable>
+
+    <variable id="G">
+      <dataType>real</dataType>
+      <definition type="expression">
+        I
+      </definition>
+    </variable>
+
+    <variable id="H">
+      <dataType>real</dataType>
+      <definition type="expression">
+        4.0
+      </definition>
+    </variable>
+
+    <variable id="F">
+      <dataType>real</dataType>
+      <definition type="expression">
+        G + H
+      </definition>
+    </variable>
+
+    <variable id="K">
+      <dataType>real</dataType>
+      <definition type="expression">
+        42.0
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>
