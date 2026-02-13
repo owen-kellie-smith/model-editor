@@ -2,6 +2,12 @@ import { createDOMParser } from "./domParser.js"
 import { log } from "../utils/logger.js"
 
 export function escapeHtml(text) {
+  if (text == null || text === undefined) {
+    return '';
+  }
+  if (typeof text !== 'string') {
+    text = String(text);
+  }
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
