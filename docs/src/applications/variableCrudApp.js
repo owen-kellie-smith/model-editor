@@ -203,14 +203,18 @@ function hideEditForm() {
 }
 
 /**
+ * Shows a message that a feature is not yet implemented
+ */
+function showNotImplementedMessage(action, variableId) {
+  alert(`${action} functionality is not yet available.\n\nVariable: "${variableId}"`);
+}
+
+/**
  * Handles the copy variable action
  */
 function handleCopyVariable() {
   if (!currentSelectedVariableId) return;
-  
-  // For now, just show an alert
-  // In a full implementation, this would create a new variable with copied data
-  alert(`Copy functionality for variable "${currentSelectedVariableId}" is not yet implemented.`);
+  showNotImplementedMessage('Copy', currentSelectedVariableId);
 }
 
 /**
@@ -223,9 +227,7 @@ function handleDeleteVariable() {
   
   if (!confirmed) return;
   
-  // For now, just show an alert
-  // In a full implementation, this would call deleteVariable() from variableCrud.js
-  alert(`Delete functionality for variable "${currentSelectedVariableId}" is not yet implemented.`);
+  showNotImplementedMessage('Delete', currentSelectedVariableId);
 }
 
 /**
@@ -234,10 +236,7 @@ function handleDeleteVariable() {
 function handleSaveVariable() {
   if (!currentSelectedVariableId) return;
   
-  // For now, just show an alert and hide the form
-  // In a full implementation, this would call updateVariable() from variableCrud.js
-  alert(`Save functionality for variable "${currentSelectedVariableId}" is not yet implemented.\n\nThe variable CRUD operations need to be implemented in variableCrud.js first.`);
-  
+  showNotImplementedMessage('Save', currentSelectedVariableId);
   hideEditForm();
 }
 
