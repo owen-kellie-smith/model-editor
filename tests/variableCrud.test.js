@@ -465,4 +465,170 @@ describe("Variable CRUD Operations", () => {
       }).not.toThrow();
     });
   });
+
+  describe("Save button functionality - invalid definitions", () => {
+    it("should fail to save variable with circular definition", () => {
+      // Try to update a variable to create a circular dependency
+      const updatedData = {
+        definition: {
+          type: "expression",
+          "#text": "attained_age(cohort, step)"
+        }
+      };
+
+      // current_age depends on attained_age, so making attained_age depend on current_age creates a cycle
+      expect(() => {
+        updateVariable(baseModel, "current_age", updatedData, lang);
+      }).toThrow(/circular|cycle/i);
+    });
+
+    it("should fail to save variable with unknown function", () => {
+      const updatedData = {
+        definition: {
+          type: "expression",
+          "#text": "unknown_function(step_length)"
+        }
+      };
+
+      expect(() => {
+        updateVariable(baseModel, "step_length", updatedData, lang);
+      }).toThrow(/unknown function|not defined|missing/i);
+    });
+
+    it("should fail to save variable with undefined variable reference", () => {
+      const updatedData = {
+        definition: {
+          type: "expression",
+          "#text": "undefined_variable + 1"
+        }
+      };
+
+      expect(() => {
+        updateVariable(baseModel, "step_length", updatedData, lang);
+      }).toThrow(/missing reference|undefined/i);
+    });
+
+    it("should fail to save new variable with circular definition", () => {
+      // Create a variable that references itself
+      const variableData = {
+        id: "circular_var",
+        definition: {
+          type: "expression",
+          "#text": "circular_var + 1"
+        }
+      };
+
+      expect(() => {
+        createVariable(baseModel, variableData, lang);
+      }).toThrow(/circular|cycle|missing reference/i);
+    });
+  });
+
+  describe("Copy button functionality", () => {
+    it("should copy a variable with a new ID", () => {
+      const originalVariable = readVariable(baseModel, "step_length");
+      expect(originalVariable).toBeDefined();
+
+      // Copy the variable with a new ID
+      const copiedVariableData = {
+        id: "step_length_copy",
+        definition: originalVariable.definition,
+        dataType: originalVariable.dataType,
+        unit: originalVariable.unit
+      };
+
+      const result = createVariable(baseModel, copiedVariableData, lang);
+      
+      expect(result).toBeDefined();
+      expect(result.features.variables).toContain("STEP_LENGTH_COPY");
+      
+      // Verify both variables exist
+      const original = readVariable(result.obj, "step_length");
+      const copied = readVariable(result.obj, "step_length_copy");
+      
+      expect(original).toBeDefined();
+      expect(copied).toBeDefined();
+      
+      // Verify the definition is the same
+      expect(copied.definition).toEqual(original.definition);
+    });
+
+    it("should copy a variable and allow modifications", () => {
+      const originalVariable = readVariable(baseModel, "step_length");
+
+      // Copy with modifications
+      const copiedVariableData = {
+        id: "modified_copy",
+        definition: {
+          type: "expression",
+          "#text": "step_length * 2"
+        },
+        dataType: originalVariable.dataType
+      };
+
+      const result = createVariable(baseModel, copiedVariableData, lang);
+      
+      expect(result).toBeDefined();
+      expect(result.features.variables).toContain("MODIFIED_COPY");
+      
+      const copied = readVariable(result.obj, "modified_copy");
+      expect(copied.definition["#text"]).toBe("step_length * 2");
+    });
+
+    it("should fail to copy with existing ID", () => {
+      const originalVariable = readVariable(baseModel, "step_length");
+
+      // Try to copy with an existing ID
+      const copiedVariableData = {
+        id: "step_length", // Same ID as original
+        definition: originalVariable.definition
+      };
+
+      expect(() => {
+        createVariable(baseModel, copiedVariableData, lang);
+      }).toThrow(/already exists/i);
+    });
+  });
+
+  describe("Delete button confirmation functionality", () => {
+    it("should successfully delete a variable when confirmed", () => {
+      // Verify variable exists before deletion
+      const variableBefore = readVariable(baseModel, "discounted_cashflow");
+      expect(variableBefore).toBeDefined();
+
+      // Delete the variable (simulating OK button click)
+      const result = deleteVariable(baseModel, "discounted_cashflow", lang);
+      
+      expect(result).toBeDefined();
+      expect(result.features.variables).not.toContain("DISCOUNTED_CASHFLOW");
+      
+      // Verify variable no longer exists
+      const variableAfter = readVariable(result.obj, "discounted_cashflow");
+      expect(variableAfter).toBeNull();
+    });
+
+    it("should validate model after deletion", () => {
+      // Delete a variable and ensure model is still valid
+      const result = deleteVariable(baseModel, "discounted_cashflow", lang);
+      
+      // Model should be valid after deletion
+      const serialized = serializeModel(result.obj);
+      expect(() => {
+        validateModelCore(serialized, "test.xml", lang);
+      }).not.toThrow();
+    });
+
+    it("should fail to delete variable that other variables depend on", () => {
+      // step_length is used by many other variables
+      expect(() => {
+        deleteVariable(baseModel, "step_length", lang);
+      }).toThrow(/missing reference|undefined/i);
+    });
+
+    it("should handle deletion of non-existent variable", () => {
+      expect(() => {
+        deleteVariable(baseModel, "non_existent_variable", lang);
+      }).toThrow(/not found/i);
+    });
+  });
 });

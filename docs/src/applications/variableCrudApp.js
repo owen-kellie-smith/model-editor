@@ -1,9 +1,17 @@
 import { ui } from "../ui.js";
-import { getModelEnv } from "./modelApp.js";
+import { getModelEnv, setModelEnv } from "./modelApp.js";
 import { setElementContent, escapeHtml } from "../utils/helpers.js";
-import { listVariables } from "../domain/variableCrud.js";
+import { 
+  listVariables, 
+  createVariable, 
+  updateVariable, 
+  deleteVariable, 
+  copyVariable, 
+  readVariable 
+} from "../domain/variableCrud.js";
 
 let currentSelectedVariableId = null;
+let isCreatingNew = false;
 
 /**
  * Renders the dropdown list of variables from the current model
@@ -157,8 +165,14 @@ function showEditForm() {
     
     if (!variable) return;
     
+    isCreatingNew = false;
+    
+    // Update form title
+    ui.variableFormTitle.textContent = "Edit Variable";
+    
     // Populate the form
     ui.editVarId.value = variable.id;
+    ui.editVarId.disabled = true; // Can't change ID when editing
     
     // Handle definition - extract text if available
     if (variable.definition) {
@@ -190,10 +204,91 @@ function showEditForm() {
 }
 
 /**
+ * Shows the form for creating a new variable
+ */
+function showNewVariableForm() {
+  const modelEnv = getModelEnv();
+  if (!modelEnv) {
+    alert("Please load a model first.");
+    return;
+  }
+  
+  isCreatingNew = true;
+  
+  // Update form title
+  ui.variableFormTitle.textContent = "New Variable";
+  
+  // Clear and enable the form fields
+  ui.editVarId.value = '';
+  ui.editVarId.disabled = false; // Can set ID for new variable
+  ui.editVarDefinition.value = '';
+  ui.editVarDataType.value = 'real';
+  ui.editVarUnit.value = '';
+  
+  // Show the form section
+  ui.variableFormSection.style.display = "block";
+  ui.variableFormSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Shows the form for copying a variable
+ */
+function showCopyVariableForm() {
+  if (!currentSelectedVariableId) return;
+  
+  const modelEnv = getModelEnv();
+  if (!modelEnv) return;
+  
+  try {
+    const variables = listVariables(modelEnv.obj);
+    const variable = variables.find(v => v.id === currentSelectedVariableId);
+    
+    if (!variable) return;
+    
+    isCreatingNew = true;
+    
+    // Update form title
+    ui.variableFormTitle.textContent = "Copy Variable";
+    
+    // Populate the form with source variable data
+    ui.editVarId.value = variable.id + "_copy";
+    ui.editVarId.disabled = false; // Can change ID for copy
+    
+    // Handle definition - extract text if available
+    if (variable.definition) {
+      const definitionText = variable.definition['#text'] || '';
+      ui.editVarDefinition.value = definitionText;
+    } else {
+      ui.editVarDefinition.value = '';
+    }
+    
+    // Handle dataType
+    const dataType = variable.dataType 
+      ? (typeof variable.dataType === 'object' ? variable.dataType['#text'] : variable.dataType)
+      : '';
+    ui.editVarDataType.value = dataType;
+    
+    // Handle unit
+    const unit = variable.unit 
+      ? (typeof variable.unit === 'object' ? variable.unit['#text'] : variable.unit)
+      : '';
+    ui.editVarUnit.value = unit;
+    
+    // Show the form section
+    ui.variableFormSection.style.display = "block";
+    ui.variableFormSection.scrollIntoView({ behavior: 'smooth' });
+  } catch (error) {
+    console.error("Error showing copy form:", error);
+    alert(`Error loading variable for copying: ${error.message}`);
+  }
+}
+
+/**
  * Hides the edit form
  */
 function hideEditForm() {
   ui.variableFormSection.style.display = "none";
+  isCreatingNew = false;
   
   // Clear form fields
   ui.editVarId.value = '';
@@ -203,18 +298,11 @@ function hideEditForm() {
 }
 
 /**
- * Shows a message that a feature is not yet implemented
- */
-function showNotImplementedMessage(action, variableId) {
-  alert(`${action} functionality is not yet available.\n\nVariable: "${variableId}"`);
-}
-
-/**
  * Handles the copy variable action
  */
 function handleCopyVariable() {
   if (!currentSelectedVariableId) return;
-  showNotImplementedMessage('Copy', currentSelectedVariableId);
+  showCopyVariableForm();
 }
 
 /**
@@ -227,17 +315,106 @@ function handleDeleteVariable() {
   
   if (!confirmed) return;
   
-  showNotImplementedMessage('Delete', currentSelectedVariableId);
+  const modelEnv = getModelEnv();
+  if (!modelEnv) return;
+  
+  try {
+    const result = deleteVariable(modelEnv.obj, currentSelectedVariableId, modelEnv.lang);
+    
+    // Update the model environment
+    setModelEnv(result);
+    
+    // Refresh the variable dropdown
+    renderVariableDropdown();
+    
+    // Hide details and form
+    ui.variableDetails.style.display = "none";
+    ui.variableFormSection.style.display = "none";
+    currentSelectedVariableId = null;
+    
+    alert(`Variable "${currentSelectedVariableId}" deleted successfully.`);
+  } catch (error) {
+    console.error("Error deleting variable:", error);
+    alert(`Error deleting variable: ${error.message}`);
+  }
 }
 
 /**
  * Handles the save variable action
  */
 function handleSaveVariable() {
-  if (!currentSelectedVariableId) return;
+  const modelEnv = getModelEnv();
+  if (!modelEnv) return;
   
-  showNotImplementedMessage('Save', currentSelectedVariableId);
-  hideEditForm();
+  try {
+    // Get form values
+    const variableId = ui.editVarId.value.trim();
+    const definitionText = ui.editVarDefinition.value.trim();
+    const dataType = ui.editVarDataType.value.trim();
+    const unit = ui.editVarUnit.value.trim();
+    
+    // Validate required fields
+    if (!variableId) {
+      alert("Variable ID is required.");
+      return;
+    }
+    
+    if (!definitionText) {
+      alert("Variable definition is required.");
+      return;
+    }
+    
+    // Build variable data
+    const variableData = {
+      definition: {
+        type: "expression",
+        "#text": definitionText
+      }
+    };
+    
+    if (dataType) {
+      variableData.dataType = dataType;
+    }
+    
+    if (unit) {
+      variableData.unit = unit;
+    }
+    
+    let result;
+    
+    if (isCreatingNew) {
+      // Create new variable
+      variableData.id = variableId;
+      result = createVariable(modelEnv.obj, variableData, modelEnv.lang);
+      alert(`Variable "${variableId}" created successfully.`);
+    } else {
+      // Update existing variable
+      result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, modelEnv.lang);
+      alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
+    }
+    
+    // Update the model environment
+    setModelEnv(result);
+    
+    // Refresh the variable dropdown
+    renderVariableDropdown();
+    
+    // Hide the form
+    hideEditForm();
+    
+    // Show details of the saved variable
+    if (isCreatingNew) {
+      currentSelectedVariableId = variableId;
+      ui.variableDropdown.value = variableId;
+      showVariableDetails(variableId);
+    } else {
+      showVariableDetails(currentSelectedVariableId);
+    }
+    
+  } catch (error) {
+    console.error("Error saving variable:", error);
+    alert(`Error saving variable: ${error.message}`);
+  }
 }
 
 /**
@@ -255,6 +432,11 @@ export function wireVariableCrudHandlers() {
       ui.variableFormSection.style.display = "none";
       currentSelectedVariableId = null;
     }
+  });
+  
+  // New button handler
+  ui.newVariableBtn.addEventListener('click', () => {
+    showNewVariableForm();
   });
   
   // Edit button handler
