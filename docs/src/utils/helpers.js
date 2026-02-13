@@ -1,6 +1,12 @@
 import { createDOMParser } from "./domParser.js"
 import { log } from "../utils/logger.js"
 
+export function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 export function setElementContent(ele, content) {
   // If it's a string, set as HTML
   if (typeof content === 'string') {
