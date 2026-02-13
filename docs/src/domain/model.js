@@ -101,14 +101,14 @@ export function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
     return resolved;
   }
 
-  // gets a map of dependencies
+  // gets a map of incoming variables (variables that flow into each variable)
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
-export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
-  const dependencies = new Map(); 
+export function getIncoming(symbols, resolvedVarsWithArguments, lang) {
+  const incoming = new Map(); 
 
   for (const [name, resolvedVariable] of resolvedVarsWithArguments) {
     const deps = new Set();
-    dependencies.set(name.toUpperCase(), deps);
+    incoming.set(name.toUpperCase(), deps);
 
     const collector = makeDependencyCollector(symbols, lang, name, deps);
     collector.addDependenciesFromDefinition(
@@ -116,12 +116,40 @@ export function getDependencies(symbols, resolvedVarsWithArguments, lang) {
     );
   }
 
-  return dependencies;   
+  return incoming;   
 }
-  // throw an error if e.g. a depends on B which depends on C which depends on A.
-export function throwErrorForCircularExpressions(dependencies) {
 
-  for (const root of dependencies.keys()) {
+  // gets a map of outgoing variables (variables that this variable flows into)
+  // for each variable, shows which variables use it as input
+export function getOutgoing(incoming, resolvedVarsWithArguments) {
+  const outgoing = new Map();
+  
+  // Initialize all variables with empty sets
+  for (const [name] of resolvedVarsWithArguments) {
+    outgoing.set(name.toUpperCase(), new Set());
+  }
+  
+  // For each variable and its incoming variables,
+  // add this variable as an outgoing variable of each incoming variable
+  for (const [varName, deps] of incoming) {
+    for (const dep of deps) {
+      const depName = dep.name.toUpperCase();
+      if (!outgoing.has(depName)) {
+        outgoing.set(depName, new Set());
+      }
+      // Add varName as an outgoing variable of depName
+      // Include shift information to match the structure of incoming
+      outgoing.get(depName).add({ name: varName, shift: -(dep.shift ?? 0) });
+    }
+  }
+  
+  return outgoing;
+}
+
+  // throw an error if e.g. a depends on B which depends on C which depends on A.
+export function throwErrorForCircularExpressions(incoming) {
+
+  for (const root of incoming.keys()) {
 
     // nodes we must still expand
     // key = `${name}@${offset}`
@@ -131,8 +159,8 @@ export function throwErrorForCircularExpressions(dependencies) {
     const startKey = `${root}@0`;
     checked.add(startKey);
 
-    // seed with immediate dependencies of root at offset 0
-    for (const e of dependencies.get(root) ?? []) {
+    // seed with immediate incoming variables of root at offset 0
+    for (const e of incoming.get(root) ?? []) {
       const off = e.shift ?? 0;
       const key = `${e.name}@${off}`;
       total.set(key, { name: e.name, offset: off });
@@ -156,8 +184,8 @@ export function throwErrorForCircularExpressions(dependencies) {
       const [key, { name, offset }] = nextEntry;
       checked.add(key);
 
-      // expand its dependencies
-      for (const e of dependencies.get(name) ?? []) {
+      // expand its incoming variables
+      for (const e of incoming.get(name) ?? []) {
         const nextOffset = offset + (e.shift ?? 0);
         const nextKey = `${e.name}@${nextOffset}`;
 
@@ -190,20 +218,23 @@ export  function getIdentifierTokens(exprText) {
   return [...refs];
   }
 
-// passes xmlModel and lang to parsers to get an object containing parsed model features (variables, dependencie i.e. immediate precedents) 
+// passes xmlModel and lang to parsers to get an object containing parsed model features (variables, incoming and outgoing variables) 
 export  function getModelFeatures(xmlModel, lang) {
     const symbols = getMapsOfModelProperties(xmlModel);
   log("debug","symbols:", symbols);
     const resolvedVarsWithArguments = getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols);
   log("debug","resolvedVarsWithArguments:", resolvedVarsWithArguments);
-    const dependencies = getDependencies(symbols, resolvedVarsWithArguments, lang);
-  log("debug","dependencies:", dependencies);
-    throwErrorForCircularExpressions(dependencies);
+    const incoming = getIncoming(symbols, resolvedVarsWithArguments, lang);
+  log("debug","incoming:", incoming);
+    const outgoing = getOutgoing(incoming, resolvedVarsWithArguments);
+  log("debug","outgoing:", outgoing);
+    throwErrorForCircularExpressions(incoming);
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
       variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
       resolvedVarsWithArguments,
-      dependencies   
+      incoming,
+      outgoing   
     };
   }
 
