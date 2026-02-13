@@ -15,6 +15,28 @@ let currentSelectedVariableId = null;
 let isCreatingNew = false;
 
 /**
+ * Validates that both model and language environments are loaded.
+ * Shows an alert if either is missing.
+ * 
+ * @returns {Object|null} Returns { modelEnv, lang } if both are loaded, null otherwise
+ */
+function validateEnvironments() {
+  const modelEnv = getModelEnv();
+  if (!modelEnv) {
+    alert("Model not loaded. Please load a model first.");
+    return null;
+  }
+  
+  const lang = getLanguageEnv();
+  if (!lang) {
+    alert("Language environment not loaded. Please load a language file first.");
+    return null;
+  }
+  
+  return { modelEnv, lang };
+}
+
+/**
  * Renders the dropdown list of variables from the current model
  */
 export function renderVariableDropdown() {
@@ -316,14 +338,10 @@ function handleDeleteVariable() {
   
   if (!confirmed) return;
   
-  const modelEnv = getModelEnv();
-  if (!modelEnv) return;
+  const env = validateEnvironments();
+  if (!env) return;
   
-  const lang = getLanguageEnv();
-  if (!lang) {
-    alert("Language environment not loaded. Please load a language file first.");
-    return;
-  }
+  const { modelEnv, lang } = env;
   
   // Store the variable ID before we set it to null
   const deletedVariableId = currentSelectedVariableId;
@@ -353,14 +371,10 @@ function handleDeleteVariable() {
  * Handles the save variable action
  */
 function handleSaveVariable() {
-  const modelEnv = getModelEnv();
-  if (!modelEnv) return;
+  const env = validateEnvironments();
+  if (!env) return;
   
-  const lang = getLanguageEnv();
-  if (!lang) {
-    alert("Language environment not loaded. Please load a language file first.");
-    return;
-  }
+  const { modelEnv, lang } = env;
   
   try {
     // Get form values
