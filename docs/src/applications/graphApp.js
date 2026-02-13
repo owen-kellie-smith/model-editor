@@ -70,6 +70,18 @@ function populateDepthDropdown() {
 }
 
 /**
+ * Apply or remove fit-to-screen styling to the graph SVG container
+ */
+function applyFitToScreen() {
+  const fitToScreen = ui.graphFitToScreen.checked;
+  if (fitToScreen) {
+    ui.graphSvg.classList.add('fit-to-screen');
+  } else {
+    ui.graphSvg.classList.remove('fit-to-screen');
+  }
+}
+
+/**
  * Generate and display the graph
  */
 async function generateGraph() {
@@ -101,6 +113,8 @@ async function generateGraph() {
     try {
       const svg = await renderDotToSvg(dotSource);
       ui.graphSvg.innerHTML = svg;
+      // Apply fit-to-screen setting after rendering
+      applyFitToScreen();
     } catch (svgError) {
       ui.graphSvg.innerHTML = `<p style="color: orange;">SVG rendering not available: ${svgError.message}</p><p>Install viz.js to enable SVG rendering, or copy the DOT source above to your own renderer.</p>`;
     }
@@ -126,6 +140,9 @@ export function wireGraphHandlers() {
   ui.graphDepth.addEventListener('change', updateGenerateButton);
   
   ui.generateGraph.addEventListener('click', generateGraph);
+  
+  // Add event listener for fit-to-screen checkbox
+  ui.graphFitToScreen.addEventListener('change', applyFitToScreen);
   
   // Listen for model load events to populate variables
   // We'll use a custom event or call this directly from modelApp

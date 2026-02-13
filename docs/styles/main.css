@@ -211,6 +211,11 @@ hr {
   font-weight: bold;
 }
 
+.graph-controls label input[type="checkbox"] {
+  margin-right: 0.25rem;
+  cursor: pointer;
+}
+
 .graph-controls select {
   padding: 0.5rem;
   border: 1px solid #ccc;
@@ -240,6 +245,15 @@ hr {
   background-color: white;
   min-height: 100px;
   overflow: auto;
+}
+
+.graph-svg.fit-to-screen {
+  overflow: hidden;
+}
+
+.graph-svg.fit-to-screen svg {
+  width: 100% !important;
+  height: auto !important;
 }
 
 .graph-dot {
