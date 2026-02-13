@@ -229,6 +229,20 @@ hr {
   cursor: not-allowed;
 }
 
+.graph-controls .download-link {
+  color: #0066cc;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.graph-controls .download-link:hover {
+  background-color: #f0f0f0;
+  text-decoration: underline;
+}
+
 .graph-output {
   margin-top: 1rem;
 }
