@@ -40,8 +40,8 @@ No build step or server required.
 | R4 | Prevent circular logic in the model | `model.tests.js::when model contains a cycle` | An error is thrown when a formula requires its own value
 | R5 | Reject duplicate model definitions  | `model.tests.js::when model contains duplicate variable identifiers, when model contains duplicate index set identifiers` | An error is thrown when a model contains duplicate identifiers 
 | R6 | Preserves semantic meaning across model import and export  | `model.tests.js::round trip through serializer` | Model features are identical after a round-trip
-| R7 | Calculate variable precedents from formulae | `model.test.js::when model contains precedents` | Precedents (variable dependencies) are extracted from formulae, excluding language functions
-| R8 | Calculate variable dependents from formulae | to do |
+| R7 | Calculate incoming variables from formulae | `model.test.js::when model contains incoming variables` | Incoming variables (variables that flow into each variable) are extracted from formulae, excluding language functions
+| R8 | Calculate outgoing variables from formulae | `model.test.js::when model contains outgoing variables` | Outgoing variables (variables that each variable flows into) are calculated from formulae |
 | R9 | Visualize dependency relationships as graphs | to do |
 | R10 | Implement CRUD operations for a single variable | to do 
 
