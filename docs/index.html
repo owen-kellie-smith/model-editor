@@ -6,6 +6,8 @@
   <title>XMLE 1.3.0 outgoing </title>
 
   <link rel="stylesheet" href="./styles/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/viz.js@2.1.2/viz.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/viz.js@2.1.2/full.render.js"></script>
 </head>
 
 <body>
@@ -57,6 +59,33 @@
       <details open>
         <summary>Report</summary>
         <div id="log"></div>
+      </details>
+    </div>
+    <div class="editor">
+      <details open>
+        <summary>Graph</summary>
+        <div class="graph-controls">
+          <label for="graphVariable">Variable:</label>
+          <select id="graphVariable" disabled>
+            <option value="">Select a variable...</option>
+          </select>
+          
+          <label for="graphDepth">Depth:</label>
+          <select id="graphDepth" disabled>
+          </select>
+          
+          <button id="generateGraph" disabled>Generate Graph</button>
+        </div>
+        
+        <div class="graph-output">
+          <h4>Graph Visualization</h4>
+          <div id="graphSvg" class="graph-svg"></div>
+        </div>
+        
+        <div class="graph-output">
+          <h4>DOT Source</h4>
+          <pre id="graphDot" class="graph-dot"></pre>
+        </div>
       </details>
     </div>
   </div>

@@ -15,6 +15,10 @@ let lastCommittedText = null;
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
+export function getModelEnv() {
+  return modelEnv;
+}
+
 function setLogText(s) {
   setElementContent(ui.log, s)
 }
@@ -62,6 +66,9 @@ function validateModel(text, filename, lang) {
     updateModelStatus("✓ Valid", "success");
     updateLoadedInfo();
     updateDirtyIndicator();
+    
+    // Dispatch event for graph UI
+    window.dispatchEvent(new CustomEvent('modelLoaded'));
   } catch (er) {
     setLogText(formatError(er));
     modelEnv = null;

@@ -197,3 +197,61 @@ hr {
     min-height: 150px;
   }
 }
+
+/* Graph visualization styles */
+.graph-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.graph-controls label {
+  font-weight: bold;
+}
+
+.graph-controls select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.graph-controls select:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.graph-output {
+  margin-top: 1rem;
+}
+
+.graph-output h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.graph-svg {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: white;
+  min-height: 100px;
+  overflow: auto;
+}
+
+.graph-dot {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: auto;
+  max-height: 400px;
+}
+
