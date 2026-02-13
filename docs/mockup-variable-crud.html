@@ -220,6 +220,39 @@
       color: #333;
     }
 
+    .variable-preview h5 {
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      color: #555;
+      font-size: 1rem;
+    }
+
+    .variable-preview ul {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .variable-preview ul li {
+      margin: 0.25rem 0;
+    }
+
+    .variable-preview a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .variable-preview a:hover {
+      text-decoration: underline;
+    }
+
+    .variable-preview code {
+      background-color: #f8f9fa;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+
     .variable-preview pre {
       background-color: white;
       padding: 0.75rem;
@@ -333,7 +366,24 @@
 
         <div class="variable-preview">
           <h4>Selected Variable Preview</h4>
-          <p><em>When a variable is selected, its XML definition will be shown here:</em></p>
+          <p><strong>Variable:</strong> <code>attained_age</code></p>
+          
+          <h5>Outgoing Variables (Dependencies)</h5>
+          <p><em>Variables that this variable depends on:</em></p>
+          <ul>
+            <li><a href="javascript:void(0)" onclick="alert('Would select: current_age')">current_age</a></li>
+            <li><a href="javascript:void(0)" onclick="alert('Would select: step_length')">step_length</a></li>
+          </ul>
+          
+          <h5>Incoming Variables (Dependents)</h5>
+          <p><em>Variables that depend on this variable:</em></p>
+          <ul>
+            <li><a href="javascript:void(0)" onclick="alert('Would select: attained_age_years_floor')">attained_age_years_floor</a></li>
+            <li><a href="javascript:void(0)" onclick="alert('Would select: annual_mortality_rate')">annual_mortality_rate</a> (indirect)</li>
+            <li><a href="javascript:void(0)" onclick="alert('Would select: monthly_survival_rate')">monthly_survival_rate</a> (indirect)</li>
+          </ul>
+          
+          <h5>XML Definition</h5>
           <pre>&lt;variable id="attained_age"&gt;
   &lt;arguments&gt;
     &lt;arg indexSet="cohort"/&gt;
