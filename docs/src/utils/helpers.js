@@ -2,15 +2,18 @@ import { createDOMParser } from "./domParser.js"
 import { log } from "../utils/logger.js"
 
 export function escapeHtml(text) {
-  if (text == null || text === undefined) {
+  if (text == null) {
     return '';
   }
   if (typeof text !== 'string') {
     text = String(text);
   }
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
 
 export function setElementContent(ele, content) {
