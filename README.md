@@ -43,7 +43,7 @@ No build step or server required.
 | R7 | Calculate incoming variables from formulae | `model.test.js::when model contains incoming variables` | Variables that flow into a variable are exactly the non-functions in its formula
 | R8 | Calculate outgoing variables from formulae | `model.test.js::when model contains outgoing variables` | Variables that each variable flows into are exactly those in whose formulae it appears |
 | R9 | Visualize dependency relationships as graphs | `graphRelations.test.js::getRelations, getGraphOfRelations` | Graphs contain variables and edges within specified depth from a root variable |
-| R10 | Implement CRUD operations for a single variable | to do 
+| R10 | Implement CRUD operations for a single variable | `variableCrud.test.js::createVariable, readVariable, updateVariable, deleteVariable, validateVariableId, listVariables, Integration: Create, Read, Update, Delete workflow` | Create: new variables can be added with validation for duplicates and undefined references; Read: variables can be retrieved by ID (case-insensitive); Update: variable properties can be modified with validation for circular dependencies; Delete: variables can be removed if not referenced by others; List: all variables can be enumerated; the full CRUD workflow maintains model validity 
 
 
 ### UI prototype
