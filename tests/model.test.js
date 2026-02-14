@@ -1,5 +1,6 @@
 import { describe, it, expect,  beforeAll } from "vitest";
 import fs from "fs";
+import path from "path";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
@@ -160,10 +161,8 @@ describe("validateModelCore", () => {
 
     it("tracks variables as dependencies even when a table has the same name", () => {
       // Load the annuity model which has both a table and variable named "spot_rate"
-      const text = fs.readFileSync(
-        "/home/runner/work/model-editor/model-editor/docs/examples/annuity-model/vendor-format-model.xml",
-        "utf-8"
-      );
+      const modelPath = path.join(__dirname, "..", "docs", "examples", "annuity-model", "vendor-format-model.xml");
+      const text = fs.readFileSync(modelPath, "utf-8");
       const result = validateModelCore(text, "vendor-format-model.xml", lang);
       
       // In vendor-format-model.xml:
