@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import fs from "fs";
+import path from "path";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
@@ -272,6 +273,69 @@ describe("Graph Relations", () => {
           expect(stepLengthEdges.has("ANNUAL_MORTALITY_RATE")).toBe(false);
           expect(stepLengthEdges.has("SURVIVAL_TO_START_OF_STEP")).toBe(false);
         }
+      });
+    });
+
+    describe("clustering with vendor-format-model", () => {
+      let vendorModelFeatures;
+
+      beforeAll(() => {
+        // Load vendor-format-model.xml for clustering test
+        const modelPath = path.join(__dirname, "..", "docs", "examples", "annuity-model", "vendor-format-model.xml");
+        const modelText = fs.readFileSync(modelPath, "utf-8");
+        const result = validateModelCore(modelText, "vendor-format-model.xml", lang);
+        vendorModelFeatures = result.features;
+      });
+
+      it("clusters mortality variables together and separates them from time constants", () => {
+        // Test with CASHFLOW as root at depth 3
+        // CASHFLOW -> SURVIVAL_TO_START_OF_STEP -> MONTHLY_SURVIVAL_RATE -> ANNUAL_MORTALITY_RATE
+        const graph = getGraphOfRelations(vendorModelFeatures, "CASHFLOW", 3);
+        
+        // Verify mortality and survival variables are included
+        expect(graph.variables.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        expect(graph.variables.has("SURVIVAL_TO_START_OF_STEP")).toBe(true);
+        expect(graph.variables.has("ANNUAL_MORTALITY_RATE")).toBe(true);
+        
+        // Verify STEP_LENGTH is in the graph (structural constant)
+        expect(graph.variables.has("STEP_LENGTH")).toBe(true);
+        
+        // Check domains to understand clustering:
+        // - monthly_survival_rate has domain (cohort, step)
+        // - survival_to_start_of_step has domain (cohort, step) 
+        // - annual_mortality_rate has domain (cohort, step)
+        // - step_length has no domain (empty)
+        const monthlySurvival = vendorModelFeatures.resolvedVarsWithArguments.get("MONTHLY_SURVIVAL_RATE");
+        const survivalToStart = vendorModelFeatures.resolvedVarsWithArguments.get("SURVIVAL_TO_START_OF_STEP");
+        const annualMortality = vendorModelFeatures.resolvedVarsWithArguments.get("ANNUAL_MORTALITY_RATE");
+        const stepLength = vendorModelFeatures.resolvedVarsWithArguments.get("STEP_LENGTH");
+        
+        expect(monthlySurvival.domain).toEqual(["cohort", "step"]);
+        expect(survivalToStart.domain).toEqual(["cohort", "step"]);
+        expect(annualMortality.domain).toEqual(["cohort", "step"]);
+        expect(stepLength.domain).toEqual([]);
+        
+        // Verify semantic edges exist between mortality variables (same domain)
+        // monthly_survival_rate depends on annual_mortality_rate
+        const annualMortalityEdges = graph.edges.get("ANNUAL_MORTALITY_RATE");
+        expect(annualMortalityEdges).toBeDefined();
+        expect(annualMortalityEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        
+        // survival_to_start_of_step depends on monthly_survival_rate
+        const monthlySurvivalEdges = graph.edges.get("MONTHLY_SURVIVAL_RATE");
+        expect(monthlySurvivalEdges).toBeDefined();
+        expect(monthlySurvivalEdges.has("SURVIVAL_TO_START_OF_STEP")).toBe(true);
+        
+        // Verify index-only edges are filtered out (different domain lengths)
+        // step_length should NOT have edges to mortality variables
+        const stepLengthEdges = graph.edges.get("STEP_LENGTH");
+        expect(stepLengthEdges).toBeDefined();
+        expect(stepLengthEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(false);
+        expect(stepLengthEdges.has("SURVIVAL_TO_START_OF_STEP")).toBe(false);
+        expect(stepLengthEdges.has("ANNUAL_MORTALITY_RATE")).toBe(false);
+        
+        // This demonstrates that mortality variables cluster together by semantic domain
+        // rather than being scattered with time constants like step_length
       });
     });
   });
