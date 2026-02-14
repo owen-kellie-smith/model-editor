@@ -1,3 +1,5 @@
+import { parseXmlOrThrow } from "../utils/helpers.js";
+
 export function serializeModel(obj) {
   return `<?xml version="1.0"?>\n` +
     buildNode(obj.model, "model", 0);
@@ -8,7 +10,7 @@ export function serializeLanguage(obj) {
          buildNode(obj.model, "language", 0);
 }
 
-function buildNode(node, tagName, depth) {
+export function buildNode(node, tagName, depth) {
   const indent = "  ".repeat(depth);
   const nl = "\n";
 
@@ -51,5 +53,78 @@ function buildNode(node, tagName, depth) {
          (text ? `${indent}  ${text}${nl}` : "") +
          children +
          `${indent}</${tagName}>${nl}`;
+}
+
+/**
+ * Serializes a variable definition object to indented XML string
+ * @param {Object} definition - The definition object to serialize
+ * @returns {string} - The XML string representation
+ */
+export function serializeDefinition(definition) {
+  if (!definition) {
+    return "";
+  }
+  
+  return buildNode(definition, "definition", 0).trim();
+}
+
+/**
+ * Parses an XML string to extract a definition object
+ * @param {string} xmlString - The XML string to parse (should be a <definition> element)
+ * @returns {Object} - The definition object
+ * @throws {Error} - If XML is invalid or doesn't contain a definition element
+ */
+export function parseDefinitionXml(xmlString) {
+  if (!xmlString || !xmlString.trim()) {
+    throw new Error("Definition XML cannot be empty");
+  }
+  
+  const xml = parseXmlOrThrow(xmlString, "definition");
+  const rootElement = xml.documentElement;
+  
+  if (rootElement.nodeName !== "definition") {
+    throw new Error(`Expected <definition> element, got <${rootElement.nodeName}>`);
+  }
+  
+  return buildDefinitionObject(rootElement);
+}
+
+/**
+ * Builds a definition object from an XML element
+ * @param {Element} node - The XML element
+ * @returns {Object} - The definition object
+ */
+function buildDefinitionObject(node) {
+  const result = {};
+  
+  // Copy attributes
+  if (node.attributes) {
+    for (const attr of Array.from(node.attributes)) {
+      result[attr.name] = attr.value;
+    }
+  }
+  
+  // Process child nodes
+  for (const child of Array.from(node.childNodes)) {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      const childObj = buildDefinitionObject(child);
+      const childName = child.nodeName;
+      
+      if (!result[childName]) {
+        result[childName] = childObj;
+      } else if (Array.isArray(result[childName])) {
+        result[childName].push(childObj);
+      } else {
+        result[childName] = [result[childName], childObj];
+      }
+    } else if (child.nodeType === Node.TEXT_NODE) {
+      const text = child.nodeValue.trim();
+      if (text) {
+        result["#text"] = text;
+      }
+    }
+  }
+  
+  return result;
 }
 
