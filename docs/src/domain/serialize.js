@@ -105,7 +105,7 @@ function buildDefinitionObject(node) {
   }
   
   // Process child nodes
-  for (const child of Array.from(node.childNodes || [])) {
+  for (const child of Array.from(node.childNodes)) {
     if (child.nodeType === Node.ELEMENT_NODE) {
       const childObj = buildDefinitionObject(child);
       const childName = child.nodeName;
@@ -117,9 +117,7 @@ function buildDefinitionObject(node) {
       } else {
         result[childName] = [result[childName], childObj];
       }
-    }
-    
-    if (child.nodeType === Node.TEXT_NODE) {
+    } else if (child.nodeType === Node.TEXT_NODE) {
       const text = child.nodeValue.trim();
       if (text) {
         result["#text"] = text;
