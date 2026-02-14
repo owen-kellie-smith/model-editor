@@ -6,8 +6,7 @@
  * that help the clustering algorithm group related variables semantically.
  */
 
-import { DOMParser } from '@xmldom/xmldom'
-import xpath from 'xpath'
+import { createDOMParser } from '../utils/domParser.js'
 
 /**
  * Parse semantic configuration from XML text
@@ -17,17 +16,17 @@ import xpath from 'xpath'
  * @throws {Error} If XML is malformed or configuration is invalid
  */
 export function parseSemanticConfig(xmlText) {
-  const parser = new DOMParser()
+  const parser = createDOMParser()
   const doc = parser.parseFromString(xmlText, 'text/xml')
   
   // Check for parsing errors
-  const parserErrors = xpath.select('//parsererror', doc)
+  const parserErrors = doc.getElementsByTagName('parsererror')
   if (parserErrors.length > 0) {
     throw new Error('Failed to parse semantic configuration XML: malformed XML')
   }
   
-  const root = xpath.select1('/semanticConfig', doc)
-  if (!root) {
+  const roots = doc.getElementsByTagName('semanticConfig')
+  if (roots.length === 0) {
     throw new Error('Invalid semantic configuration: missing <semanticConfig> root element')
   }
   
@@ -55,7 +54,7 @@ export function parseSemanticConfig(xmlText) {
  */
 function parseKeywords(doc) {
   const keywords = new Map()
-  const keywordNodes = xpath.select('/semanticConfig/keywords/keyword', doc)
+  const keywordNodes = Array.from(doc.getElementsByTagName('keyword'))
   
   for (const keywordNode of keywordNodes) {
     const id = keywordNode.getAttribute('id')
@@ -64,7 +63,7 @@ function parseKeywords(doc) {
     }
     
     const patterns = []
-    const patternNodes = xpath.select('patterns/pattern', keywordNode)
+    const patternNodes = Array.from(keywordNode.getElementsByTagName('pattern'))
     
     for (const patternNode of patternNodes) {
       const pattern = patternNode.textContent?.trim()
@@ -96,7 +95,7 @@ function parseKeywords(doc) {
  */
 function parseDomains(doc, keywords) {
   const domains = []
-  const domainNodes = xpath.select('/semanticConfig/domains/domain', doc)
+  const domainNodes = Array.from(doc.getElementsByTagName('domain'))
   
   for (const domainNode of domainNodes) {
     const keywordId = domainNode.getAttribute('keywordId')
@@ -141,15 +140,16 @@ function parseParameters(doc) {
     semanticThreshold: 0.3
   }
   
-  const paramsNode = xpath.select1('/semanticConfig/clusteringParameters', doc)
-  if (!paramsNode) {
+  const paramsNodes = doc.getElementsByTagName('clusteringParameters')
+  if (paramsNodes.length === 0) {
     return params // Return defaults if no parameters section
   }
+  const paramsNode = paramsNodes[0]
   
   // Parse minClusterSize
-  const minNode = xpath.select1('minClusterSize', paramsNode)
-  if (minNode) {
-    const value = parseInt(minNode.textContent?.trim() || '', 10)
+  const minNodes = paramsNode.getElementsByTagName('minClusterSize')
+  if (minNodes.length > 0) {
+    const value = parseInt(minNodes[0].textContent?.trim() || '', 10)
     if (isNaN(value) || value < 1) {
       throw new Error('minClusterSize must be a positive integer')
     }
@@ -157,9 +157,9 @@ function parseParameters(doc) {
   }
   
   // Parse maxClusterSize
-  const maxNode = xpath.select1('maxClusterSize', paramsNode)
-  if (maxNode) {
-    const value = parseInt(maxNode.textContent?.trim() || '', 10)
+  const maxNodes = paramsNode.getElementsByTagName('maxClusterSize')
+  if (maxNodes.length > 0) {
+    const value = parseInt(maxNodes[0].textContent?.trim() || '', 10)
     if (isNaN(value) || value < 1) {
       throw new Error('maxClusterSize must be a positive integer')
     }
@@ -167,9 +167,9 @@ function parseParameters(doc) {
   }
   
   // Parse semanticThreshold
-  const thresholdNode = xpath.select1('semanticThreshold', paramsNode)
-  if (thresholdNode) {
-    const value = parseFloat(thresholdNode.textContent?.trim() || '')
+  const thresholdNodes = paramsNode.getElementsByTagName('semanticThreshold')
+  if (thresholdNodes.length > 0) {
+    const value = parseFloat(thresholdNodes[0].textContent?.trim() || '')
     if (isNaN(value) || value < 0 || value > 1) {
       throw new Error('semanticThreshold must be a number between 0 and 1')
     }
