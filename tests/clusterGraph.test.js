@@ -101,7 +101,7 @@ describe("Cluster Graph", () => {
       const result = validateModelCore(modelText, "model_long.xml", lang)
       modelFeatures = result.features
       
-      // Perform clustering
+      // Perform clustering with default (medium) granularity
       clusteringResult = clusterVariables(modelFeatures, semanticConfig)
     })
     
@@ -109,6 +109,36 @@ describe("Cluster Graph", () => {
       expect(clusteringResult).toBeDefined()
       expect(clusteringResult.modules).toBeDefined()
       expect(clusteringResult.modules.length).toBeGreaterThan(0)
+    })
+    
+    it("should use hierarchical clustering for large models (>20 variables)", () => {
+      const totalVars = Array.from(modelFeatures.incoming.keys()).length
+      expect(totalVars).toBeGreaterThan(20)
+      
+      // With hierarchical clustering, should have multiple modules
+      expect(clusteringResult.modules.length).toBeGreaterThan(1)
+      
+      // Modules should be smaller than the total (not one giant module)
+      const largestModule = Math.max(...clusteringResult.modules.map(m => m.variables.length))
+      expect(largestModule).toBeLessThan(totalVars)
+    })
+    
+    it("should respect granularity settings", () => {
+      const lowGranularity = clusterVariables(modelFeatures, semanticConfig, { granularity: 'low' })
+      const mediumGranularity = clusterVariables(modelFeatures, semanticConfig, { granularity: 'medium' })
+      const highGranularity = clusterVariables(modelFeatures, semanticConfig, { granularity: 'high' })
+      
+      // Low granularity should produce fewer modules than high granularity
+      expect(lowGranularity.modules.length).toBeLessThanOrEqual(mediumGranularity.modules.length)
+      expect(mediumGranularity.modules.length).toBeLessThanOrEqual(highGranularity.modules.length)
+    })
+    
+    it("should generate descriptive module names", () => {
+      // Module names should not all be generic "Module N"
+      const hasDescriptiveNames = clusteringResult.modules.some(m => 
+        !m.displayName.startsWith('Module ') || m.displayName.includes('(')
+      )
+      expect(hasDescriptiveNames).toBe(true)
     })
     
     it("should generate statistics", () => {
