@@ -378,6 +378,21 @@ function handleDeleteVariable() {
 }
 
 /**
+ * Formats an error message to be more user-friendly by extracting key information
+ */
+function formatErrorMessage(error) {
+  let message = error.message || "Unknown error occurred";
+  
+  // Check if there's context information
+  if (error.context) {
+    const contextStr = JSON.stringify(error.context, null, 2);
+    message += "\n\nDetails:\n" + contextStr;
+  }
+  
+  return message;
+}
+
+/**
  * Handles the save variable action
  */
 function handleSaveVariable() {
@@ -409,7 +424,8 @@ function handleSaveVariable() {
     try {
       definition = parseDefinitionXml(definitionXml);
     } catch (parseError) {
-      alert(`Invalid definition XML: ${parseError.message}`);
+      alert(`Invalid definition XML:\n\n${parseError.message}\n\nPlease check your XML syntax and try again.`);
+      console.error("Definition XML parse error:", parseError);
       return;
     }
     
@@ -431,12 +447,28 @@ function handleSaveVariable() {
     if (isCreatingNew) {
       // Create new variable
       variableData.id = variableId;
-      result = createVariable(modelEnv.obj, variableData, lang);
-      alert(`Variable "${variableId}" created successfully.`);
+      try {
+        result = createVariable(modelEnv.obj, variableData, lang);
+        alert(`Variable "${variableId}" created successfully.`);
+      } catch (createError) {
+        // Format error message with context
+        const errorMsg = formatErrorMessage(createError);
+        alert(`Failed to create variable "${variableId}":\n\n${errorMsg}\n\nPlease fix the issue and try again.`);
+        console.error("Create variable error:", createError);
+        return;
+      }
     } else {
       // Update existing variable
-      result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
-      alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
+      try {
+        result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
+        alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
+      } catch (updateError) {
+        // Format error message with context
+        const errorMsg = formatErrorMessage(updateError);
+        alert(`Failed to update variable "${currentSelectedVariableId}":\n\n${errorMsg}\n\nPlease fix the issue and try again.`);
+        console.error("Update variable error:", updateError);
+        return;
+      }
     }
     
     // Update the model environment (this also updates the last loaded date)
@@ -462,8 +494,10 @@ function handleSaveVariable() {
     }
     
   } catch (error) {
-    console.error("Error saving variable:", error);
-    alert(`Error saving variable: ${error.message}`);
+    // Catch any unexpected errors
+    console.error("Unexpected error saving variable:", error);
+    const errorMsg = formatErrorMessage(error);
+    alert(`An unexpected error occurred while saving:\n\n${errorMsg}\n\nThe form will remain open so you can fix the issue.`);
   }
 }
 

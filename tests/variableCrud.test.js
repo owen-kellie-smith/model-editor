@@ -103,6 +103,26 @@ describe("Variable CRUD Operations", () => {
       }).toThrow(/missing reference|undefined/i);
     });
 
+    it("should throw error with context when variable references undefined variable", () => {
+      const variableData = {
+        id: "invalid_variable",
+        definition: {
+          type: "expression",
+          "#text": "undefined_var + 1"
+        }
+      };
+
+      try {
+        createVariable(baseModel, variableData, lang);
+        expect.fail("Should have thrown an error");
+      } catch (error) {
+        // Verify error message
+        expect(error.message).toMatch(/missing reference|undefined/i);
+        // Verify error has context object for debugging
+        expect(error.context).toBeDefined();
+      }
+    });
+
     it("should throw error when variable definition is missing", () => {
       const variableData = {
         id: "no_definition_var"
