@@ -645,7 +645,7 @@ describe("Variable CRUD Operations", () => {
       expect(variables.length).toBeGreaterThan(0);
       
       // Check that known variables from toyMM_L1.xml are present
-      const variableIds = variables.map(v => v.id ? v.id.toUpperCase() : v.toUpperCase());
+      const variableIds = variables.map(v => v.id.toUpperCase());
       expect(variableIds).toContain("ANNUAL_ANNUITY_AMOUNT");
       expect(variableIds).toContain("CASHFLOW");
       expect(variableIds).toContain("DISCOUNT_FACTOR");
@@ -659,7 +659,7 @@ describe("Variable CRUD Operations", () => {
       // Get variables from listVariables
       const listedVariables = listVariables(result.obj);
       const listedVarNames = new Set(
-        listedVariables.map(v => v.id ? v.id.toUpperCase() : v.toUpperCase())
+        listedVariables.map(v => v.id.toUpperCase())
       );
       
       // Get variables from model features (used by graph dropdown)

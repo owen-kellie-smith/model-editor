@@ -305,18 +305,22 @@ export function listVariables(modelObj) {
     
     // Add variables from ModelPointFields
     for (const v of asArray(modelObj.model.ModelPointFields?.VariableDefinition)) {
-      variablesArray.push({
-        id: v.Name.toUpperCase(),
-        definition: { type: "expression", "#text": v.Formula || "" }
-      });
+      if (v.Name) {
+        variablesArray.push({
+          id: v.Name.toUpperCase(),
+          definition: { type: "expression", "#text": v.Formula || "" }
+        });
+      }
     }
     
     // Add variables from Formulas
     for (const v of asArray(modelObj.model.Formulas?.VariableDefinition)) {
-      variablesArray.push({
-        id: v.Name.toUpperCase(),
-        definition: { type: "expression", "#text": v.Formula || "" }
-      });
+      if (v.Name) {
+        variablesArray.push({
+          id: v.Name.toUpperCase(),
+          definition: { type: "expression", "#text": v.Formula || "" }
+        });
+      }
     }
     
     return variablesArray;
