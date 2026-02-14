@@ -41,5 +41,17 @@ export const ui = {
   cancelEditBtn: document.getElementById("cancelEditBtn"),
   sortVariablesAlpha: document.getElementById("sortVariablesAlpha"),
   sortGraphVariablesAlpha: document.getElementById("sortGraphVariablesAlpha"),
+  loadSemanticConfigFile: document.getElementById("loadSemanticConfigFile"),
+  loadDefaultSemanticConfig: document.getElementById("loadDefaultSemanticConfig"),
+  semanticConfigStatus: document.getElementById("semanticConfigStatus"),
+  generateClusterGraph: document.getElementById("generateClusterGraph"),
+  clusterStatus: document.getElementById("clusterStatus"),
+  clusterStats: document.getElementById("clusterStats"),
+  clusterModules: document.getElementById("clusterModules"),
+  clusterGraphDot: document.getElementById("clusterGraphDot"),
+  clusterGraphSvg: document.getElementById("clusterGraphSvg"),
+  exportClusterDot: document.getElementById("exportClusterDot"),
+  exportClusterJson: document.getElementById("exportClusterJson"),
+  exportClusterSvg: document.getElementById("exportClusterSvg"),
 };
 

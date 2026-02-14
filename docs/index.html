@@ -6,6 +6,7 @@
   <title>Model editor 1.5.7 </title>
 
   <link rel="stylesheet" href="./styles/main.css">
+  <link rel="stylesheet" href="./styles/cluster-graph.css">
   <script src="https://cdn.jsdelivr.net/npm/viz.js@2.1.2/viz.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/viz.js@2.1.2/full.render.js"></script>
 </head>
@@ -150,6 +151,50 @@
         <div class="graph-output">
           <h4>DOT Source</h4>
           <pre id="graphDot" class="graph-dot"></pre>
+        </div>
+      </details>
+    </div>
+    <div class="editor">
+      <details>
+        <summary>Cluster Graph</summary>
+        <div class="cluster-controls">
+          <h4>Step 1: Load Model</h4>
+          <p>Load a model using the Model section above.</p>
+          
+          <h4>Step 2: Load Semantic Configuration</h4>
+          <label>
+            Upload custom configuration:
+            <input type="file" id="loadSemanticConfigFile" accept=".xml">
+          </label>
+          <div class="cluster-buttons">
+            <button id="loadDefaultSemanticConfig">Load Default (Annuity/Finance)</button>
+          </div>
+          <div id="semanticConfigStatus" class="cluster-status" style="display: none;"></div>
+          
+          <h4>Step 3: Generate Cluster Graph</h4>
+          <button id="generateClusterGraph" disabled>Generate Cluster Graph</button>
+          <div id="clusterStatus" class="cluster-status" style="display: none;"></div>
+        </div>
+        
+        <div class="cluster-output">
+          <h4>Statistics</h4>
+          <div id="clusterStats" class="cluster-stats"></div>
+          
+          <h4>Modules</h4>
+          <div id="clusterModules" class="cluster-modules"></div>
+          
+          <h4>Graph Visualization</h4>
+          <div id="clusterGraphSvg" class="cluster-graph-svg"></div>
+          
+          <h4>DOT Source</h4>
+          <pre id="clusterGraphDot" class="cluster-graph-dot"></pre>
+          
+          <h4>Export</h4>
+          <div class="cluster-export-buttons">
+            <button id="exportClusterDot" disabled>Export DOT</button>
+            <button id="exportClusterJson" disabled>Export JSON</button>
+            <button id="exportClusterSvg" disabled>Export SVG</button>
+          </div>
         </div>
       </details>
     </div>
