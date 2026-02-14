@@ -10,6 +10,8 @@
  * 
  * An index-only dependency occurs when both variables have the same number of arguments.
  * These dependencies represent structural/temporal relationships rather than semantic domain relationships.
+ * However, if both variables share a strong semantic keyword (like "survival", "mortality"),
+ * the dependency is considered semantic, not index-only.
  * 
  * @param {string} sourceVarName - Source variable name
  * @param {string} targetVarName - Target variable name
@@ -28,9 +30,30 @@ function isIndexOnlyDependency(sourceVarName, targetVarName, resolvedVarsWithArg
   const sourceArgCount = sourceVar.domain?.length || 0
   const targetArgCount = targetVar.domain?.length || 0
   
-  // Index-only if both have the same number of arguments (and both have at least one argument)
-  // If target has 0 args but source has args, it's a structural/parametric dependency
-  return sourceArgCount === targetArgCount && targetArgCount > 0
+  // If they don't have the same number of arguments, not index-only
+  if (sourceArgCount !== targetArgCount || targetArgCount === 0) {
+    return false
+  }
+  
+  // Check if both variables share a strong semantic keyword
+  // These keywords indicate a semantic relationship beyond just structural similarity
+  const strongSemanticKeywords = [
+    'survival', 'mortality', 'death', 'cashflow', 'annuity', 
+    'payment', 'discount', 'value', 'cost', 'premium'
+  ]
+  
+  const sourceLower = sourceVarName.toLowerCase()
+  const targetLower = targetVarName.toLowerCase()
+  
+  for (const keyword of strongSemanticKeywords) {
+    if (sourceLower.includes(keyword) && targetLower.includes(keyword)) {
+      // Both variables share a strong semantic keyword, so this is a semantic dependency
+      return false
+    }
+  }
+  
+  // Index-only if both have the same number of arguments and no shared semantic keywords
+  return true
 }
 
 /**
@@ -192,29 +215,60 @@ function assignVariablesToClusters(variables, semanticScores, modelFeatures, par
       continue
     }
     
-    // Find the best matching domain
-    let bestDomain = 'Other'
+    // Find the best matching domain(s) - there might be ties
     let bestScore = 0
+    const bestDomains = []
     
     for (const [domain, score] of scores.entries()) {
       if (score > bestScore) {
         bestScore = score
-        bestDomain = domain
+        bestDomains.length = 0
+        bestDomains.push(domain)
+      } else if (score === bestScore) {
+        bestDomains.push(domain)
       }
     }
+    
+    const bestDomain = bestDomains[0] || 'Other'
     
     // Check if we should use dependency-based clustering
     // (assign to same cluster as dependencies if strong semantic match)
     if (bestScore >= parameters.semanticThreshold) {
-      const dependencyCluster = findDependencyCluster(
-        varName,
-        modelFeatures,
-        assignments,
-        bestDomain
-      )
+      // If there are multiple domains with the same score, try each one
+      // and pick the one with the most dependency connections
+      let selectedCluster = null
+      let maxDependencyCount = 0
       
-      if (dependencyCluster) {
-        assignments.set(varName, dependencyCluster)
+      for (const candidateDomain of bestDomains) {
+        const depCluster = findDependencyCluster(
+          varName,
+          modelFeatures,
+          assignments,
+          candidateDomain
+        )
+        
+        if (depCluster) {
+          // Count how many dependencies are in this cluster
+          const incoming = modelFeatures.incoming.get(varName) || []
+          const semanticIncoming = filterIndexOnlyDependencies(
+            incoming,
+            varName,
+            modelFeatures.resolvedVarsWithArguments
+          )
+          
+          const depCount = semanticIncoming.filter(dep => 
+            assignments.get(dep.name) === depCluster
+          ).length
+          
+          if (depCount > maxDependencyCount) {
+            maxDependencyCount = depCount
+            selectedCluster = depCluster
+          }
+        }
+      }
+      
+      if (selectedCluster) {
+        assignments.set(varName, selectedCluster)
       } else {
         assignments.set(varName, bestDomain)
       }

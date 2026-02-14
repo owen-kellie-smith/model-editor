@@ -215,6 +215,43 @@ describe("Cluster Graph", () => {
     })
   })
   
+  describe("Variable Clustering on vendor-format-model.xml", () => {
+    let modelFeatures
+    let clusteringResult
+    
+    beforeAll(() => {
+      // Load vendor-format-model.xml
+      const modelPath = path.join(__dirname, "..", "docs", "examples", "annuity-model", "vendor-format-model.xml")
+      const modelText = fs.readFileSync(modelPath, "utf-8")
+      const result = validateModelCore(modelText, "vendor-format-model.xml", lang)
+      modelFeatures = result.features
+      
+      // Perform clustering
+      clusteringResult = clusterVariables(modelFeatures, semanticConfig)
+    })
+    
+    it("should cluster SURVIVAL_TO_START_OF_STEP and MONTHLY_SURVIVAL_RATE in the same module as ANNUAL_MORTALITY_RATE", () => {
+      // Find which module contains ANNUAL_MORTALITY_RATE
+      let annualMortalityModule = null
+      for (const module of clusteringResult.modules) {
+        if (module.variables.includes("ANNUAL_MORTALITY_RATE")) {
+          annualMortalityModule = module
+          break
+        }
+      }
+      
+      // Verify ANNUAL_MORTALITY_RATE is in a module
+      expect(annualMortalityModule).toBeDefined()
+      expect(annualMortalityModule).not.toBeNull()
+      
+      // Verify SURVIVAL_TO_START_OF_STEP is in the same module
+      expect(annualMortalityModule.variables).toContain("SURVIVAL_TO_START_OF_STEP")
+      
+      // Verify MONTHLY_SURVIVAL_RATE is in the same module
+      expect(annualMortalityModule.variables).toContain("MONTHLY_SURVIVAL_RATE")
+    })
+  })
+  
   describe("Model-Agnostic Clustering", () => {
     it("should produce deterministic results", () => {
       // Load a model
