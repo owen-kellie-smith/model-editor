@@ -1,5 +1,5 @@
 import { validateModelCore } from "./model.js";
-import { throwModelError } from "../utils/helpers.js";
+import { throwModelError, asArray } from "../utils/helpers.js";
 import { serializeModel } from "./serialize.js";
 
 /**
@@ -278,23 +278,51 @@ export function validateVariableId(id) {
  * @returns {Array} Array of variable objects
  */
 export function listVariables(modelObj) {
-  if (!modelObj || !modelObj.model || !modelObj.model.variables) {
+  if (!modelObj || !modelObj.model) {
     return [];
   }
 
-  const variables = modelObj.model.variables.variable;
-  
-  if (!variables) {
-    return [];
+  // Try standard format first
+  if (modelObj.model.variables) {
+    const variables = modelObj.model.variables.variable;
+    
+    if (variables) {
+      // Handle both single variable (object) and multiple variables (array)
+      if (Array.isArray(variables)) {
+        return variables;
+      }
+      
+      // Single variable case
+      return [variables];
+    }
   }
 
-  // Handle both single variable (object) and multiple variables (array)
-  if (Array.isArray(variables)) {
-    return variables;
+  // ------------------------------------------------------
+  // FALLBACK: ModelMaker style
+  // ------------------------------------------------------
+  if (modelObj.model.ModelPointFields || modelObj.model.Formulas) {
+    const variablesArray = [];
+    
+    // Add variables from ModelPointFields
+    for (const v of asArray(modelObj.model.ModelPointFields?.VariableDefinition)) {
+      variablesArray.push({
+        id: v.Name.toUpperCase(),
+        definition: { type: "expression", "#text": v.Formula || "" }
+      });
+    }
+    
+    // Add variables from Formulas
+    for (const v of asArray(modelObj.model.Formulas?.VariableDefinition)) {
+      variablesArray.push({
+        id: v.Name.toUpperCase(),
+        definition: { type: "expression", "#text": v.Formula || "" }
+      });
+    }
+    
+    return variablesArray;
   }
-  
-  // Single variable case
-  return [variables];
+
+  return [];
 }
 
 /**
