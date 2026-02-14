@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="index-only-dependencies-test">
+
+  <!-- ================= -->
+  <!-- Index sets        -->
+  <!-- ================= -->
+
+  <indexSets>
+    <indexSet id="cohort">
+      <description>Cohort identifier</description>
+      <dataType>string</dataType>
+    </indexSet>
+
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+
+  <!-- ================= -->
+  <!-- Variables         -->
+  <!-- ================= -->
+
+  <variables>
+
+    <!-- Non-indexed constant - structural/parametric -->
+    <variable id="STEP_LENGTH">
+      <dataType>real</dataType>
+      <definition type="constant">
+        0.0833
+      </definition>
+    </variable>
+
+    <!-- Indexed by cohort only -->
+    <variable id="BASE_RATE">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        0.05
+      </definition>
+    </variable>
+
+    <!-- Indexed by cohort and step - semantic dependency on BASE_RATE (same domain) -->
+    <!-- Also has index-only dependency on STEP_LENGTH (different domain) -->
+    <variable id="ANNUAL_MORTALITY_RATE">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        BASE_RATE(cohort) * (1 + 0.01 * step)
+      </definition>
+    </variable>
+
+    <!-- Indexed by cohort and step - semantic dependency on ANNUAL_MORTALITY_RATE (same domain) -->
+    <!-- Also has index-only dependency on STEP_LENGTH (different domain) -->
+    <variable id="MONTHLY_SURVIVAL_RATE">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        (1 - ANNUAL_MORTALITY_RATE(cohort, step)) ^ STEP_LENGTH
+      </definition>
+    </variable>
+
+    <!-- Indexed by cohort and step - semantic dependency on MONTHLY_SURVIVAL_RATE (same domain) -->
+    <variable id="SURVIVAL_TO_START_OF_STEP">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        step == 0 ? 1 : SURVIVAL_TO_START_OF_STEP(cohort, step - 1) * MONTHLY_SURVIVAL_RATE(cohort, step - 1)
+      </definition>
+    </variable>
+
+    <!-- Indexed by step only - different from cohort+step variables -->
+    <!-- Has index-only dependency on STEP_LENGTH (different domain) -->
+    <variable id="TIME_VALUE">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        step * STEP_LENGTH
+      </definition>
+    </variable>
+
+    <!-- Non-indexed constant -->
+    <variable id="CONSTANT_A">
+      <dataType>real</dataType>
+      <definition type="constant">
+        1.0
+      </definition>
+    </variable>
+
+    <!-- Non-indexed, depends on another non-indexed - semantic dependency (both domain=[]) -->
+    <variable id="CONSTANT_B">
+      <dataType>real</dataType>
+      <definition type="expression">
+        CONSTANT_A * 2
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>

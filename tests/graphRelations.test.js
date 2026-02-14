@@ -169,4 +169,110 @@ describe("Graph Relations", () => {
       });
     });
   });
+
+  describe("Index-only dependency filtering", () => {
+    let indexModelFeatures;
+
+    beforeAll(() => {
+      // Load model with indexed and non-indexed variables
+      const modelText = fs.readFileSync(getFixture("modelIndexOnlyDependencies.xml"), "utf-8");
+      const result = validateModelCore(modelText, "modelIndexOnlyDependencies.xml", lang);
+      indexModelFeatures = result.features;
+    });
+
+    describe("getRelations with indexed variables", () => {
+      it("returns all connected variables regardless of index structure", () => {
+        // MONTHLY_SURVIVAL_RATE depends on both ANNUAL_MORTALITY_RATE (semantic) and STEP_LENGTH (index-only)
+        // getRelations should return all dependencies for completeness
+        const relations = getRelations(indexModelFeatures, "MONTHLY_SURVIVAL_RATE", 1);
+        
+        expect(relations).toBeDefined();
+        expect(relations.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        expect(relations.has("ANNUAL_MORTALITY_RATE")).toBe(true); // semantic dependency (same domain)
+        expect(relations.has("STEP_LENGTH")).toBe(true); // index-only dependency (different domain)
+        expect(relations.has("SURVIVAL_TO_START_OF_STEP")).toBe(true); // outgoing
+      });
+    });
+
+    describe("getGraphOfRelations with indexed variables", () => {
+      it("filters out index-only dependencies but keeps semantic dependencies", () => {
+        // MONTHLY_SURVIVAL_RATE(cohort, step) depends on:
+        // - ANNUAL_MORTALITY_RATE(cohort, step) - KEEP (same domain: both have [cohort, step])
+        // - STEP_LENGTH (no indices) - FILTER (different domain: [cohort, step] vs [])
+        const graph = getGraphOfRelations(indexModelFeatures, "MONTHLY_SURVIVAL_RATE", 1);
+        
+        expect(graph).toBeDefined();
+        expect(graph.variables.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        expect(graph.variables.has("ANNUAL_MORTALITY_RATE")).toBe(true);
+        expect(graph.variables.has("STEP_LENGTH")).toBe(true); // included in variables
+        
+        // Check edges from ANNUAL_MORTALITY_RATE
+        const annualMortalityEdges = graph.edges.get("ANNUAL_MORTALITY_RATE");
+        expect(annualMortalityEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(true); // semantic dependency
+        
+        // Check edges from STEP_LENGTH - should NOT flow to MONTHLY_SURVIVAL_RATE
+        const stepLengthEdges = graph.edges.get("STEP_LENGTH");
+        expect(stepLengthEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(false); // index-only, filtered out
+      });
+
+      it("keeps semantic dependencies between variables with same domain", () => {
+        // Test the mortality chain: ANNUAL_MORTALITY_RATE -> MONTHLY_SURVIVAL_RATE -> SURVIVAL_TO_START_OF_STEP
+        // All have domain [cohort, step], so all edges should be kept
+        const graph = getGraphOfRelations(indexModelFeatures, "MONTHLY_SURVIVAL_RATE", 2);
+        
+        expect(graph.variables.has("ANNUAL_MORTALITY_RATE")).toBe(true);
+        expect(graph.variables.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        expect(graph.variables.has("SURVIVAL_TO_START_OF_STEP")).toBe(true);
+        
+        // All three should have edges between them (semantic dependencies)
+        expect(graph.edges.get("ANNUAL_MORTALITY_RATE").has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        expect(graph.edges.get("MONTHLY_SURVIVAL_RATE").has("SURVIVAL_TO_START_OF_STEP")).toBe(true);
+      });
+
+      it("keeps semantic dependencies between non-indexed variables", () => {
+        // CONSTANT_B depends on CONSTANT_A (both have domain [])
+        // Both have same domain length (0), so it's a semantic dependency
+        const graph = getGraphOfRelations(indexModelFeatures, "CONSTANT_B", 1);
+        
+        expect(graph.variables.has("CONSTANT_B")).toBe(true);
+        expect(graph.variables.has("CONSTANT_A")).toBe(true);
+        
+        // Should have edge from CONSTANT_A to CONSTANT_B (semantic dependency)
+        expect(graph.edges.get("CONSTANT_A").has("CONSTANT_B")).toBe(true);
+      });
+
+      it("filters out edges between variables with different domain dimensions", () => {
+        // TIME_VALUE(step) depends on STEP_LENGTH (no indices)
+        // Different domain lengths: [step] vs [] -> index-only dependency
+        const graph = getGraphOfRelations(indexModelFeatures, "TIME_VALUE", 1);
+        
+        expect(graph.variables.has("TIME_VALUE")).toBe(true);
+        expect(graph.variables.has("STEP_LENGTH")).toBe(true);
+        
+        // Should NOT have edge from STEP_LENGTH to TIME_VALUE (index-only)
+        expect(graph.edges.get("STEP_LENGTH").has("TIME_VALUE")).toBe(false);
+      });
+
+      it("separates mortality variables from time constants in clustering", () => {
+        // Start from MONTHLY_SURVIVAL_RATE with high depth
+        // Should group with ANNUAL_MORTALITY_RATE and SURVIVAL_TO_START_OF_STEP (semantic)
+        // Should NOT be strongly connected to STEP_LENGTH (index-only)
+        const graph = getGraphOfRelations(indexModelFeatures, "MONTHLY_SURVIVAL_RATE", 5);
+        
+        // Mortality-related variables should be included
+        expect(graph.variables.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
+        expect(graph.variables.has("ANNUAL_MORTALITY_RATE")).toBe(true);
+        expect(graph.variables.has("SURVIVAL_TO_START_OF_STEP")).toBe(true);
+        
+        // STEP_LENGTH might be included via other paths, but edges should be filtered
+        if (graph.variables.has("STEP_LENGTH")) {
+          const stepLengthEdges = graph.edges.get("STEP_LENGTH");
+          // STEP_LENGTH should not have edges to any mortality variables
+          expect(stepLengthEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(false);
+          expect(stepLengthEdges.has("ANNUAL_MORTALITY_RATE")).toBe(false);
+          expect(stepLengthEdges.has("SURVIVAL_TO_START_OF_STEP")).toBe(false);
+        }
+      });
+    });
+  });
 });
