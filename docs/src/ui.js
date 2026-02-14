@@ -33,6 +33,7 @@ export const ui = {
   variableFormSection: document.getElementById("variableFormSection"),
   variableFormTitle: document.getElementById("variableFormTitle"),
   editVarId: document.getElementById("editVarId"),
+  definitionTypeSelect: document.getElementById("definitionTypeSelect"),
   editVarDefinition: document.getElementById("editVarDefinition"),
   editVarDataType: document.getElementById("editVarDataType"),
   editVarUnit: document.getElementById("editVarUnit"),
