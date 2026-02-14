@@ -74,17 +74,24 @@ export function getRelations(modelFeatures, rootVariable, depth) {
 /**
  * Helper function to determine if a dependency is index-only (structural) rather than semantic.
  * 
- * Index-only dependencies occur when variables have different domain structures, meaning
+ * Index-only dependencies occur when variables have different domain lengths, meaning
  * one variable depends on another purely for parametric/structural reasons (e.g., a time
  * constant) rather than semantic domain relationships.
  * 
+ * **Note:** This implementation compares domain **lengths** only, not the actual domain
+ * contents. Variables with the same number of indices but different index sets (e.g.,
+ * [cohort] vs [step]) will be considered semantic dependencies. This is intentional
+ * for the current use case where domain length indicates structural similarity.
+ * 
  * Examples:
  * - MONTHLY_SURVIVAL_RATE(cohort, step) depends on ANNUAL_MORTALITY_RATE(cohort, step):
- *   Both have domain [cohort, step] → same length → SEMANTIC dependency
+ *   Both have domain [cohort, step] → same length (2) → SEMANTIC dependency
  * - MONTHLY_SURVIVAL_RATE(cohort, step) depends on STEP_LENGTH (no indices):
- *   Domains [cohort, step] vs [] → different lengths → INDEX-ONLY dependency
+ *   Domains [cohort, step] vs [] → different lengths (2 vs 0) → INDEX-ONLY dependency
  * - CONSTANT_A depends on CONSTANT_B (both no indices):
- *   Both have domain [] → same length → SEMANTIC dependency
+ *   Both have domain [] → same length (0) → SEMANTIC dependency
+ * - Variable(cohort) depends on Variable(step):
+ *   Both have domain length 1 → SEMANTIC dependency (even though domains differ)
  * 
  * @param {string} sourceVarName - The source variable name
  * @param {string} targetVarName - The target variable name (dependency)
@@ -96,14 +103,16 @@ function isIndexOnlyDependency(sourceVarName, targetVarName, resolvedVarsWithArg
   const targetVar = resolvedVarsWithArguments.get(targetVarName);
   
   if (!sourceVar || !targetVar) {
-    return false; // If either variable not found, keep the edge (shouldn't happen)
+    // If either variable not found, keep the edge (shouldn't happen in valid models)
+    return false;
   }
   
-  const sourceDomainLength = sourceVar.domain?.length || 0;
-  const targetDomainLength = targetVar.domain?.length || 0;
+  // Check if domain exists and is an array, otherwise treat as empty domain
+  const sourceDomain = Array.isArray(sourceVar.domain) ? sourceVar.domain : [];
+  const targetDomain = Array.isArray(targetVar.domain) ? targetVar.domain : [];
   
   // Index-only if domains have different lengths
-  return sourceDomainLength !== targetDomainLength;
+  return sourceDomain.length !== targetDomain.length;
 }
 
 /**
