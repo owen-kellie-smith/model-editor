@@ -402,16 +402,21 @@ function generateModuleName(variables) {
   const words = new Map() // word -> count
   
   for (const varName of variables) {
+    // Remove numeric prefixes like v001_, v002_, var123_, etc.
+    let cleanName = varName.replace(/^v?\d+_/i, '')
+    
     // Split by underscore or camelCase
-    const parts = varName
+    const parts = cleanName
       .replace(/([A-Z])/g, '_$1')
       .split('_')
       .filter(p => p.length > 0)
       .map(p => p.toLowerCase())
     
     for (const part of parts) {
-      // Skip very common/generic words and very short words
-      if (part.length <= 2 || ['and', 'or', 'the', 'of', 'in', 'at', 'to', 'for'].includes(part)) {
+      // Skip very common/generic words, very short words, and pure numbers
+      if (part.length <= 2 || 
+          /^\d+$/.test(part) || 
+          ['and', 'or', 'the', 'of', 'in', 'at', 'to', 'for', 'var', 'val'].includes(part)) {
         continue
       }
       words.set(part, (words.get(part) || 0) + 1)
@@ -513,9 +518,9 @@ export function clusterVariables(modelFeatures, semanticConfig, options = {}) {
   if (shouldUseHierarchical) {
     // Determine target number of clusters per component based on granularity
     const granularityMap = {
-      'low': 0.15,    // ~15% of variables become separate modules
-      'medium': 0.25, // ~25% of variables become separate modules
-      'high': 0.40    // ~40% of variables become separate modules
+      'low': 0.10,    // ~10% of variables become separate modules (fewer, larger modules)
+      'medium': 0.20, // ~20% of variables become separate modules
+      'high': 0.35    // ~35% of variables become separate modules (more, smaller modules)
     }
     
     const ratio = granularityMap[granularity] || granularityMap['medium']
