@@ -5,6 +5,7 @@ import { getFunctionsFromLanguage } from '@/domain/language.js'
 import { loadXml, loadXmlFromText } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 import fs from 'fs'
+import path from 'path'
 
 describe('Spreadsheet Renderer', () => {
   let lang
@@ -168,7 +169,8 @@ describe('Spreadsheet Renderer', () => {
     })
 
     it('should work with a model from fixtures', () => {
-      const modelXml = fs.readFileSync('/home/runner/work/model-editor/model-editor/docs/examples/short/shortModel.xml', 'utf-8')
+      const modelPath = path.join(process.cwd(), 'docs', 'examples', 'short', 'shortModel.xml')
+      const modelXml = fs.readFileSync(modelPath, 'utf-8')
       
       const model = validateModelCore(modelXml, 'shortModel.xml', lang)
       

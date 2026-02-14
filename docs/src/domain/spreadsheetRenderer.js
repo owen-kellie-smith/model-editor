@@ -107,12 +107,6 @@ export function renderModelAsSpreadsheet(modelObj, modelFeatures) {
 
   const { variables, incoming, resolvedVarsWithArguments } = modelFeatures
   
-  // Debug: log incoming to see structure
-  // console.log("Incoming map:", incoming)
-  // for (const [key, val] of incoming.entries()) {
-  //   console.log(`  ${key}:`, val)
-  // }
-  
   // Get variable details from model
   const variableMap = new Map()
   if (modelObj.model.variables && modelObj.model.variables.variable) {
