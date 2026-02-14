@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Model editor 1.5.7 </title>
+  <title>Model editor 1.5.8 </title>
 
   <link rel="stylesheet" href="./styles/main.css">
   <script src="https://cdn.jsdelivr.net/npm/viz.js@2.1.2/viz.js"></script>
@@ -150,6 +150,43 @@
         <div class="graph-output">
           <h4>DOT Source</h4>
           <pre id="graphDot" class="graph-dot"></pre>
+        </div>
+      </details>
+    </div>
+    <div class="editor">
+      <details open>
+        <summary>Cluster Graph</summary>
+        <div class="graph-controls">
+          <label for="clusterGraphVariable">Variable:</label>
+          <select id="clusterGraphVariable" disabled>
+            <option value="">Select a variable...</option>
+          </select>
+          <label>
+            <input type="checkbox" id="clusterGraphSortAlphabetically">
+            Sort Alphabetically
+          </label>
+          
+          <label for="clusterGraphDepth">Depth:</label>
+          <select id="clusterGraphDepth" disabled>
+          </select>
+          
+          <label>
+            <input type="checkbox" id="clusterGraphFitToScreen" checked>
+            Fit to screen
+          </label>
+          
+          <a href="#" id="downloadClusterSvg" class="download-link" style="display: none;">Download SVG</a>
+          <a href="#" id="downloadClusterPng" class="download-link" style="display: none;">Download PNG</a>
+        </div>
+        
+        <div class="graph-output">
+          <h4>Cluster Graph Visualization</h4>
+          <div id="clusterGraphSvg" class="graph-svg"></div>
+        </div>
+        
+        <div class="graph-output">
+          <h4>DOT Source</h4>
+          <pre id="clusterGraphDot" class="graph-dot"></pre>
         </div>
       </details>
     </div>
