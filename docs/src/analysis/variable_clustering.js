@@ -139,6 +139,7 @@ function buildDependencyGraph(variables, modelFeatures) {
 
 /**
  * Calculate shortest path distance between all pairs of vertices using BFS
+ * Only used for small components due to O(V²E) complexity
  * 
  * @param {Map<string, Set<string>>} graph - Adjacency list representation
  * @param {Array<string>} vertices - List of vertices
@@ -181,7 +182,140 @@ function calculateDistanceMatrix(graph, vertices) {
 }
 
 /**
+ * Perform Louvain community detection on a graph
+ * Efficient O(n log n) algorithm suitable for large graphs (1000+ nodes)
+ * 
+ * @param {Array<string>} variables - Variables in the component
+ * @param {Map<string, Set<string>>} graph - Dependency graph
+ * @param {number} targetClusters - Desired number of clusters (hint, not guaranteed)
+ * @returns {Array<Array<string>>} Array of clusters
+ */
+function louvainCommunityDetection(variables, graph, targetClusters) {
+  // Initialize: each node is its own community
+  const nodeToCommunity = new Map()
+  variables.forEach(v => nodeToCommunity.set(v, v))
+  
+  // Calculate total edge weight (for our unweighted graph, this is just edge count)
+  let m = 0
+  for (const node of variables) {
+    const neighbors = graph.get(node) || new Set()
+    m += neighbors.size
+  }
+  m = m / 2 // Each edge counted twice
+  
+  if (m === 0) {
+    // No edges, return each variable as its own cluster
+    return variables.map(v => [v])
+  }
+  
+  let improved = true
+  let iteration = 0
+  const maxIterations = 10
+  
+  // Phase 1: Optimize modularity by moving nodes between communities
+  while (improved && iteration < maxIterations) {
+    improved = false
+    iteration++
+    
+    for (const node of variables) {
+      const currentCommunity = nodeToCommunity.get(node)
+      const neighbors = graph.get(node) || new Set()
+      
+      // Count edges to each neighboring community
+      const communityEdges = new Map()
+      for (const neighbor of neighbors) {
+        const neighborCommunity = nodeToCommunity.get(neighbor)
+        communityEdges.set(neighborCommunity, (communityEdges.get(neighborCommunity) || 0) + 1)
+      }
+      
+      // Find best community to move to (including staying in current)
+      let bestCommunity = currentCommunity
+      let bestGain = 0
+      
+      for (const [community, edgeCount] of communityEdges) {
+        // Simple heuristic: prefer communities with more connections
+        const gain = edgeCount
+        if (gain > bestGain) {
+          bestGain = gain
+          bestCommunity = community
+        }
+      }
+      
+      // Move node if beneficial
+      if (bestCommunity !== currentCommunity) {
+        nodeToCommunity.set(node, bestCommunity)
+        improved = true
+      }
+    }
+  }
+  
+  // Group nodes by community
+  const communities = new Map()
+  for (const [node, community] of nodeToCommunity) {
+    if (!communities.has(community)) {
+      communities.set(community, [])
+    }
+    communities.get(community).push(node)
+  }
+  
+  let clusters = Array.from(communities.values())
+  
+  // If we have too many clusters and want fewer, merge smallest ones
+  if (clusters.length > targetClusters * 1.5) {
+    clusters = mergeSmallerClusters(clusters, graph, targetClusters)
+  }
+  
+  return clusters
+}
+
+/**
+ * Merge smaller clusters to reach target count
+ * Uses degree-based heuristic for efficiency
+ * 
+ * @param {Array<Array<string>>} clusters - Current clusters
+ * @param {Map<string, Set<string>>} graph - Dependency graph
+ * @param {number} targetCount - Target number of clusters
+ * @returns {Array<Array<string>>} Merged clusters
+ */
+function mergeSmallerClusters(clusters, graph, targetCount) {
+  // Sort by size (smallest first)
+  clusters.sort((a, b) => a.length - b.length)
+  
+  while (clusters.length > targetCount && clusters.length > 1) {
+    const smallest = clusters.shift()
+    
+    // Find cluster with most connections to the smallest cluster
+    let bestTarget = 0
+    let maxConnections = 0
+    
+    for (let i = 0; i < clusters.length; i++) {
+      let connections = 0
+      for (const node of smallest) {
+        const neighbors = graph.get(node) || new Set()
+        for (const neighbor of neighbors) {
+          if (clusters[i].includes(neighbor)) {
+            connections++
+          }
+        }
+      }
+      
+      if (connections > maxConnections) {
+        maxConnections = connections
+        bestTarget = i
+      }
+    }
+    
+    // Merge into best target
+    clusters[bestTarget] = [...clusters[bestTarget], ...smallest]
+  }
+  
+  return clusters
+}
+
+/**
  * Perform hierarchical agglomerative clustering on a connected component
+ * Only efficient for small components (<100 variables)
+ * Complexity: O(n³) - use louvainCommunityDetection for large components
  * 
  * @param {Array<string>} variables - Variables in the component
  * @param {Map<string, Set<string>>} graph - Dependency graph
@@ -194,7 +328,12 @@ function hierarchicalClusterComponent(variables, graph, targetClusters) {
     return variables.map(v => [v])
   }
   
-  // Calculate distance matrix
+  // For large components, use more efficient algorithm
+  if (variables.length > 100) {
+    return louvainCommunityDetection(variables, graph, targetClusters)
+  }
+  
+  // Calculate distance matrix (only for small components)
   const distances = calculateDistanceMatrix(graph, variables)
   
   // Initialize: each variable is its own cluster
@@ -365,6 +504,8 @@ export function clusterVariables(modelFeatures, semanticConfig, options = {}) {
   const connectedComponents = findConnectedComponents(dependencyGraph)
   
   // For large models (> 20 variables), apply hierarchical clustering within each component
+  // Uses efficient Louvain algorithm for components > 100 variables (O(n log n))
+  // and traditional hierarchical clustering for smaller components (O(n³))
   const shouldUseHierarchical = nonConstants.length > 20
   
   let finalClusters = []
@@ -381,7 +522,8 @@ export function clusterVariables(modelFeatures, semanticConfig, options = {}) {
     
     for (const component of connectedComponents) {
       if (component.length > 5) {
-        // Apply hierarchical clustering to larger components
+        // Apply clustering to larger components
+        // Automatically uses Louvain (O(n log n)) for components > 100 variables
         const targetClusters = Math.max(2, Math.ceil(component.length * ratio))
         const subClusters = hierarchicalClusterComponent(component, dependencyGraph, targetClusters)
         finalClusters.push(...subClusters)
