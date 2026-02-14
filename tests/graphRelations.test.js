@@ -318,15 +318,18 @@ describe("Graph Relations", () => {
         // Verify semantic edges exist between mortality variables (same domain)
         // monthly_survival_rate depends on annual_mortality_rate
         const annualMortalityEdges = graph.edges.get("ANNUAL_MORTALITY_RATE");
+        expect(annualMortalityEdges).toBeDefined();
         expect(annualMortalityEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(true);
         
         // survival_to_start_of_step depends on monthly_survival_rate
         const monthlySurvivalEdges = graph.edges.get("MONTHLY_SURVIVAL_RATE");
+        expect(monthlySurvivalEdges).toBeDefined();
         expect(monthlySurvivalEdges.has("SURVIVAL_TO_START_OF_STEP")).toBe(true);
         
         // Verify index-only edges are filtered out (different domain lengths)
         // step_length should NOT have edges to mortality variables
         const stepLengthEdges = graph.edges.get("STEP_LENGTH");
+        expect(stepLengthEdges).toBeDefined();
         expect(stepLengthEdges.has("MONTHLY_SURVIVAL_RATE")).toBe(false);
         expect(stepLengthEdges.has("SURVIVAL_TO_START_OF_STEP")).toBe(false);
         expect(stepLengthEdges.has("ANNUAL_MORTALITY_RATE")).toBe(false);
