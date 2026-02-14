@@ -27,6 +27,9 @@ export function wireClusterGraphHandlers() {
   // Generate cluster graph button
   ui.generateClusterGraph?.addEventListener('click', handleGenerateClusterGraph)
   
+  // Add event listener for fit-to-screen checkbox
+  ui.clusterGraphFitToScreen?.addEventListener('change', applyClusterFitToScreen)
+  
   // Export buttons
   ui.exportClusterDot?.addEventListener('click', () => exportClusterResult('dot'))
   ui.exportClusterJson?.addEventListener('click', () => exportClusterResult('json'))
@@ -183,6 +186,18 @@ function displayClusteringResults(result) {
 }
 
 /**
+ * Apply or remove fit-to-screen styling to the cluster graph SVG container
+ */
+function applyClusterFitToScreen() {
+  const fitToScreen = ui.clusterGraphFitToScreen?.checked
+  if (fitToScreen) {
+    ui.clusterGraphSvg?.classList.add('fit-to-screen')
+  } else {
+    ui.clusterGraphSvg?.classList.remove('fit-to-screen')
+  }
+}
+
+/**
  * Render cluster graph as SVG
  */
 async function renderClusterGraph(result) {
@@ -200,6 +215,8 @@ async function renderClusterGraph(result) {
     const viz = new Viz()
     const svg = await viz.renderString(dotSource)
     ui.clusterGraphSvg.innerHTML = svg
+    // Apply fit-to-screen setting after rendering
+    applyClusterFitToScreen()
   } catch (error) {
     console.error('Error rendering cluster graph:', error)
     ui.clusterGraphSvg.innerHTML = `<p>Error rendering graph: ${error.message}</p>`

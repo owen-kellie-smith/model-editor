@@ -50,6 +50,7 @@ export const ui = {
   clusterModules: document.getElementById("clusterModules"),
   clusterGraphDot: document.getElementById("clusterGraphDot"),
   clusterGraphSvg: document.getElementById("clusterGraphSvg"),
+  clusterGraphFitToScreen: document.getElementById("clusterGraphFitToScreen"),
   exportClusterDot: document.getElementById("exportClusterDot"),
   exportClusterJson: document.getElementById("exportClusterJson"),
   exportClusterSvg: document.getElementById("exportClusterSvg"),

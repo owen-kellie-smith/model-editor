@@ -127,6 +127,15 @@
   min-height: 200px;
 }
 
+.cluster-graph-svg.fit-to-screen {
+  overflow: hidden;
+}
+
+.cluster-graph-svg.fit-to-screen svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
 .cluster-export-buttons {
   display: flex;
   gap: 10px;
