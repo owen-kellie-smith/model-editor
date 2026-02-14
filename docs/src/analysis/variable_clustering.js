@@ -36,7 +36,7 @@ function isIndexOnlyDependency(sourceVarName, targetVarName, resolvedVarsWithArg
 /**
  * Filter dependencies to exclude index-only ones for clustering purposes
  * 
- * @param {Set|Array} dependencies - Set or array of dependency objects {name, shift}
+ * @param {Set<Object>|Array<Object>} dependencies - Set or array of dependency objects {name, shift}
  * @param {string} sourceVarName - Source variable name
  * @param {Map} resolvedVarsWithArguments - Map of variables with their arguments
  * @returns {Array} Filtered array of dependencies

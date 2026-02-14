@@ -301,17 +301,21 @@ describe("Cluster Graph", () => {
       
       // Variables with the same argument count should be able to appear in different modules
       // if they have different semantic meanings (this validates filtering is working)
+      let foundEvidence = false
       for (const [argCount, vars] of varsByArgCount.entries()) {
         if (vars.length > 1) {
           const uniqueModules = new Set(vars.map(v => v.module))
           // At least some variables with same arg count should be in different modules
           // (if semantic filtering is working)
           if (uniqueModules.size > 1) {
-            expect(uniqueModules.size).toBeGreaterThan(1)
-            break // Found evidence that filtering is working
+            foundEvidence = true
+            break
           }
         }
       }
+      
+      // Assert that we found evidence of semantic clustering
+      expect(foundEvidence).toBe(true)
     })
   })
 })
