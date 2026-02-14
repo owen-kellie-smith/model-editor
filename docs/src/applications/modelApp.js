@@ -91,12 +91,16 @@ function validateModelContent(text, lang) {
     return;
   }
   try {
-    const result = validateModelCore(text, "language in textarea", lang);
+    const result = validateModelCore(text, "model in textarea", lang);
     updateModelStatus("✓ Valid", "success");
     ui.loadModelText.disabled = false;
+    // Update the Report/Log with the current model information
+    setLogText(formatModelResult(result));
   } catch (er) {
     updateModelStatus(formatErrorNoStack(er), "error");  
     ui.loadModelText.disabled = true;
+    // Update the Report/Log with the error
+    setLogText(formatError(er));
   }
 }
 
