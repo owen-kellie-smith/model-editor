@@ -1,5 +1,20 @@
 import { parseXmlOrThrow } from "../utils/helpers.js";
 
+/**
+ * Escapes special XML characters in text content and attribute values
+ * @param {string} text - The text to escape
+ * @returns {string} The escaped text
+ */
+function escapeXml(text) {
+  if (text == null) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export function serializeModel(obj) {
   return `<?xml version="1.0"?>\n` +
     buildNode(obj.model, "model", 0);
@@ -18,12 +33,12 @@ export function buildNode(node, tagName, depth) {
 
   // primitive
   if (typeof node !== "object") {
-    return `${indent}<${tagName}>${node}</${tagName}>${nl}`;
+    return `${indent}<${tagName}>${escapeXml(node)}</${tagName}>${nl}`;
   }
 
   // only text
   if ("#text" in node && Object.keys(node).length === 1) {
-    return `${indent}<${tagName}>${node["#text"]}</${tagName}>${nl}`;
+    return `${indent}<${tagName}>${escapeXml(node["#text"])}</${tagName}>${nl}`;
   }
 
   let attrs = "";
@@ -39,7 +54,7 @@ export function buildNode(node, tagName, depth) {
     } else if (typeof value === "object") {
       children += buildNode(value, key, depth + 1);
     } else {
-      attrs += ` ${key}="${value}"`;
+      attrs += ` ${key}="${escapeXml(value)}"`;
     }
   }
 
@@ -50,7 +65,7 @@ export function buildNode(node, tagName, depth) {
   }
 
   return `${indent}<${tagName}${attrs}>${nl}` +
-         (text ? `${indent}  ${text}${nl}` : "") +
+         (text ? `${indent}  ${escapeXml(text)}${nl}` : "") +
          children +
          `${indent}</${tagName}>${nl}`;
 }

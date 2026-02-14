@@ -4,7 +4,7 @@ import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
-import { serializeModel } from "@/domain/serialize.js";
+import { serializeModel, serializeDefinition, parseDefinitionXml } from "@/domain/serialize.js";
 import {
   createVariable,
   readVariable,
@@ -692,6 +692,66 @@ describe("Variable CRUD Operations", () => {
       for (const varName of featuredVarNames) {
         expect(listedVarNames.has(varName)).toBe(true);
       }
+    });
+  });
+
+  describe("Save button - no-change save (Edit then Save without changing)", () => {
+    it("should successfully save variable without any changes", () => {
+      // This simulates: user clicks Edit, then immediately clicks Save
+      // without modifying anything in the form
+      
+      // Get the original variable
+      const originalVariable = readVariable(baseModel, "step_length");
+      expect(originalVariable).toBeDefined();
+      
+      // Update with the exact same data (no changes)
+      const unchangedData = {
+        definition: originalVariable.definition,
+        dataType: originalVariable.dataType
+      };
+      
+      // This should succeed without errors
+      const result = updateVariable(baseModel, "step_length", unchangedData, lang);
+      
+      expect(result).toBeDefined();
+      expect(result.features.variables).toContain("STEP_LENGTH");
+      
+      // Verify the variable still has the same data
+      const updatedVariable = readVariable(result.obj, "step_length");
+      expect(updatedVariable.definition).toEqual(originalVariable.definition);
+    });
+
+    it("should handle round-trip through serializeDefinition and parseDefinitionXml", () => {
+      // This simulates the actual flow in the UI:
+      // 1. Edit button: serializeDefinition is called to populate the textarea
+      // 2. Save button: parseDefinitionXml is called to parse the textarea content
+      // 3. updateVariable is called with the parsed definition
+      
+      const originalVariable = readVariable(baseModel, "step_length");
+      
+      // Simulate Edit: serialize the definition
+      const definitionXml = serializeDefinition(originalVariable.definition);
+      
+      // Simulate Save: parse the serialized XML back
+      const parsedDefinition = parseDefinitionXml(definitionXml);
+      
+      // Update with the round-tripped definition
+      const updatedData = {
+        definition: parsedDefinition,
+        dataType: originalVariable.dataType
+      };
+      
+      // This should succeed without errors
+      const result = updateVariable(baseModel, "step_length", updatedData, lang);
+      
+      expect(result).toBeDefined();
+      expect(result.features.variables).toContain("STEP_LENGTH");
+      
+      // Verify the model is still valid
+      const serialized = serializeModel(result.obj);
+      expect(() => {
+        validateModelCore(serialized, "test.xml", lang);
+      }).not.toThrow();
     });
   });
 });
