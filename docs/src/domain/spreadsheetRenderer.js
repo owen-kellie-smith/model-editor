@@ -91,6 +91,159 @@ function getDefinitionType(varXml) {
 }
 
 /**
+ * Converts a model expression to an Excel formula with cell references
+ * @param {string} expression - The model expression (e.g., "A + B")
+ * @param {Map} varToCell - Map of variable names to cell references (e.g., "A" → "B2")
+ * @returns {string} - Excel formula (e.g., "B2+C2")
+ */
+function convertToExcelFormula(expression, varToCell) {
+  if (!expression || !expression.trim()) return ""
+  
+  // Replace variable names with cell references
+  let formula = expression
+  
+  // Sort variables by length (longest first) to avoid partial matches
+  const varNames = Array.from(varToCell.keys()).sort((a, b) => b.length - a.length)
+  
+  for (const varName of varNames) {
+    const cellRef = varToCell.get(varName)
+    // Use word boundaries to match whole variable names only
+    const regex = new RegExp(`\\b${varName}\\b`, 'gi')
+    formula = formula.replace(regex, cellRef)
+  }
+  
+  return formula
+}
+
+/**
+ * Escapes special XML characters
+ * @param {string} text - Text to escape
+ * @returns {string} - Escaped text
+ */
+function escapeXml(text) {
+  if (text == null) return ""
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+}
+
+/**
+ * Renders a model as an Excel workbook (XML format) with working formulas
+ * @param {Object} modelObj - The model object (from getObjectFromXML)
+ * @param {Object} modelFeatures - The model features (from getModelFeatures)
+ * @returns {Promise<Blob>} - Excel XML file blob
+ */
+export async function renderModelAsExcel(modelObj, modelFeatures) {
+  if (!modelObj || !modelObj.model) {
+    throw new Error("Invalid model object")
+  }
+  
+  if (!modelFeatures || !modelFeatures.variables) {
+    throw new Error("Invalid model features")
+  }
+
+  const { variables, incoming, resolvedVarsWithArguments } = modelFeatures
+  
+  // Get variable details from model
+  const variableMap = new Map()
+  if (modelObj.model.variables && modelObj.model.variables.variable) {
+    const vars = Array.isArray(modelObj.model.variables.variable) 
+      ? modelObj.model.variables.variable 
+      : [modelObj.model.variables.variable]
+    
+    for (const v of vars) {
+      variableMap.set(v.id.toUpperCase(), v)
+    }
+  }
+  
+  // Sort variables in dependency order
+  const sortedVars = topologicalSort(incoming, variables)
+  
+  // Map variable names to cell references (column B is where values go)
+  const varToCell = new Map()
+  let rowIndex = 2 // Start from row 2 (row 1 is header)
+  
+  // First pass: assign row numbers to all variables
+  for (const varName of sortedVars) {
+    varToCell.set(varName, `B${rowIndex}`)
+    rowIndex++
+  }
+  
+  // Build Excel XML
+  let xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Model">
+  <Table>
+   <Row>
+    <Cell><Data ss:Type="String">Variable</Data></Cell>
+    <Cell><Data ss:Type="String">Value/Formula</Data></Cell>
+    <Cell><Data ss:Type="String">Type</Data></Cell>
+    <Cell><Data ss:Type="String">Unit</Data></Cell>
+    <Cell><Data ss:Type="String">Notes</Data></Cell>
+   </Row>
+`
+  
+  // Second pass: populate rows with data and formulas
+  rowIndex = 2
+  for (const varName of sortedVars) {
+    const varXml = variableMap.get(varName)
+    if (!varXml) continue
+    
+    const varId = varXml.id || varName
+    const defType = getDefinitionType(varXml)
+    const expression = getDefinitionText(varXml)
+    const unit = valueToString(varXml.unit)
+    
+    const deps = incoming.get(varName) || new Set()
+    const isInput = deps.size === 0
+    
+    xml += `   <Row>\n`
+    xml += `    <Cell><Data ss:Type="String">${escapeXml(varId)}</Data></Cell>\n`
+    
+    // Value or formula cell
+    if (defType === 'constant' || isInput) {
+      // For constants, just put the value
+      const numValue = parseFloat(expression)
+      if (!isNaN(numValue)) {
+        xml += `    <Cell><Data ss:Type="Number">${numValue}</Data></Cell>\n`
+      } else {
+        xml += `    <Cell><Data ss:Type="String">${escapeXml(expression)}</Data></Cell>\n`
+      }
+    } else if (defType === 'expression') {
+      // For expressions, convert to Excel formula
+      const excelFormula = convertToExcelFormula(expression, varToCell)
+      xml += `    <Cell ss:Formula="=${escapeXml(excelFormula)}"><Data ss:Type="Number">0</Data></Cell>\n`
+    } else {
+      // For other types, just put the expression as text
+      xml += `    <Cell><Data ss:Type="String">${escapeXml(expression || `[${defType}]`)}</Data></Cell>\n`
+    }
+    
+    xml += `    <Cell><Data ss:Type="String">${escapeXml(defType)}</Data></Cell>\n`
+    xml += `    <Cell><Data ss:Type="String">${escapeXml(unit)}</Data></Cell>\n`
+    xml += `    <Cell><Data ss:Type="String">${isInput ? 'INPUT' : ''}</Data></Cell>\n`
+    xml += `   </Row>\n`
+    
+    rowIndex++
+  }
+  
+  xml += `  </Table>
+ </Worksheet>
+</Workbook>`
+  
+  // Create blob
+  const blob = new Blob([xml], { 
+    type: "application/vnd.ms-excel"
+  })
+  
+  return blob
+}
+
+/**
  * Renders a model as a CSV spreadsheet
  * @param {Object} modelObj - The model object (from getObjectFromXML)
  * @param {Object} modelFeatures - The model features (from getModelFeatures)
