@@ -88,6 +88,17 @@
               <input type="text" id="editVarId">
             </div>
             <div class="form-group">
+              <label for="definitionTypeSelect">Definition Type:</label>
+              <select id="definitionTypeSelect">
+                <option value="">-- Select a type to see template --</option>
+                <option value="expression">expression (for formulas)</option>
+                <option value="constant">constant (for literal values)</option>
+                <option value="table">table (for table lookups)</option>
+                <option value="tableLookup">tableLookup (for lookups with selectors)</option>
+                <option value="piecewise">piecewise (for case/when/value)</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label for="editVarDefinition">Definition:</label>
               <textarea id="editVarDefinition"></textarea>
             </div>

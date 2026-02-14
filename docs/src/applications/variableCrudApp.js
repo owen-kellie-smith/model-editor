@@ -16,6 +16,40 @@ let currentSelectedVariableId = null;
 let isCreatingNew = false;
 
 /**
+ * Templates for different definition types
+ */
+const DEFINITION_TEMPLATES = {
+  expression: '<definition type="expression">your formula here</definition>',
+  constant: '<definition type="constant">value</definition>',
+  table: `<definition type="table">
+  <table ref="table_name"/>
+  <column ref="column_name"/>
+</definition>`,
+  tableLookup: `<definition type="tableLookup">
+  <table ref="table_name"/>
+  <row ref="row_variable"/>
+  <columnSelector ref="selector_variable"/>
+</definition>`,
+  piecewise: `<definition type="piecewise">
+  <case>
+    <when>condition</when>
+    <value>result</value>
+  </case>
+</definition>`
+};
+
+/**
+ * Populates the definition textarea with a template based on the selected type
+ */
+function populateDefinitionTemplate(definitionType) {
+  if (!definitionType || !DEFINITION_TEMPLATES[definitionType]) {
+    return;
+  }
+  
+  ui.editVarDefinition.value = DEFINITION_TEMPLATES[definitionType];
+}
+
+/**
  * Validates that both model and language environments are loaded.
  * Shows an alert if either is missing.
  * 
@@ -223,6 +257,9 @@ function showEditForm() {
       : '';
     ui.editVarUnit.value = unit;
     
+    // Reset definition type dropdown
+    ui.definitionTypeSelect.value = '';
+    
     // Show the form section
     ui.variableFormSection.style.display = "block";
     ui.variableFormSection.scrollIntoView({ behavior: 'smooth' });
@@ -253,6 +290,7 @@ function showNewVariableForm() {
   ui.editVarDefinition.value = '';
   ui.editVarDataType.value = 'real';
   ui.editVarUnit.value = '';
+  ui.definitionTypeSelect.value = '';
   
   // Show the form section
   ui.variableFormSection.style.display = "block";
@@ -303,6 +341,9 @@ function showCopyVariableForm() {
       : '';
     ui.editVarUnit.value = unit;
     
+    // Reset definition type dropdown
+    ui.definitionTypeSelect.value = '';
+    
     // Show the form section
     ui.variableFormSection.style.display = "block";
     ui.variableFormSection.scrollIntoView({ behavior: 'smooth' });
@@ -324,6 +365,7 @@ function hideEditForm() {
   ui.editVarDefinition.value = '';
   ui.editVarDataType.value = '';
   ui.editVarUnit.value = '';
+  ui.definitionTypeSelect.value = '';
 }
 
 /**
@@ -551,6 +593,12 @@ export function wireVariableCrudHandlers() {
   // Sort checkbox handler
   ui.sortVariablesAlpha.addEventListener('change', () => {
     renderVariableDropdown();
+  });
+  
+  // Definition type dropdown handler
+  ui.definitionTypeSelect.addEventListener('change', (event) => {
+    const selectedType = event.target.value;
+    populateDefinitionTemplate(selectedType);
   });
   
   // Listen for model loaded events to refresh the variable list
