@@ -260,9 +260,13 @@ function louvainCommunityDetection(variables, graph, targetClusters) {
   
   let clusters = Array.from(communities.values())
   
-  // If we have too many clusters and want fewer, merge smallest ones
+  // Adjust cluster count based on target
   if (clusters.length > targetClusters * 1.5) {
+    // Too many clusters: merge smallest ones
     clusters = mergeSmallerClusters(clusters, graph, targetClusters)
+  } else if (clusters.length < targetClusters * 0.8 && clusters.length > 0) {
+    // Too few clusters: split largest ones
+    clusters = splitLargestClusters(clusters, graph, targetClusters)
   }
   
   return clusters
@@ -307,6 +311,49 @@ function mergeSmallerClusters(clusters, graph, targetCount) {
     
     // Merge into best target
     clusters[bestTarget] = [...clusters[bestTarget], ...smallest]
+  }
+  
+  return clusters
+}
+
+/**
+ * Split largest clusters to reach target count
+ * Uses simple bisection for efficiency
+ * 
+ * @param {Array<Array<string>>} clusters - Current clusters
+ * @param {Map<string, Set<string>>} graph - Dependency graph
+ * @param {number} targetCount - Target number of clusters
+ * @returns {Array<Array<string>>} Split clusters
+ */
+function splitLargestClusters(clusters, graph, targetCount) {
+  const maxIterations = targetCount * 2 // Prevent infinite loops
+  let iterations = 0
+  
+  while (clusters.length < targetCount && iterations < maxIterations) {
+    iterations++
+    
+    // Sort by size (largest first)
+    clusters.sort((a, b) => b.length - a.length)
+    
+    // Get the largest cluster
+    const largest = clusters[0]
+    
+    // If the largest cluster only has 1 or 2 nodes, can't split anymore
+    if (largest.length <= 2) {
+      break
+    }
+    
+    // Remove the largest cluster
+    clusters.shift()
+    
+    // Simple split: divide in half
+    const mid = Math.floor(largest.length / 2)
+    const cluster1 = largest.slice(0, mid)
+    const cluster2 = largest.slice(mid)
+    
+    // Add both clusters back
+    clusters.push(cluster1)
+    clusters.push(cluster2)
   }
   
   return clusters
@@ -402,12 +449,11 @@ function generateModuleName(variables) {
   const words = new Map() // word -> count
   
   for (const varName of variables) {
-    // Remove numeric prefixes like v001_, v002_, var123_, etc.
+    // Remove numeric prefixes like v001_, v002_, V123_, etc.
     let cleanName = varName.replace(/^v?\d+_/i, '')
     
-    // Split by underscore or camelCase
+    // Split by underscore (variables are already in SCREAMING_SNAKE_CASE or snake_case)
     const parts = cleanName
-      .replace(/([A-Z])/g, '_$1')
       .split('_')
       .filter(p => p.length > 0)
       .map(p => p.toLowerCase())
@@ -416,7 +462,7 @@ function generateModuleName(variables) {
       // Skip very common/generic words, very short words, and pure numbers
       if (part.length <= 2 || 
           /^\d+$/.test(part) || 
-          ['and', 'or', 'the', 'of', 'in', 'at', 'to', 'for', 'var', 'val'].includes(part)) {
+          ['and', 'or', 'the', 'of', 'in', 'at', 'to', 'for', 'var', 'val', 'get', 'set'].includes(part)) {
         continue
       }
       words.set(part, (words.get(part) || 0) + 1)
@@ -424,7 +470,9 @@ function generateModuleName(variables) {
   }
   
   // Find most common words
+  // Use a reasonable minimum frequency that works for both small and large modules
   const sortedWords = Array.from(words.entries())
+    .filter(([word, count]) => count >= 2) // Must appear at least twice
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([word]) => word)
