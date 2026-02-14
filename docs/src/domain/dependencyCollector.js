@@ -67,8 +67,7 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
 
       if (lang.functions.has(ref)) continue;
       if (runtimeIdentifiers.has(ref)) continue;
-      // Only skip tables if they are not also variables
-      if (symbols.tables.has(ref) && !symbols.variables.has(ref)) continue;  
+      if (symbols.tables.has(ref)) continue;  
       if (symbols.indexSets.has(ref)) continue;
 
       addDependencyIfVariable(ref, { text });
