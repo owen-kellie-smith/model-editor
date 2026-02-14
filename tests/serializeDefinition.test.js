@@ -60,7 +60,7 @@ describe("serializeDefinition", () => {
     expect(xml).toContain('<case>');
     expect(xml).toContain('<when>step = 0</when>');
     expect(xml).toContain('<value>1</value>');
-    expect(xml).toContain('<when>step > 0</when>');
+    expect(xml).toContain('<when>step &gt; 0</when>'); // > is escaped to &gt;
     expect(xml).toContain('</definition>');
   });
 
@@ -87,6 +87,42 @@ describe("serializeDefinition", () => {
 
   it("should return empty string for undefined definition", () => {
     expect(serializeDefinition(undefined)).toBe("");
+  });
+
+  it("should escape special XML characters in text content", () => {
+    const definition = {
+      type: "expression",
+      "#text": "a < b && c > d"
+    };
+
+    const xml = serializeDefinition(definition);
+    
+    expect(xml).toContain("a &lt; b &amp;&amp; c &gt; d");
+    expect(xml).not.toContain("a < b");
+    expect(xml).not.toContain("c > d");
+  });
+
+  it("should escape quotes and apostrophes in attribute values", () => {
+    const definition = {
+      type: "test",
+      attr: 'value with "quotes" and \'apostrophes\'',
+      "#text": "content"
+    };
+
+    const xml = serializeDefinition(definition);
+    
+    expect(xml).toContain('attr="value with &quot;quotes&quot; and &apos;apostrophes&apos;"');
+  });
+
+  it("should escape ampersands in text content", () => {
+    const definition = {
+      type: "expression",
+      "#text": "a && b || c && d"
+    };
+
+    const xml = serializeDefinition(definition);
+    
+    expect(xml).toContain("a &amp;&amp; b || c &amp;&amp; d");
   });
 });
 
