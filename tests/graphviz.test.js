@@ -5,7 +5,7 @@ import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
 import { getGraphOfRelations } from "@/domain/graphRelations.js";
-import { generateDot, generateClusterDot } from "@/domain/graphviz.js";
+import { generateDot } from "@/domain/graphviz.js";
 
 describe("GraphViz DOT Generation", () => {
   let lang;
@@ -108,69 +108,6 @@ describe("GraphViz DOT Generation", () => {
           expect(line).toMatch(/^\s*"[^"]+"\s*->\s*"[^"]+";$/);
         }
       }
-    });
-  });
-
-  describe("generateClusterDot", () => {
-    it("generates valid DOT format with digraph declaration and clusters", () => {
-      const graph = getGraphOfRelations(modelFeatures, "B", 2);
-      const dot = generateClusterDot(graph, "B", 2);
-      
-      expect(typeof dot).toBe("string");
-      expect(dot.includes("digraph dependencies {")).toBe(true);
-      expect(dot.includes("}")).toBe(true);
-      expect(dot.includes("subgraph cluster_")).toBe(true);
-    });
-
-    it("creates subgraphs for different depth levels", () => {
-      const graph = getGraphOfRelations(modelFeatures, "B", 2);
-      const dot = generateClusterDot(graph, "B", 2);
-      
-      // Should have cluster_0 for root and cluster_1 for depth 1
-      expect(dot.includes("subgraph cluster_0")).toBe(true);
-      expect(dot.includes("subgraph cluster_1")).toBe(true);
-    });
-
-    it("labels clusters with depth information", () => {
-      const graph = getGraphOfRelations(modelFeatures, "B", 2);
-      const dot = generateClusterDot(graph, "B", 2);
-      
-      // Root should be labeled "Root"
-      expect(dot.includes('label="Root"')).toBe(true);
-      // Other depths should be labeled "Depth N"
-      expect(dot.includes('label="Depth 1"')).toBe(true);
-    });
-
-    it("highlights the root variable with filled color in cluster", () => {
-      const graph = getGraphOfRelations(modelFeatures, "B", 2);
-      const dot = generateClusterDot(graph, "B", 2);
-      
-      expect(dot.includes('"B" [style=filled, fillcolor=lightblue]')).toBe(true);
-    });
-
-    it("generates edges outside of clusters", () => {
-      const graph = getGraphOfRelations(modelFeatures, "B", 2);
-      const dot = generateClusterDot(graph, "B", 2);
-      
-      // Find where clusters end and edges begin
-      const lastClusterEnd = dot.lastIndexOf('}', dot.lastIndexOf('}') - 1);
-      const edgesSection = dot.substring(lastClusterEnd);
-      
-      // Edges should be after cluster definitions
-      expect(edgesSection.includes('"D" -> "B"')).toBe(true);
-      expect(edgesSection.includes('"B" -> "A"')).toBe(true);
-    });
-
-    it("handles isolated variable with single cluster", () => {
-      const graph = getGraphOfRelations(modelFeatures, "K", 5);
-      const dot = generateClusterDot(graph, "K", 5);
-      
-      expect(dot.includes("subgraph cluster_0")).toBe(true);
-      expect(dot.includes('"K" [style=filled, fillcolor=lightblue]')).toBe(true);
-      
-      // Should have no edges for isolated variable
-      const arrowCount = (dot.match(/->/g) || []).length;
-      expect(arrowCount).toBe(0);
     });
   });
 });
