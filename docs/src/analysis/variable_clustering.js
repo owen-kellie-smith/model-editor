@@ -312,7 +312,7 @@ function generateStats(clusters, totalVars, interClusterEdges) {
     totalVariables: totalVars,
     totalClusters: clusters.length,
     avgClusterSize: clusterSizes.length > 0 
-      ? (clusterSizes.reduce((a, b) => a + b, 0) / clusterSizes.length).toFixed(1)
+      ? parseFloat((clusterSizes.reduce((a, b) => a + b, 0) / clusterSizes.length).toFixed(1))
       : 0,
     minClusterSize: clusterSizes.length > 0 ? Math.min(...clusterSizes) : 0,
     maxClusterSize: clusterSizes.length > 0 ? Math.max(...clusterSizes) : 0,

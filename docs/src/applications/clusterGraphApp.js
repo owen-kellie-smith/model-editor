@@ -211,7 +211,7 @@ async function renderClusterGraph(result) {
  */
 function exportClusterResult(format) {
   if (!clusteringResult) {
-    alert('No clustering result to export')
+    displayClusterStatus('No clustering result to export', 'error')
     return
   }
   
@@ -233,7 +233,7 @@ function exportClusterResult(format) {
     case 'svg':
       const svgElement = ui.clusterGraphSvg?.querySelector('svg')
       if (!svgElement) {
-        alert('No SVG to export. Please generate the graph first.')
+        displayClusterStatus('No SVG to export. Please generate the graph first.', 'error')
         return
       }
       content = svgElement.outerHTML
@@ -242,7 +242,7 @@ function exportClusterResult(format) {
       break
       
     default:
-      alert('Unknown export format')
+      displayClusterStatus('Unknown export format', 'error')
       return
   }
   
