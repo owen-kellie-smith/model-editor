@@ -37,10 +37,10 @@ export function getMapsOfModelProperties(xml) {
       variables.set(v.id.toUpperCase(), v);
     }
     // ------------------------------------------------------
-    // FALLBACK: ModelMaker style
+    // FALLBACK: Legacy style
     // ------------------------------------------------------
     if (variables.size === 0 && xml.model.ModelPointFields) {
-      log("info","Using ModelMaker fallback loader");
+      log("info","Using Legacy fallback loader");
 
       // -------------------------
       // variables

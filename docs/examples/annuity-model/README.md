@@ -6,7 +6,7 @@ This directory contains 2 equivalent examples of a **small, fully declarative an
 
 The model exists to:
 - Exercise the model editor and its structural constraints
-- Provide a realistic but numerically unambitious example
+- Provide a realistic but brief example
 - Demonstrate proper model structure and variable relationships
 - Remain engine-agnostic and disposable
 
@@ -29,7 +29,7 @@ To use this example in the model editor:
 2. **Load the model:**
    - Choose either format:
      - `vendor-format-model.xml` (recommended)
-     - `model-maker-model.xml` (legacy format)
+     - `legacy-format-model.xml` (legacy format)
    - Load via file input or paste the XML content
    - Review validation output and dependency information
 
@@ -51,13 +51,3 @@ The annuity model includes:
 
 All variables are defined using expressions that reference other variables or index sets, demonstrating the dependency validation capabilities of the model editor.
 
-## Boundary
-
-The annuity model is a specification, not an implementation.
-
-It contains no:
-- code,
-- numerical algorithms,
-- solvers,
-- optimisation logic, or
-- performance considerations.

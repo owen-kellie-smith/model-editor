@@ -19,7 +19,6 @@ A single web page for parsing, validating, and editing large declarative models 
 - **Multiple Definition Types** - Support for expression, constant, table, tableLookup, and piecewise definitions
 - **Parameterized Variables** - Variables with index sets for multi-dimensional modeling
 - **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG
-- **Multi-format Support** - Compatible with vendor format and ModelMaker format models
 - **Zero-build Architecture** - Pure client-side application with no build step required
 
 ---
@@ -44,7 +43,7 @@ No build step or server required.
 
 ## Technology Stack
 
-- **JavaScript:** ES6+ modules running directly in the browser (no transpilation)
+- **JavaScript:** ES6+ modules running directly in the browser 
 - **DOM Manipulation:** Vanilla JavaScript (no framework)
 - **XML Processing:** `@xmldom/xmldom`, `xpath`
 - **Graph Visualization:** Viz.js (DOT format rendering to SVG)
@@ -124,7 +123,7 @@ tests/                  # Vitest test suite
 The model editor supports multiple definition types for variables:
 
 - **expression** - Mathematical formula using other variables and functions
-- **constant** - Simple numeric constant
+- **constant** - Simple constant
 - **table** - Array of values indexed by position
 - **tableLookup** - Value lookup from a table using an index
 - **piecewise** - Conditional definitions with multiple branches
@@ -190,7 +189,7 @@ This project intentionally has **no build step**. All code runs directly in the 
 
 **"Circular reference" error:**
 - Review dependency graph to identify the cycle
-- Variables cannot depend on themselves directly or indirectly
+- Variables are not allowed to depend on themselves directly or indirectly
 
 **Tests fail:**
 - Run `npm install` to ensure dev dependencies are installed
@@ -211,7 +210,7 @@ This project intentionally has **no build step**. All code runs directly in the 
 
 ## License
 
-ISC
+MIT
 
 ---
 

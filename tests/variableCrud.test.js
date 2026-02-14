@@ -652,9 +652,9 @@ describe("Variable CRUD Operations", () => {
     });
   });
 
-  describe("listVariables with ModelMaker format", () => {
-    it("should list variables when loading ModelMaker format (toyMM_L1.xml)", () => {
-      // Load the ModelMaker format model
+  describe("listVariables with Legacy format", () => {
+    it("should list variables when loading Legacy format (toyMM_L1.xml)", () => {
+      // Load the Legacy format model
       const modelText = fs.readFileSync(getFixture("toyMM_L1.xml"), "utf-8");
       const result = validateModelCore(modelText, "toyMM_L1.xml", lang);
       
@@ -672,7 +672,7 @@ describe("Variable CRUD Operations", () => {
     });
     
     it("should match variables available in model features", () => {
-      // Load the ModelMaker format model
+      // Load the Legacy  format model
       const modelText = fs.readFileSync(getFixture("toyMM_L1.xml"), "utf-8");
       const result = validateModelCore(modelText, "toyMM_L1.xml", lang);
       

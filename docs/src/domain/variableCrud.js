@@ -298,7 +298,7 @@ export function listVariables(modelObj) {
   }
 
   // ------------------------------------------------------
-  // FALLBACK: ModelMaker style
+  // FALLBACK: Legacy style
   // ------------------------------------------------------
   if (modelObj.model.ModelPointFields || modelObj.model.Formulas) {
     const variablesArray = [];
