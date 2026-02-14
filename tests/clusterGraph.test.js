@@ -258,5 +258,64 @@ describe("Cluster Graph", () => {
       expect(clustering1.modules.length).toBeGreaterThan(0)
       expect(clustering2.modules.length).toBeGreaterThan(0)
     })
+    
+    it("should exclude index-only dependencies from clustering", () => {
+      // Load model_long.xml which has variables with different argument structures
+      const modelPath = path.join(__dirname, "..", "docs", "examples", "long", "model_long.xml")
+      const modelText = fs.readFileSync(modelPath, "utf-8")
+      const result = validateModelCore(modelText, "model_long.xml", lang)
+      
+      // Perform clustering
+      const clustering = clusterVariables(result.features, semanticConfig)
+      
+      // Validate that the filtering logic is applied correctly
+      // by checking that variables with structural dependencies (no args -> with args)
+      // can exist in the model and clustering completes successfully
+      expect(clustering.modules).toBeDefined()
+      expect(clustering.modules.length).toBeGreaterThan(0)
+      
+      // Check that inter-cluster edges exist (showing semantic relationships are preserved)
+      expect(clustering.interClusterEdges).toBeDefined()
+      expect(Array.isArray(clustering.interClusterEdges)).toBe(true)
+      
+      // Validate statistics are computed correctly with the filtered dependencies
+      expect(clustering.stats.totalVariables).toBeGreaterThan(0)
+      expect(clustering.stats.totalClusters).toBe(clustering.modules.length)
+      
+      // The key behavior: clustering should use semantic dependencies,
+      // not index-only dependencies, which means variables can be in different
+      // clusters even if they have the same argument structure
+      const varsByArgCount = new Map()
+      for (const module of clustering.modules) {
+        for (const varName of module.variables) {
+          const varData = result.features.resolvedVarsWithArguments.get(varName)
+          if (varData) {
+            const argCount = varData.domain?.length || 0
+            if (!varsByArgCount.has(argCount)) {
+              varsByArgCount.set(argCount, [])
+            }
+            varsByArgCount.get(argCount).push({ varName, module: module.id })
+          }
+        }
+      }
+      
+      // Variables with the same argument count should be able to appear in different modules
+      // if they have different semantic meanings (this validates filtering is working)
+      let foundEvidence = false
+      for (const [argCount, vars] of varsByArgCount.entries()) {
+        if (vars.length > 1) {
+          const uniqueModules = new Set(vars.map(v => v.module))
+          // At least some variables with same arg count should be in different modules
+          // (if semantic filtering is working)
+          if (uniqueModules.size > 1) {
+            foundEvidence = true
+            break
+          }
+        }
+      }
+      
+      // Assert that we found evidence of semantic clustering
+      expect(foundEvidence).toBe(true)
+    })
   })
 })

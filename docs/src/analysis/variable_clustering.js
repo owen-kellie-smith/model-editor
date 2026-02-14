@@ -6,6 +6,49 @@
  */
 
 /**
+ * Determine if a dependency is index-only (differs only by index arguments or shifts)
+ * 
+ * An index-only dependency occurs when both variables have the same number of arguments.
+ * These dependencies represent structural/temporal relationships rather than semantic domain relationships.
+ * 
+ * @param {string} sourceVarName - Source variable name
+ * @param {string} targetVarName - Target variable name
+ * @param {Map} resolvedVarsWithArguments - Map of variables with their arguments
+ * @returns {boolean} True if dependency is index-only, false otherwise
+ */
+function isIndexOnlyDependency(sourceVarName, targetVarName, resolvedVarsWithArguments) {
+  const sourceVar = resolvedVarsWithArguments.get(sourceVarName)
+  const targetVar = resolvedVarsWithArguments.get(targetVarName)
+  
+  // If either variable doesn't exist, not index-only
+  if (!sourceVar || !targetVar) {
+    return false
+  }
+  
+  const sourceArgCount = sourceVar.domain?.length || 0
+  const targetArgCount = targetVar.domain?.length || 0
+  
+  // Index-only if both have the same number of arguments (and both have at least one argument)
+  // If target has 0 args but source has args, it's a structural/parametric dependency
+  return sourceArgCount === targetArgCount && targetArgCount > 0
+}
+
+/**
+ * Filter dependencies to exclude index-only ones for clustering purposes
+ * 
+ * @param {Set<Object>|Array<Object>} dependencies - Set or array of dependency objects {name, shift}
+ * @param {string} sourceVarName - Source variable name
+ * @param {Map} resolvedVarsWithArguments - Map of variables with their arguments
+ * @returns {Array} Filtered array of dependencies
+ */
+function filterIndexOnlyDependencies(dependencies, sourceVarName, resolvedVarsWithArguments) {
+  const depsArray = Array.isArray(dependencies) ? dependencies : Array.from(dependencies)
+  return depsArray.filter(dep => 
+    !isIndexOnlyDependency(sourceVarName, dep.name, resolvedVarsWithArguments)
+  )
+}
+
+/**
  * Cluster variables into semantic modules
  * 
  * @param {Object} modelFeatures - Model features containing incoming/outgoing dependencies
@@ -243,9 +286,20 @@ function findDependencyCluster(varName, modelFeatures, assignments, semanticMatc
     return null
   }
   
+  // Filter out index-only dependencies for clustering purposes
+  const semanticIncoming = filterIndexOnlyDependencies(
+    incoming,
+    varName,
+    modelFeatures.resolvedVarsWithArguments
+  )
+  
+  if (semanticIncoming.length === 0) {
+    return null
+  }
+  
   const clusterCounts = new Map()
   
-  for (const dep of incoming) {
+  for (const dep of semanticIncoming) {
     const depCluster = assignments.get(dep.name)
     if (depCluster) {
       clusterCounts.set(depCluster, (clusterCounts.get(depCluster) || 0) + 1)
@@ -254,7 +308,7 @@ function findDependencyCluster(varName, modelFeatures, assignments, semanticMatc
   
   // If most dependencies are in the semantic match cluster, use that
   const semanticCount = clusterCounts.get(semanticMatch) || 0
-  if (semanticCount >= incoming.length * 0.5) {
+  if (semanticCount >= semanticIncoming.length * 0.5) {
     return semanticMatch
   }
   
@@ -278,7 +332,14 @@ function calculateInterClusterEdges(clusters, assignments, modelFeatures) {
       const outgoing = modelFeatures.outgoing.get(varName)
       if (!outgoing) continue
       
-      for (const dep of outgoing) {
+      // Filter out index-only dependencies for clustering purposes
+      const semanticOutgoing = filterIndexOnlyDependencies(
+        outgoing,
+        varName,
+        modelFeatures.resolvedVarsWithArguments
+      )
+      
+      for (const dep of semanticOutgoing) {
         const targetCluster = assignments.get(dep.name)
         if (targetCluster && targetCluster !== cluster.id) {
           const edgeKey = `${cluster.id}->${targetCluster}`
