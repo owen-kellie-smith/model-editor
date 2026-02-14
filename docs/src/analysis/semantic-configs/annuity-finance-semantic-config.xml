@@ -40,10 +40,6 @@
         <pattern>longevity</pattern>
         <pattern>lifespan</pattern>
         <pattern>expectancy</pattern>
-        <pattern>annual_mortality</pattern>
-        <pattern>monthly_survival</pattern>
-        <pattern>survival_rate</pattern>
-        <pattern>survival_to_start</pattern>
       </patterns>
     </keyword>
     

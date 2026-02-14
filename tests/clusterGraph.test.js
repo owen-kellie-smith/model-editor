@@ -228,6 +228,12 @@ describe("Cluster Graph", () => {
       
       // Perform clustering
       clusteringResult = clusterVariables(modelFeatures, semanticConfig)
+      
+      // Debug output
+      console.log("\n=== Vendor Format Clustering Debug ===")
+      for (const module of clusteringResult.modules) {
+        console.log(`${module.displayName}:`, module.variables)
+      }
     })
     
     it("should cluster SURVIVAL_TO_START_OF_STEP and MONTHLY_SURVIVAL_RATE in the same module as ANNUAL_MORTALITY_RATE", () => {

@@ -6,6 +6,21 @@
  */
 
 /**
+ * Check if a variable is a constant (has definition type="constant")
+ * 
+ * @param {string} varName - Variable name
+ * @param {Map} resolvedVarsWithArguments - Map of variables with their XML definitions
+ * @returns {boolean} True if variable is a constant
+ */
+function isConstant(varName, resolvedVarsWithArguments) {
+  const varData = resolvedVarsWithArguments.get(varName)
+  if (!varData || !varData.xml || !varData.xml.definition) {
+    return false
+  }
+  return varData.xml.definition.type === 'constant'
+}
+
+/**
  * Determine if a dependency is index-only (differs only by index arguments or shifts)
  * 
  * An index-only dependency occurs when both variables have the same number of arguments.
@@ -72,6 +87,18 @@ function filterIndexOnlyDependencies(dependencies, sourceVarName, resolvedVarsWi
 }
 
 /**
+ * Filter out constants from dependencies for clustering non-constants
+ * 
+ * @param {Set<Object>|Array<Object>} dependencies - Set or array of dependency objects {name, shift}
+ * @param {Map} resolvedVarsWithArguments - Map of variables with their arguments
+ * @returns {Array} Filtered array of dependencies
+ */
+function filterConstants(dependencies, resolvedVarsWithArguments) {
+  const depsArray = Array.isArray(dependencies) ? dependencies : Array.from(dependencies)
+  return depsArray.filter(dep => !isConstant(dep.name, resolvedVarsWithArguments))
+}
+
+/**
  * Cluster variables into semantic modules
  * 
  * @param {Object} modelFeatures - Model features containing incoming/outgoing dependencies
@@ -79,23 +106,46 @@ function filterIndexOnlyDependencies(dependencies, sourceVarName, resolvedVarsWi
  * @returns {Object} Clustering results with modules, stats, and metadata
  */
 export function clusterVariables(modelFeatures, semanticConfig) {
-  const variables = Array.from(modelFeatures.incoming.keys())
+  const allVariables = Array.from(modelFeatures.incoming.keys())
   
-  // Step 1: Assign semantic scores to each variable
-  const semanticScores = assignSemanticScores(variables, semanticConfig.domains)
+  // Separate constants from non-constants
+  const constants = []
+  const nonConstants = []
+  
+  for (const varName of allVariables) {
+    if (isConstant(varName, modelFeatures.resolvedVarsWithArguments)) {
+      constants.push(varName)
+    } else {
+      nonConstants.push(varName)
+    }
+  }
+  
+  console.log("\n=== Constants vs Non-Constants ===")
+  console.log("Constants:", constants)
+  console.log("Non-constants count:", nonConstants.length)
+  
+  // Step 1: Assign semantic scores to NON-CONSTANT variables only
+  const semanticScores = assignSemanticScores(nonConstants, semanticConfig.domains)
   
   // Step 2: Initialize clusters (one per domain, plus an "Other" cluster)
   const clusters = initializeClusters(semanticConfig.domains)
   
-  // Step 3: Assign variables to clusters based on semantic scores and dependencies
+  // Step 3: Assign NON-CONSTANT variables to clusters based on semantic scores and dependencies
   const assignments = assignVariablesToClusters(
-    variables,
+    nonConstants,
     semanticScores,
     modelFeatures,
     semanticConfig.parameters
   )
   
-  // Step 4: Build cluster objects
+  // Step 4: Assign CONSTANTS to clusters based on where they're used (dependencies)
+  assignConstantsToClusters(
+    constants,
+    assignments,
+    modelFeatures
+  )
+  
+  // Step 5: Build cluster objects
   for (const [varName, clusterKey] of assignments.entries()) {
     if (!clusters.has(clusterKey)) {
       clusters.set(clusterKey, {
@@ -107,7 +157,7 @@ export function clusterVariables(modelFeatures, semanticConfig) {
     clusters.get(clusterKey).variables.push(varName)
   }
   
-  // Step 5: Filter out empty clusters and sort variables within each cluster
+  // Step 6: Filter out empty clusters and sort variables within each cluster
   const nonEmptyClusters = Array.from(clusters.values())
     .filter(cluster => cluster.variables.length > 0)
     .map(cluster => ({
@@ -115,15 +165,15 @@ export function clusterVariables(modelFeatures, semanticConfig) {
       variables: cluster.variables.sort()
     }))
   
-  // Step 6: Calculate inter-cluster dependencies
+  // Step 7: Calculate inter-cluster dependencies
   const interClusterEdges = calculateInterClusterEdges(
     nonEmptyClusters,
     assignments,
     modelFeatures
   )
   
-  // Step 7: Generate statistics
-  const stats = generateStats(nonEmptyClusters, variables.length, interClusterEdges)
+  // Step 8: Generate statistics
+  const stats = generateStats(nonEmptyClusters, allVariables.length, interClusterEdges)
   
   return {
     modules: nonEmptyClusters,
@@ -239,6 +289,13 @@ function assignVariablesToClusters(variables, semanticScores, modelFeatures, par
       let selectedCluster = null
       let maxDependencyCount = 0
       
+      // Debug logging for specific variables
+      const debugVars = ["MONTHLY_SURVIVAL_RATE", "SURVIVAL_TO_START_OF_STEP"]
+      if (debugVars.includes(varName)) {
+        console.log(`\n=== Debug ${varName} ===`)
+        console.log(`Best domains (tied at score ${bestScore}):`, bestDomains)
+      }
+      
       for (const candidateDomain of bestDomains) {
         const depCluster = findDependencyCluster(
           varName,
@@ -246,6 +303,10 @@ function assignVariablesToClusters(variables, semanticScores, modelFeatures, par
           assignments,
           candidateDomain
         )
+        
+        if (debugVars.includes(varName)) {
+          console.log(`  Candidate: ${candidateDomain}, depCluster: ${depCluster}`)
+        }
         
         if (depCluster) {
           // Count how many dependencies are in this cluster
@@ -255,16 +316,33 @@ function assignVariablesToClusters(variables, semanticScores, modelFeatures, par
             varName,
             modelFeatures.resolvedVarsWithArguments
           )
+          // Filter out constants since they haven't been assigned yet
+          const nonConstantIncoming = filterConstants(
+            semanticIncoming,
+            modelFeatures.resolvedVarsWithArguments
+          )
           
-          const depCount = semanticIncoming.filter(dep => 
+          if (debugVars.includes(varName)) {
+            console.log(`    Incoming deps:`, nonConstantIncoming.map(d => `${d.name} (in ${assignments.get(d.name)})`))
+          }
+          
+          const depCount = nonConstantIncoming.filter(dep => 
             assignments.get(dep.name) === depCluster
           ).length
+          
+          if (debugVars.includes(varName)) {
+            console.log(`    depCount: ${depCount}`)
+          }
           
           if (depCount > maxDependencyCount) {
             maxDependencyCount = depCount
             selectedCluster = depCluster
           }
         }
+      }
+      
+      if (debugVars.includes(varName)) {
+        console.log(`  Selected cluster: ${selectedCluster}`)
       }
       
       if (selectedCluster) {
@@ -278,6 +356,50 @@ function assignVariablesToClusters(variables, semanticScores, modelFeatures, par
   }
   
   return assignments
+}
+
+/**
+ * Assign constants to clusters based on where they're used
+ * 
+ * Constants don't have semantic meaning by themselves, so we assign them
+ * to clusters based on their outgoing dependencies (which variables use them).
+ * 
+ * @param {Array<string>} constants - List of constant variable names
+ * @param {Map<string, string>} assignments - Current variable-to-cluster assignments
+ * @param {Object} modelFeatures - Model features with dependencies
+ */
+function assignConstantsToClusters(constants, assignments, modelFeatures) {
+  for (const constName of constants) {
+    // Get variables that use this constant
+    const outgoing = modelFeatures.outgoing.get(constName)
+    
+    if (!outgoing || outgoing.size === 0) {
+      // Constant is not used by anyone, assign to "Other"
+      assignments.set(constName, 'Other')
+      continue
+    }
+    
+    // Count which clusters use this constant
+    const clusterCounts = new Map()
+    for (const dep of outgoing) {
+      const depCluster = assignments.get(dep.name)
+      if (depCluster) {
+        clusterCounts.set(depCluster, (clusterCounts.get(depCluster) || 0) + 1)
+      }
+    }
+    
+    // Assign constant to the cluster that uses it most
+    let maxCount = 0
+    let bestCluster = 'Other'
+    for (const [cluster, count] of clusterCounts.entries()) {
+      if (count > maxCount) {
+        maxCount = count
+        bestCluster = cluster
+      }
+    }
+    
+    assignments.set(constName, bestCluster)
+  }
 }
 
 /**
@@ -347,13 +469,19 @@ function findDependencyCluster(varName, modelFeatures, assignments, semanticMatc
     modelFeatures.resolvedVarsWithArguments
   )
   
-  if (semanticIncoming.length === 0) {
+  // Filter out constants since they haven't been assigned yet when clustering non-constants
+  const nonConstantIncoming = filterConstants(
+    semanticIncoming,
+    modelFeatures.resolvedVarsWithArguments
+  )
+  
+  if (nonConstantIncoming.length === 0) {
     return null
   }
   
   const clusterCounts = new Map()
   
-  for (const dep of semanticIncoming) {
+  for (const dep of nonConstantIncoming) {
     const depCluster = assignments.get(dep.name)
     if (depCluster) {
       clusterCounts.set(depCluster, (clusterCounts.get(depCluster) || 0) + 1)
@@ -362,7 +490,7 @@ function findDependencyCluster(varName, modelFeatures, assignments, semanticMatc
   
   // If most dependencies are in the semantic match cluster, use that
   const semanticCount = clusterCounts.get(semanticMatch) || 0
-  if (semanticCount >= semanticIncoming.length * 0.5) {
+  if (semanticCount >= nonConstantIncoming.length * 0.5) {
     return semanticMatch
   }
   
