@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semanticConfig>
+  <keywords>
+    <keyword id="temporal">
+      <patterns>
+        <pattern>step</pattern>
+        <pattern>time</pattern>
+        <pattern>age</pattern>
+        <pattern>duration</pattern>
+        <pattern>period</pattern>
+        <pattern>date</pattern>
+        <pattern>year</pattern>
+        <pattern>month</pattern>
+        <pattern>start</pattern>
+        <pattern>end</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="demographic">
+      <patterns>
+        <pattern>gender</pattern>
+        <pattern>life</pattern>
+        <pattern>cohort</pattern>
+        <pattern>population</pattern>
+        <pattern>health</pattern>
+        <pattern>male</pattern>
+        <pattern>female</pattern>
+        <pattern>person</pattern>
+        <pattern>individual</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="mortality">
+      <patterns>
+        <pattern>mortality</pattern>
+        <pattern>death</pattern>
+        <pattern>survival</pattern>
+        <pattern>alive</pattern>
+        <pattern>deceased</pattern>
+        <pattern>longevity</pattern>
+        <pattern>lifespan</pattern>
+        <pattern>expectancy</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="economic">
+      <patterns>
+        <pattern>rate</pattern>
+        <pattern>spot</pattern>
+        <pattern>yield</pattern>
+        <pattern>interest</pattern>
+        <pattern>inflation</pattern>
+        <pattern>discount</pattern>
+        <pattern>return</pattern>
+        <pattern>growth</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="cashflow">
+      <patterns>
+        <pattern>cashflow</pattern>
+        <pattern>payment</pattern>
+        <pattern>annuity</pattern>
+        <pattern>income</pattern>
+        <pattern>benefit</pattern>
+        <pattern>payout</pattern>
+        <pattern>pension</pattern>
+        <pattern>withdrawal</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="cost">
+      <patterns>
+        <pattern>cost</pattern>
+        <pattern>fee</pattern>
+        <pattern>charge</pattern>
+        <pattern>expense</pattern>
+        <pattern>admin</pattern>
+        <pattern>management</pattern>
+        <pattern>investment</pattern>
+        <pattern>commission</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="valuation">
+      <patterns>
+        <pattern>value</pattern>
+        <pattern>present</pattern>
+        <pattern>pv</pattern>
+        <pattern>npv</pattern>
+        <pattern>discounted</pattern>
+        <pattern>valuation</pattern>
+        <pattern>reserve</pattern>
+        <pattern>liability</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="status">
+      <patterns>
+        <pattern>status</pattern>
+        <pattern>flag</pattern>
+        <pattern>indicator</pattern>
+        <pattern>active</pattern>
+        <pattern>deferment</pattern>
+        <pattern>payment</pattern>
+        <pattern>guarantee</pattern>
+        <pattern>option</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="escalation">
+      <patterns>
+        <pattern>escalation</pattern>
+        <pattern>escalate</pattern>
+        <pattern>increase</pattern>
+        <pattern>indexation</pattern>
+        <pattern>adjustment</pattern>
+        <pattern>factor</pattern>
+        <pattern>compound</pattern>
+        <pattern>cumulative</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="risk">
+      <patterns>
+        <pattern>risk</pattern>
+        <pattern>hedge</pattern>
+        <pattern>reinsurance</pattern>
+        <pattern>exposure</pattern>
+        <pattern>volatility</pattern>
+        <pattern>limit</pattern>
+        <pattern>cap</pattern>
+        <pattern>floor</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="probability">
+      <patterns>
+        <pattern>probability</pattern>
+        <pattern>prob</pattern>
+        <pattern>chance</pattern>
+        <pattern>likelihood</pattern>
+        <pattern>distribution</pattern>
+        <pattern>cumulative</pattern>
+        <pattern>conditional</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="surrender">
+      <patterns>
+        <pattern>surrender</pattern>
+        <pattern>lapse</pattern>
+        <pattern>termination</pattern>
+        <pattern>withdrawal</pattern>
+        <pattern>exit</pattern>
+        <pattern>cancellation</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="tax">
+      <patterns>
+        <pattern>tax</pattern>
+        <pattern>taxable</pattern>
+        <pattern>taxation</pattern>
+        <pattern>withholding</pattern>
+        <pattern>deduction</pattern>
+        <pattern>relief</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="portfolio">
+      <patterns>
+        <pattern>portfolio</pattern>
+        <pattern>asset</pattern>
+        <pattern>allocation</pattern>
+        <pattern>equity</pattern>
+        <pattern>bond</pattern>
+        <pattern>fund</pattern>
+        <pattern>investment</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="table">
+      <patterns>
+        <pattern>table</pattern>
+        <pattern>lookup</pattern>
+        <pattern>reference</pattern>
+        <pattern>data</pattern>
+        <pattern>column</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="metric">
+      <patterns>
+        <pattern>duration</pattern>
+        <pattern>convexity</pattern>
+        <pattern>sensitivity</pattern>
+        <pattern>delta</pattern>
+        <pattern>gamma</pattern>
+        <pattern>measure</pattern>
+      </patterns>
+    </keyword>
+    
+    <keyword id="reversionary">
+      <patterns>
+        <pattern>reversionary</pattern>
+        <pattern>spouse</pattern>
+        <pattern>survivor</pattern>
+        <pattern>dependent</pattern>
+        <pattern>joint</pattern>
+        <pattern>secondary</pattern>
+      </patterns>
+    </keyword>
+  </keywords>
+  
+  <domains>
+    <domain keywordId="temporal" displayName="Time &amp; Duration"/>
+    <domain keywordId="demographic" displayName="Demographics"/>
+    <domain keywordId="mortality" displayName="Mortality &amp; Survival"/>
+    <domain keywordId="economic" displayName="Economic Rates"/>
+    <domain keywordId="cashflow" displayName="Cashflows"/>
+    <domain keywordId="cost" displayName="Costs &amp; Fees"/>
+    <domain keywordId="valuation" displayName="Discounting &amp; Valuation"/>
+    <domain keywordId="status" displayName="Status Indicators"/>
+    <domain keywordId="escalation" displayName="Escalation"/>
+    <domain keywordId="risk" displayName="Risk Management"/>
+    <domain keywordId="probability" displayName="Probabilities"/>
+    <domain keywordId="surrender" displayName="Surrender &amp; Lapse"/>
+    <domain keywordId="tax" displayName="Taxation"/>
+    <domain keywordId="portfolio" displayName="Portfolio &amp; Assets"/>
+    <domain keywordId="table" displayName="Table Data"/>
+    <domain keywordId="metric" displayName="Financial Metrics"/>
+    <domain keywordId="reversionary" displayName="Reversionary Benefits"/>
+  </domains>
+  
+  <clusteringParameters>
+    <minClusterSize>3</minClusterSize>
+    <maxClusterSize>50</maxClusterSize>
+    <semanticThreshold>0.3</semanticThreshold>
+  </clusteringParameters>
+</semanticConfig>
