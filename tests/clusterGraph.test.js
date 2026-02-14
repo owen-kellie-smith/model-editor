@@ -253,18 +253,6 @@ describe("Cluster Graph", () => {
       
       // Perform clustering
       clusteringResult = clusterVariables(modelFeatures, semanticConfig)
-      
-      // Debug output
-      console.log(`\n=== vendor-format-model.xml clustering ===`)
-      console.log(`Total variables: ${result.features.incoming.size}`)
-      console.log(`Modules: ${clusteringResult.modules.length}`)
-      for (const module of clusteringResult.modules) {
-        console.log(`\nModule: ${module.displayName}`)
-        console.log(`  Variables: ${module.variables.join(', ')}`)
-        if (module.variables.includes('MONTHLY_SURVIVAL_RATE')) {
-          console.log(`  ^^^ MONTHLY_SURVIVAL_RATE IS HERE ^^^`)
-        }
-      }
     })
     
     it("should cluster SURVIVAL_TO_START_OF_STEP and MONTHLY_SURVIVAL_RATE in the same module as ANNUAL_MORTALITY_RATE", () => {
