@@ -28,7 +28,7 @@ function isIndexOnlyDependency(sourceVarName, targetVarName, resolvedVarsWithArg
   const sourceArgCount = sourceVar.domain?.length || 0
   const targetArgCount = targetVar.domain?.length || 0
   
-  // Index-only if both have the same number of arguments (including both having zero)
+  // Index-only if both have the same number of arguments (and both have at least one argument)
   // If target has 0 args but source has args, it's a structural/parametric dependency
   return sourceArgCount === targetArgCount && targetArgCount > 0
 }
