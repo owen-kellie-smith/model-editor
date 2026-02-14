@@ -10,7 +10,7 @@ import {
   copyVariable, 
   readVariable 
 } from "../domain/variableCrud.js";
-import { serializeModel } from "../domain/serialize.js";
+import { serializeModel, serializeDefinition, parseDefinitionXml } from "../domain/serialize.js";
 
 let currentSelectedVariableId = null;
 let isCreatingNew = false;
@@ -203,10 +203,10 @@ function showEditForm() {
     ui.editVarId.value = variable.id;
     ui.editVarId.disabled = true; // Can't change ID when editing
     
-    // Handle definition - extract text if available
+    // Serialize the full definition as XML
     if (variable.definition) {
-      const definitionText = variable.definition['#text'] || '';
-      ui.editVarDefinition.value = definitionText;
+      const definitionXml = serializeDefinition(variable.definition);
+      ui.editVarDefinition.value = definitionXml;
     } else {
       ui.editVarDefinition.value = '';
     }
@@ -283,10 +283,10 @@ function showCopyVariableForm() {
     ui.editVarId.value = variable.id + "_copy";
     ui.editVarId.disabled = false; // Can change ID for copy
     
-    // Handle definition - extract text if available
+    // Serialize the full definition as XML
     if (variable.definition) {
-      const definitionText = variable.definition['#text'] || '';
-      ui.editVarDefinition.value = definitionText;
+      const definitionXml = serializeDefinition(variable.definition);
+      ui.editVarDefinition.value = definitionXml;
     } else {
       ui.editVarDefinition.value = '';
     }
@@ -389,7 +389,7 @@ function handleSaveVariable() {
   try {
     // Get form values
     const variableId = ui.editVarId.value.trim();
-    const definitionText = ui.editVarDefinition.value.trim();
+    const definitionXml = ui.editVarDefinition.value.trim();
     const dataType = ui.editVarDataType.value.trim();
     const unit = ui.editVarUnit.value.trim();
     
@@ -399,17 +399,23 @@ function handleSaveVariable() {
       return;
     }
     
-    if (!definitionText) {
+    if (!definitionXml) {
       alert("Variable definition is required.");
+      return;
+    }
+    
+    // Parse the definition XML
+    let definition;
+    try {
+      definition = parseDefinitionXml(definitionXml);
+    } catch (parseError) {
+      alert(`Invalid definition XML: ${parseError.message}`);
       return;
     }
     
     // Build variable data
     const variableData = {
-      definition: {
-        type: "expression",
-        "#text": definitionText
-      }
+      definition: definition
     };
     
     if (dataType) {
