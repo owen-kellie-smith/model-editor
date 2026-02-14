@@ -132,21 +132,16 @@ describe("Cluster Graph", () => {
       expect(assignedVars.size).toBe(allVars.length)
     })
     
-    it("should create semantically meaningful module names", () => {
+    it("should create module names based on structure", () => {
       const moduleNames = clusteringResult.modules.map(m => m.displayName)
       
-      // Check for some expected domain names
-      const expectedDomains = [
-        "Time & Duration",
-        "Demographics",
-        "Economic Rates",
-        "Mortality & Survival",
-        "Cashflows"
-      ]
-      
-      // At least some of these domains should exist if model has related variables
-      const foundDomains = expectedDomains.filter(name => moduleNames.includes(name))
-      expect(foundDomains.length).toBeGreaterThan(0)
+      // With structural clustering, modules are named generically (Module 1, Module 2, etc.)
+      // Check that all modules have names
+      expect(moduleNames.length).toBeGreaterThan(0)
+      for (const name of moduleNames) {
+        expect(name).toBeDefined()
+        expect(name.length).toBeGreaterThan(0)
+      }
     })
     
     it("should calculate inter-module edges", () => {
@@ -228,12 +223,6 @@ describe("Cluster Graph", () => {
       
       // Perform clustering
       clusteringResult = clusterVariables(modelFeatures, semanticConfig)
-      
-      // Debug output
-      console.log("\n=== Vendor Format Clustering Debug ===")
-      for (const module of clusteringResult.modules) {
-        console.log(`${module.displayName}:`, module.variables)
-      }
     })
     
     it("should cluster SURVIVAL_TO_START_OF_STEP and MONTHLY_SURVIVAL_RATE in the same module as ANNUAL_MORTALITY_RATE", () => {

@@ -24,9 +24,12 @@ function isConstant(varName, resolvedVarsWithArguments) {
  * Determine if a dependency is index-only (differs only by index arguments or shifts)
  * 
  * An index-only dependency occurs when both variables have the same number of arguments.
- * These dependencies represent structural/temporal relationships rather than semantic domain relationships.
- * However, if both variables share a strong semantic keyword (like "survival", "mortality"),
- * the dependency is considered semantic, not index-only.
+ * These dependencies represent structural/temporal relationships where variables operate
+ * over the same index space but may represent logically independent concepts.
+ * 
+ * For structural clustering, we want to be MORE inclusive - only filter out pure
+ * index shifts (like recursive time-stepping) but keep dependencies that represent
+ * real computational relationships.
  * 
  * @param {string} sourceVarName - Source variable name
  * @param {string} targetVarName - Target variable name
@@ -45,30 +48,22 @@ function isIndexOnlyDependency(sourceVarName, targetVarName, resolvedVarsWithArg
   const sourceArgCount = sourceVar.domain?.length || 0
   const targetArgCount = targetVar.domain?.length || 0
   
-  // If they don't have the same number of arguments, not index-only
+  // If they don't have the same number of arguments, definitely not index-only
+  // This is a real semantic dependency
   if (sourceArgCount !== targetArgCount || targetArgCount === 0) {
     return false
   }
   
-  // Check if both variables share a strong semantic keyword
-  // These keywords indicate a semantic relationship beyond just structural similarity
-  const strongSemanticKeywords = [
-    'survival', 'mortality', 'death', 'cashflow', 'annuity', 
-    'payment', 'discount', 'value', 'cost', 'premium'
-  ]
-  
-  const sourceLower = sourceVarName.toLowerCase()
-  const targetLower = targetVarName.toLowerCase()
-  
-  for (const keyword of strongSemanticKeywords) {
-    if (sourceLower.includes(keyword) && targetLower.includes(keyword)) {
-      // Both variables share a strong semantic keyword, so this is a semantic dependency
-      return false
-    }
+  // For structural clustering: if both have the same arguments AND it's a self-reference,
+  // treat it as index-only (temporal recursion like x(t) = x(t-1) + y(t))
+  // Otherwise, assume it's a real computational dependency
+  if (sourceVarName === targetVarName) {
+    return true // Self-reference with same args = index-only
   }
   
-  // Index-only if both have the same number of arguments and no shared semantic keywords
-  return true
+  // For structural clustering, we keep all cross-variable dependencies
+  // even if they have the same argument structure
+  return false
 }
 
 /**
@@ -99,10 +94,90 @@ function filterConstants(dependencies, resolvedVarsWithArguments) {
 }
 
 /**
+ * Build an undirected dependency graph for variables
+ * Excludes index-only and constant dependencies
+ * 
+ * @param {Array<string>} variables - List of variable names
+ * @param {Object} modelFeatures - Model features with dependencies
+ * @returns {Map<string, Set<string>>} Adjacency list representation of the graph
+ */
+function buildDependencyGraph(variables, modelFeatures) {
+  const graph = new Map()
+  
+  // Initialize graph with all variables
+  for (const varName of variables) {
+    graph.set(varName, new Set())
+  }
+  
+  // Add edges based on dependencies
+  for (const varName of variables) {
+    const incoming = modelFeatures.incoming.get(varName) || []
+    
+    // Filter to get semantic dependencies (non-index-only, non-constant)
+    const semanticIncoming = filterIndexOnlyDependencies(
+      incoming,
+      varName,
+      modelFeatures.resolvedVarsWithArguments
+    )
+    const nonConstantIncoming = filterConstants(
+      semanticIncoming,
+      modelFeatures.resolvedVarsWithArguments
+    )
+    
+    // Add edges (undirected: both directions)
+    for (const dep of nonConstantIncoming) {
+      const depName = dep.name
+      if (graph.has(depName)) {
+        graph.get(varName).add(depName)
+        graph.get(depName).add(varName)
+      }
+    }
+  }
+  
+  return graph
+}
+
+/**
+ * Find connected components in an undirected graph using DFS
+ * 
+ * @param {Map<string, Set<string>>} graph - Adjacency list representation
+ * @returns {Array<Array<string>>} Array of connected components, each being an array of variable names
+ */
+function findConnectedComponents(graph) {
+  const visited = new Set()
+  const components = []
+  
+  function dfs(node, component) {
+    visited.add(node)
+    component.push(node)
+    
+    const neighbors = graph.get(node) || new Set()
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        dfs(neighbor, component)
+      }
+    }
+  }
+  
+  for (const node of graph.keys()) {
+    if (!visited.has(node)) {
+      const component = []
+      dfs(node, component)
+      components.push(component)
+    }
+  }
+  
+  return components
+}
+
+/**
  * Cluster variables into semantic modules
  * 
+ * Uses structure-based clustering: variables that depend on each other are grouped together.
+ * This creates modules based on the dependency graph structure, not on variable names.
+ * 
  * @param {Object} modelFeatures - Model features containing incoming/outgoing dependencies
- * @param {Object} semanticConfig - Parsed semantic configuration
+ * @param {Object} semanticConfig - Parsed semantic configuration (kept for compatibility but not used for structural clustering)
  * @returns {Object} Clustering results with modules, stats, and metadata
  */
 export function clusterVariables(modelFeatures, semanticConfig) {
@@ -120,32 +195,29 @@ export function clusterVariables(modelFeatures, semanticConfig) {
     }
   }
   
-  console.log("\n=== Constants vs Non-Constants ===")
-  console.log("Constants:", constants)
-  console.log("Non-constants count:", nonConstants.length)
+  // Build undirected dependency graph for non-constants (excluding index-only dependencies)
+  const dependencyGraph = buildDependencyGraph(nonConstants, modelFeatures)
   
-  // Step 1: Assign semantic scores to NON-CONSTANT variables only
-  const semanticScores = assignSemanticScores(nonConstants, semanticConfig.domains)
+  // Find connected components in the dependency graph
+  const connectedComponents = findConnectedComponents(dependencyGraph)
   
-  // Step 2: Initialize clusters (one per domain, plus an "Other" cluster)
-  const clusters = initializeClusters(semanticConfig.domains)
+  // Create modules from connected components
+  const assignments = new Map()
+  let moduleIndex = 1
   
-  // Step 3: Assign NON-CONSTANT variables to clusters based on semantic scores and dependencies
-  const assignments = assignVariablesToClusters(
-    nonConstants,
-    semanticScores,
-    modelFeatures,
-    semanticConfig.parameters
-  )
+  for (const component of connectedComponents) {
+    const moduleName = `Module ${moduleIndex}`
+    for (const varName of component) {
+      assignments.set(varName, moduleName)
+    }
+    moduleIndex++
+  }
   
-  // Step 4: Assign CONSTANTS to clusters based on where they're used (dependencies)
-  assignConstantsToClusters(
-    constants,
-    assignments,
-    modelFeatures
-  )
+  // Assign constants to modules based on where they're used
+  assignConstantsToClusters(constants, assignments, modelFeatures)
   
-  // Step 5: Build cluster objects
+  // Build cluster objects
+  const clusters = new Map()
   for (const [varName, clusterKey] of assignments.entries()) {
     if (!clusters.has(clusterKey)) {
       clusters.set(clusterKey, {
@@ -157,26 +229,26 @@ export function clusterVariables(modelFeatures, semanticConfig) {
     clusters.get(clusterKey).variables.push(varName)
   }
   
-  // Step 6: Filter out empty clusters and sort variables within each cluster
-  const nonEmptyClusters = Array.from(clusters.values())
-    .filter(cluster => cluster.variables.length > 0)
+  // Sort variables within each cluster
+  const modules = Array.from(clusters.values())
     .map(cluster => ({
       ...cluster,
       variables: cluster.variables.sort()
     }))
+    .sort((a, b) => b.variables.length - a.variables.length) // Sort by size
   
-  // Step 7: Calculate inter-cluster dependencies
+  // Calculate inter-cluster dependencies
   const interClusterEdges = calculateInterClusterEdges(
-    nonEmptyClusters,
+    modules,
     assignments,
     modelFeatures
   )
   
-  // Step 8: Generate statistics
-  const stats = generateStats(nonEmptyClusters, allVariables.length, interClusterEdges)
+  // Generate statistics
+  const stats = generateStats(modules, allVariables.length, interClusterEdges)
   
   return {
-    modules: nonEmptyClusters,
+    modules,
     stats,
     interClusterEdges
   }
