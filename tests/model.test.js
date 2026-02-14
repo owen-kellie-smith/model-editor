@@ -157,6 +157,31 @@ describe("validateModelCore", () => {
       expect(totalRateOutgoing).toBeDefined();
       expect(totalRateOutgoing.size).toBe(0);
     });
+
+    it("tracks variables as dependencies even when a table has the same name", () => {
+      // Load the annuity model which has both a table and variable named "spot_rate"
+      const text = fs.readFileSync(
+        "/home/runner/work/model-editor/model-editor/docs/examples/annuity-model/vendor-format-model.xml",
+        "utf-8"
+      );
+      const result = validateModelCore(text, "vendor-format-model.xml", lang);
+      
+      // In vendor-format-model.xml:
+      // - spot_rate is both a table (line 63) and a variable (line 250)
+      // - discount_factor = (1 + spot_rate(step)) ^ (- step * step_length) (line 268)
+      // 
+      // Expected: spot_rate should have discount_factor as an outgoing variable
+      // because discount_factor depends on the spot_rate variable
+      
+      expect(result.features.outgoing).toBeDefined();
+      
+      const spotRateOutgoing = result.features.outgoing.get("SPOT_RATE");
+      expect(spotRateOutgoing).toBeDefined();
+      expect(spotRateOutgoing.size).toBeGreaterThanOrEqual(1);
+      
+      const spotRateOutgoingNames = Array.from(spotRateOutgoing).map(d => d.name);
+      expect(spotRateOutgoingNames.includes("DISCOUNT_FACTOR")).toBe(true);
+    });
   });
 
 });
