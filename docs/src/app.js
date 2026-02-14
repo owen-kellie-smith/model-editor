@@ -1,7 +1,6 @@
 import { wireLanguageHandlers } from "./applications/languageApp.js";
 import { wireModelHandlers } from "./applications/modelApp.js";
 import { wireGraphHandlers } from "./applications/graphApp.js";
-import { wireClusterGraphHandlers } from "./applications/clusterGraphApp.js";
 import { wireVariableCrudHandlers } from "./applications/variableCrudApp.js";
 import { logLogLevel } from "./utils/logger.js";
 
@@ -81,7 +80,6 @@ window.addEventListener('unhandledrejection', function(event) {
 wireLanguageHandlers();
 wireModelHandlers();
 wireGraphHandlers();
-wireClusterGraphHandlers();
 wireVariableCrudHandlers();
 logLogLevel();
 
