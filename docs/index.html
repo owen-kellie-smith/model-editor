@@ -172,6 +172,16 @@
           <div id="semanticConfigStatus" class="cluster-status" style="display: none;"></div>
           
           <h4>Step 3: Generate Cluster Graph</h4>
+          <div class="cluster-controls">
+            <label>
+              Granularity (for models > 20 variables):
+              <select id="clusterGranularity">
+                <option value="low">Low (fewer, larger modules)</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High (more, smaller modules)</option>
+              </select>
+            </label>
+          </div>
           <button id="generateClusterGraph" disabled>Generate Cluster Graph</button>
           <div id="clusterStatus" class="cluster-status" style="display: none;"></div>
         </div>

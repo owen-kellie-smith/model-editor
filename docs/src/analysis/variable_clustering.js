@@ -138,6 +138,166 @@ function buildDependencyGraph(variables, modelFeatures) {
 }
 
 /**
+ * Calculate shortest path distance between all pairs of vertices using BFS
+ * 
+ * @param {Map<string, Set<string>>} graph - Adjacency list representation
+ * @param {Array<string>} vertices - List of vertices
+ * @returns {Map<string, Map<string, number>>} Distance matrix
+ */
+function calculateDistanceMatrix(graph, vertices) {
+  const distances = new Map()
+  
+  for (const start of vertices) {
+    const dist = new Map()
+    const queue = [start]
+    const visited = new Set([start])
+    dist.set(start, 0)
+    
+    while (queue.length > 0) {
+      const current = queue.shift()
+      const currentDist = dist.get(current)
+      
+      const neighbors = graph.get(current) || new Set()
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor)
+          dist.set(neighbor, currentDist + 1)
+          queue.push(neighbor)
+        }
+      }
+    }
+    
+    // Set infinite distance for unreachable vertices
+    for (const vertex of vertices) {
+      if (!dist.has(vertex)) {
+        dist.set(vertex, Infinity)
+      }
+    }
+    
+    distances.set(start, dist)
+  }
+  
+  return distances
+}
+
+/**
+ * Perform hierarchical agglomerative clustering on a connected component
+ * 
+ * @param {Array<string>} variables - Variables in the component
+ * @param {Map<string, Set<string>>} graph - Dependency graph
+ * @param {number} targetClusters - Desired number of clusters
+ * @returns {Array<Array<string>>} Array of clusters
+ */
+function hierarchicalClusterComponent(variables, graph, targetClusters) {
+  if (variables.length <= targetClusters) {
+    // Each variable becomes its own cluster
+    return variables.map(v => [v])
+  }
+  
+  // Calculate distance matrix
+  const distances = calculateDistanceMatrix(graph, variables)
+  
+  // Initialize: each variable is its own cluster
+  const clusters = variables.map(v => [v])
+  
+  // Agglomerative clustering: merge closest clusters until we reach target
+  while (clusters.length > targetClusters) {
+    let minDist = Infinity
+    let mergeI = -1
+    let mergeJ = -1
+    
+    // Find closest pair of clusters
+    for (let i = 0; i < clusters.length; i++) {
+      for (let j = i + 1; j < clusters.length; j++) {
+        // Calculate average distance between clusters (average linkage)
+        let totalDist = 0
+        let count = 0
+        
+        for (const varI of clusters[i]) {
+          for (const varJ of clusters[j]) {
+            const dist = distances.get(varI)?.get(varJ) ?? Infinity
+            totalDist += dist
+            count++
+          }
+        }
+        
+        const avgDist = count > 0 ? totalDist / count : Infinity
+        
+        if (avgDist < minDist) {
+          minDist = avgDist
+          mergeI = i
+          mergeJ = j
+        }
+      }
+    }
+    
+    // Merge the closest clusters
+    if (mergeI !== -1 && mergeJ !== -1) {
+      clusters[mergeI] = [...clusters[mergeI], ...clusters[mergeJ]]
+      clusters.splice(mergeJ, 1)
+    } else {
+      // Can't merge anymore (disconnected components shouldn't reach here)
+      break
+    }
+  }
+  
+  return clusters
+}
+
+/**
+ * Generate a descriptive name for a module based on its variables
+ * 
+ * @param {Array<string>} variables - Variables in the module
+ * @returns {string} Generated module name
+ */
+function generateModuleName(variables) {
+  if (variables.length === 0) {
+    return "Empty Module"
+  }
+  
+  if (variables.length === 1) {
+    return variables[0]
+  }
+  
+  // Extract common word patterns from variable names
+  const words = new Map() // word -> count
+  
+  for (const varName of variables) {
+    // Split by underscore or camelCase
+    const parts = varName
+      .replace(/([A-Z])/g, '_$1')
+      .split('_')
+      .filter(p => p.length > 0)
+      .map(p => p.toLowerCase())
+    
+    for (const part of parts) {
+      // Skip very common/generic words and very short words
+      if (part.length <= 2 || ['and', 'or', 'the', 'of', 'in', 'at', 'to', 'for'].includes(part)) {
+        continue
+      }
+      words.set(part, (words.get(part) || 0) + 1)
+    }
+  }
+  
+  // Find most common words
+  const sortedWords = Array.from(words.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([word]) => word)
+  
+  if (sortedWords.length === 0) {
+    return `Group of ${variables.length}`
+  }
+  
+  // Capitalize first letter of each word
+  const name = sortedWords
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' & ')
+  
+  return `${name} (${variables.length})`
+}
+
+/**
  * Find connected components in an undirected graph using DFS
  * 
  * @param {Map<string, Set<string>>} graph - Adjacency list representation
@@ -177,11 +337,14 @@ function findConnectedComponents(graph) {
  * This creates modules based on the dependency graph structure, not on variable names.
  * 
  * @param {Object} modelFeatures - Model features containing incoming/outgoing dependencies
- * @param {Object} semanticConfig - Parsed semantic configuration (kept for compatibility but not used for structural clustering)
+ * @param {Object} semanticConfig - Parsed semantic configuration (kept for compatibility)
+ * @param {Object} options - Clustering options
+ * @param {string} options.granularity - 'low', 'medium', or 'high' (default: 'medium')
  * @returns {Object} Clustering results with modules, stats, and metadata
  */
-export function clusterVariables(modelFeatures, semanticConfig) {
+export function clusterVariables(modelFeatures, semanticConfig, options = {}) {
   const allVariables = Array.from(modelFeatures.incoming.keys())
+  const granularity = options.granularity || 'medium'
   
   // Separate constants from non-constants
   const constants = []
@@ -201,14 +364,47 @@ export function clusterVariables(modelFeatures, semanticConfig) {
   // Find connected components in the dependency graph
   const connectedComponents = findConnectedComponents(dependencyGraph)
   
-  // Create modules from connected components
+  // For large models (> 20 variables), apply hierarchical clustering within each component
+  const shouldUseHierarchical = nonConstants.length > 20
+  
+  let finalClusters = []
+  
+  if (shouldUseHierarchical) {
+    // Determine target number of clusters per component based on granularity
+    const granularityMap = {
+      'low': 0.15,    // ~15% of variables become separate modules
+      'medium': 0.25, // ~25% of variables become separate modules
+      'high': 0.40    // ~40% of variables become separate modules
+    }
+    
+    const ratio = granularityMap[granularity] || granularityMap['medium']
+    
+    for (const component of connectedComponents) {
+      if (component.length > 5) {
+        // Apply hierarchical clustering to larger components
+        const targetClusters = Math.max(2, Math.ceil(component.length * ratio))
+        const subClusters = hierarchicalClusterComponent(component, dependencyGraph, targetClusters)
+        finalClusters.push(...subClusters)
+      } else {
+        // Keep small components as single clusters
+        finalClusters.push(component)
+      }
+    }
+  } else {
+    // For small models, use connected components as-is
+    finalClusters = connectedComponents
+  }
+  
+  // Create module assignments with generated names
   const assignments = new Map()
   let moduleIndex = 1
   
-  for (const component of connectedComponents) {
-    const moduleName = `Module ${moduleIndex}`
-    for (const varName of component) {
-      assignments.set(varName, moduleName)
+  for (const cluster of finalClusters) {
+    const moduleName = generateModuleName(cluster)
+    const moduleId = `Module ${moduleIndex}`
+    
+    for (const varName of cluster) {
+      assignments.set(varName, { id: moduleId, name: moduleName })
     }
     moduleIndex++
   }
@@ -218,11 +414,14 @@ export function clusterVariables(modelFeatures, semanticConfig) {
   
   // Build cluster objects
   const clusters = new Map()
-  for (const [varName, clusterKey] of assignments.entries()) {
+  for (const [varName, moduleInfo] of assignments.entries()) {
+    const clusterKey = typeof moduleInfo === 'string' ? moduleInfo : moduleInfo.id
+    const clusterName = typeof moduleInfo === 'string' ? moduleInfo : moduleInfo.name
+    
     if (!clusters.has(clusterKey)) {
       clusters.set(clusterKey, {
         id: clusterKey,
-        displayName: clusterKey,
+        displayName: clusterName,
         variables: []
       })
     }
@@ -250,7 +449,8 @@ export function clusterVariables(modelFeatures, semanticConfig) {
   return {
     modules,
     stats,
-    interClusterEdges
+    interClusterEdges,
+    granularity: granularity
   }
 }
 
@@ -447,7 +647,7 @@ function assignConstantsToClusters(constants, assignments, modelFeatures) {
     
     if (!outgoing || outgoing.size === 0) {
       // Constant is not used by anyone, assign to "Other"
-      assignments.set(constName, 'Other')
+      assignments.set(constName, { id: 'Other', name: 'Other' })
       continue
     }
     
@@ -456,21 +656,32 @@ function assignConstantsToClusters(constants, assignments, modelFeatures) {
     for (const dep of outgoing) {
       const depCluster = assignments.get(dep.name)
       if (depCluster) {
-        clusterCounts.set(depCluster, (clusterCounts.get(depCluster) || 0) + 1)
+        const clusterId = typeof depCluster === 'string' ? depCluster : depCluster.id
+        clusterCounts.set(clusterId, (clusterCounts.get(clusterId) || 0) + 1)
       }
     }
     
     // Assign constant to the cluster that uses it most
     let maxCount = 0
-    let bestCluster = 'Other'
-    for (const [cluster, count] of clusterCounts.entries()) {
+    let bestClusterId = 'Other'
+    for (const [clusterId, count] of clusterCounts.entries()) {
       if (count > maxCount) {
         maxCount = count
-        bestCluster = cluster
+        bestClusterId = clusterId
       }
     }
     
-    assignments.set(constName, bestCluster)
+    // Find the module info for this cluster
+    let moduleInfo = { id: bestClusterId, name: bestClusterId }
+    for (const [, info] of assignments.entries()) {
+      const id = typeof info === 'string' ? info : info.id
+      if (id === bestClusterId) {
+        moduleInfo = info
+        break
+      }
+    }
+    
+    assignments.set(constName, moduleInfo)
   }
 }
 
@@ -594,15 +805,18 @@ function calculateInterClusterEdges(clusters, assignments, modelFeatures) {
       )
       
       for (const dep of semanticOutgoing) {
-        const targetCluster = assignments.get(dep.name)
-        if (targetCluster && targetCluster !== cluster.id) {
-          const edgeKey = `${cluster.id}->${targetCluster}`
-          if (!edgeSet.has(edgeKey)) {
-            edgeSet.add(edgeKey)
-            edges.push({
-              from: cluster.id,
-              to: targetCluster
-            })
+        const targetInfo = assignments.get(dep.name)
+        if (targetInfo) {
+          const targetClusterId = typeof targetInfo === 'string' ? targetInfo : targetInfo.id
+          if (targetClusterId !== cluster.id) {
+            const edgeKey = `${cluster.id}->${targetClusterId}`
+            if (!edgeSet.has(edgeKey)) {
+              edgeSet.add(edgeKey)
+              edges.push({
+                from: cluster.id,
+                to: targetClusterId
+              })
+            }
           }
         }
       }

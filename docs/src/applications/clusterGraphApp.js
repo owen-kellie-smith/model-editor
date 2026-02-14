@@ -111,8 +111,11 @@ async function handleGenerateClusterGraph() {
   try {
     displayClusterStatus('Generating cluster graph...', 'info')
     
-    // Perform clustering
-    clusteringResult = clusterVariables(modelEnv.features, semanticConfig)
+    // Get granularity setting
+    const granularity = ui.clusterGranularity?.value || 'medium'
+    
+    // Perform clustering with granularity option
+    clusteringResult = clusterVariables(modelEnv.features, semanticConfig, { granularity })
     
     // Display results
     displayClusteringResults(clusteringResult)
@@ -121,7 +124,7 @@ async function handleGenerateClusterGraph() {
     await renderClusterGraph(clusteringResult)
     
     displayClusterStatus(
-      `✓ Clustering complete: ${clusteringResult.modules.length} modules identified`,
+      `✓ Clustering complete: ${clusteringResult.modules.length} modules identified (${granularity} granularity)`,
       'success'
     )
   } catch (error) {

@@ -44,6 +44,7 @@ export const ui = {
   loadSemanticConfigFile: document.getElementById("loadSemanticConfigFile"),
   loadDefaultSemanticConfig: document.getElementById("loadDefaultSemanticConfig"),
   semanticConfigStatus: document.getElementById("semanticConfigStatus"),
+  clusterGranularity: document.getElementById("clusterGranularity"),
   generateClusterGraph: document.getElementById("generateClusterGraph"),
   clusterStatus: document.getElementById("clusterStatus"),
   clusterStats: document.getElementById("clusterStats"),
