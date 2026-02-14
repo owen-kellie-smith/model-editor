@@ -148,6 +148,61 @@ Formulas can reference variables at different time steps:
 
 ---
 
+## Rendering Models as Spreadsheets
+
+The model editor includes functionality to export a loaded model as a spreadsheet (CSV format) that is semantically equivalent to the original model. This allows models to be used in spreadsheet applications like Excel, Google Sheets, or LibreOffice Calc.
+
+### What is Rendered
+
+When a model is rendered as a spreadsheet, the output includes:
+
+1. **Variable Definitions Sheet**: Each variable becomes a named cell/row containing:
+   - Variable ID (name)
+   - Definition type (expression, constant, table, etc.)
+   - Formula or value
+   - Data type (if specified)
+   - Unit (if specified)
+   - Dependencies (incoming variables)
+
+2. **Input Space**: Variables with no dependencies (constants or table lookups) are marked as inputs and can be modified by users.
+
+3. **Calculation Order**: Variables are arranged in dependency order, ensuring that each formula only references cells that have already been calculated.
+
+### Implementation Approach
+
+The spreadsheet renderer follows these steps:
+
+1. **Parse Model**: Extract all variables, their definitions, and dependencies using the existing `getModelFeatures()` function.
+
+2. **Topological Sort**: Order variables so dependencies are resolved before dependents (detecting cycles during validation).
+
+3. **Formula Conversion**: Transform model expressions to spreadsheet formulas:
+   - Convert variable references to cell references (e.g., `premium` → `=B5`)
+   - Preserve functions that exist in both domains (SUM, IF, etc.)
+   - Mark unsupported functions with comments or errors
+
+4. **Generate CSV**: Create a CSV file with columns for:
+   - Variable name
+   - Cell reference
+   - Formula/value
+   - Type and metadata
+   - Comments for inputs
+
+5. **Download**: Use the browser's download mechanism to save the CSV file.
+
+### Limitations
+
+- **Function compatibility**: Not all model functions may have direct spreadsheet equivalents. Custom functions may require manual implementation.
+- **Parameterized variables**: Variables with index sets (multi-dimensional) need to be expanded into multiple cells.
+- **Tables**: Table data must be embedded or referenced as separate sheets/ranges.
+- **Time-shift references**: Time-dependent formulas (e.g., `balance(step-1)`) require careful handling to maintain correct cell references.
+
+### Usage
+
+Once a model is loaded and validated, click the "Render model as spreadsheet" link to download the CSV file. The file can then be opened in any spreadsheet application.
+
+---
+
 ## Development
 
 ### Local Development
