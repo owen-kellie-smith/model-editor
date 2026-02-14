@@ -181,6 +181,74 @@ When working with model validation, ensure:
 - Test with sample files in `docs/examples/`
 - Validate XML structure with browser dev tools
 
+## Build Steps
+
+This project has **NO BUILD STEP** by design:
+- All JavaScript runs directly in the browser as ES6+ modules
+- No transpilation, bundling, or preprocessing required
+- Simply serve the `docs/` directory statically
+
+To verify the application works:
+```bash
+cd docs
+python3 -m http.server 8080
+# Visit http://localhost:8080 and test functionality
+```
+
+## CI/CD
+
+### Continuous Integration
+
+The repository uses GitHub Actions for automated testing:
+- **Workflow file:** `.github/workflows/tests.yml`
+- **Triggers:** Push and pull request events
+- **Steps:** Checkout → Setup Node 20 → Install deps (`npm ci`) → Run tests (`npm test`)
+- All tests must pass before merging
+
+### Deployment
+
+- **Platform:** GitHub Pages
+- **Source:** `docs/` directory (served as static files)
+- **URL:** https://owen-kellie-smith.github.io/model-editor/
+- Deployment happens automatically when changes are merged to the main branch
+
+## Linting
+
+This project intentionally has **no linter** to keep the toolchain minimal:
+- Follow the code style conventions documented above
+- Match the style of surrounding code
+- Remove `console.log()` statements before committing
+- Ensure code is readable and well-organized
+
+## PR Requirements
+
+When creating pull requests:
+1. **Reference the issue:** Link to the related issue in the PR description
+2. **Run tests:** All tests must pass (`npm test`)
+3. **Minimal changes:** Make the smallest possible changes to fix the issue
+4. **Test manually:** Verify the application works by serving it locally
+5. **No build artifacts:** Don't commit `node_modules/`, temporary files, or build outputs
+6. **Clear commits:** Use descriptive commit messages
+7. **Documentation:** Update README.md or instructions if adding new features
+
+## Security and Dependencies
+
+### Runtime Dependencies
+- Keep browser dependencies minimal (currently only uses browser APIs)
+- Vendored libraries are served via CDN or included directly
+- No npm packages should be imported in runtime code
+
+### Dev Dependencies
+- Use npm for test-only dependencies (vitest, jsdom, xmldom, xpath)
+- Review security advisories before adding new dependencies
+- Keep dependencies up to date for security patches
+
+### Security Considerations
+- No server-side code means no server-side vulnerabilities
+- XML parsing is done client-side (XSS risks mitigated by not executing scripts)
+- No authentication or sensitive data handling
+- Validate all user input (XML structure, variable names, formulas)
+
 ## Remember
 
 - This is a **client-side only** application - no server-side code
