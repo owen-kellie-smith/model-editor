@@ -121,9 +121,9 @@ function appendModelResultSection(trunk, label, group){
   const h = document.createElement("h3");
   h.textContent = label;
   trunk.appendChild(h)
-  const ul = document.createElement("ul");
-  addListElements(ul, group);
-  trunk.appendChild(ul);
+  const list = document.createElement("ol");
+  addListElements(list, group);
+  trunk.appendChild(list);
 }
 
 function formatModelResultHTML({ features, obj, filename }) {
