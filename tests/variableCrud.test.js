@@ -631,4 +631,47 @@ describe("Variable CRUD Operations", () => {
       }).toThrow(/not found/i);
     });
   });
+
+  describe("listVariables with ModelMaker format", () => {
+    it("should list variables when loading ModelMaker format (toyMM_L1.xml)", () => {
+      // Load the ModelMaker format model
+      const modelText = fs.readFileSync(getFixture("toyMM_L1.xml"), "utf-8");
+      const result = validateModelCore(modelText, "toyMM_L1.xml", lang);
+      
+      // This should list variables even though the XML structure is different
+      const variables = listVariables(result.obj);
+      
+      expect(Array.isArray(variables)).toBe(true);
+      expect(variables.length).toBeGreaterThan(0);
+      
+      // Check that known variables from toyMM_L1.xml are present
+      const variableIds = variables.map(v => v.id ? v.id.toUpperCase() : v.toUpperCase());
+      expect(variableIds).toContain("ANNUAL_ANNUITY_AMOUNT");
+      expect(variableIds).toContain("CASHFLOW");
+      expect(variableIds).toContain("DISCOUNT_FACTOR");
+    });
+    
+    it("should match variables available in model features", () => {
+      // Load the ModelMaker format model
+      const modelText = fs.readFileSync(getFixture("toyMM_L1.xml"), "utf-8");
+      const result = validateModelCore(modelText, "toyMM_L1.xml", lang);
+      
+      // Get variables from listVariables
+      const listedVariables = listVariables(result.obj);
+      const listedVarNames = new Set(
+        listedVariables.map(v => v.id ? v.id.toUpperCase() : v.toUpperCase())
+      );
+      
+      // Get variables from model features (used by graph dropdown)
+      const featuredVarNames = new Set(result.features.variables);
+      
+      // These should match - both should have the same variables
+      expect(listedVarNames.size).toBe(featuredVarNames.size);
+      
+      // Every variable in features should be in the list
+      for (const varName of featuredVarNames) {
+        expect(listedVarNames.has(varName)).toBe(true);
+      }
+    });
+  });
 });
