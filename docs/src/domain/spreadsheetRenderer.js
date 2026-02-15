@@ -285,10 +285,11 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
   sheet.addRow(headers)
   
   // Build a map of cohort-only variables to their column letters in calc_cohort sheet
+  // Column A contains cohort ID, so cohort-only variables start at column B
   const cohortVarColMap = new Map()
-  let cohortColIdx = 1 // Start at column B (A is cohort id)
+  let cohortColIdx = 1 // Start at column B (A is cohort ID)
   for (const varName of cohortOnlyVars) {
-    cohortVarColMap.set(varName, getColumnLetter(cohortColIdx + 1)) // +1 because A is cohort
+    cohortVarColMap.set(varName, getColumnLetter(cohortColIdx + 1)) // Column B=2, C=3, etc.
     cohortColIdx++
   }
   
