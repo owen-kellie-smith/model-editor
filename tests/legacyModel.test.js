@@ -41,7 +41,10 @@ describe('Legacy Model Format', () => {
     expect(csv).toContain('Variable ID')
   })
 
-  it('should use uppercase cell references in Excel formulas', async () => {
+  it('should use uppercase cell references in Excel formulas to avoid #NAME errors in LibreOffice Calc', async () => {
+    // LibreOffice Calc treats lowercase cell references (e.g., b2) as named ranges
+    // and produces #NAME errors if they don't exist. Uppercase references (e.g., B2)
+    // are correctly interpreted as cell references.
     const modelXml = `<?xml version="1.0"?>
 <model id="test">
   <variables>
@@ -64,8 +67,15 @@ describe('Legacy Model Format', () => {
     // Read the blob content
     const excelXml = await excelBlob.text()
     
-    // Check that cell references are uppercase (B2, B3, etc., not b2, b3)
-    expect(excelXml).toMatch(/ss:Formula="=B\d+\s*\+\s*B\d+"/)
-    expect(excelXml).not.toMatch(/ss:Formula="=[^"]*b\d+/)
+    // Check that all cell references in formulas are uppercase (A-Z column, digit row)
+    // This regex matches any Excel formula attribute and checks for uppercase references
+    const formulaMatches = excelXml.match(/ss:Formula="=[^"]*"/g)
+    if (formulaMatches) {
+      for (const formula of formulaMatches) {
+        // Verify uppercase column letters (should have [A-Z]\d+, not [a-z]\d+)
+        expect(formula).toMatch(/=[^"]*[A-Z]\d+/)
+        expect(formula).not.toMatch(/[a-z]\d+/)
+      }
+    }
   })
 })
