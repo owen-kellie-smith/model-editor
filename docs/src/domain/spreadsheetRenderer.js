@@ -343,6 +343,13 @@ function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter
 }
 
 /**
+ * Escapes special regex characters in a string for use in RegExp
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
  * Generate Excel formula for a table lookup
  */
 function generateTableLookupFormula(varXml, currentRow) {
@@ -364,7 +371,7 @@ function generateTableLookupFormula(varXml, currentRow) {
   
   // Generate INDEX/MATCH formula for table lookup
   // INDEX(table!range, MATCH(rowKey, table!rowRange, 0), MATCH(colKey, table!colRange, 0))
-  return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A${currentRow},table_${tableRef}!$A1:$A${maxRow},0),MATCH(${columnRef},table_${tableRef}!$A$1:$${maxCol}$1,0))`
+  return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A${currentRow},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(${columnRef},table_${tableRef}!$A$1:$${maxCol}$1,0))`
 }
 
 /**
@@ -405,7 +412,7 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     const rowCell = rowColIndex ? `${getColumnLetter(rowColIndex)}${currentRow}` : rowRef
     
     // Column selector is typically from cohort sheet
-    return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH(${rowCell},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(calc_cohort!$E$2,table_${tableRef}!A$1:${maxCol}$1,0))`
+    return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH(${rowCell},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(calc_cohort!$E$2,table_${tableRef}!$A$1:$${maxCol}$1,0))`
   }
   
   return null
@@ -478,6 +485,7 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
   // First, handle function calls like floor(), max(), min()
   formula = formula.replace(/\bfloor\s*\(/gi, 'INT(')
   formula = formula.replace(/\bceiling\s*\(/gi, 'ROUNDUP(')
+  formula = formula.replace(/\bROUNDUP\s*\(([^)]+)\)/g, 'ROUNDUP($1,0)')  // Add second parameter for ROUNDUP
   formula = formula.replace(/\bmax\s*\(/gi, 'MAX(')
   formula = formula.replace(/\bmin\s*\(/gi, 'MIN(')
   
@@ -500,23 +508,34 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
     const colIndex = colIndexMap.get(varName)
     if (colIndex) {
       const colLetter = getColumnLetter(colIndex)
+      // Escape variable name for regex
+      const escapedVarName = escapeRegex(varName)
       // Handle both with and without arguments: variable(cohort, step) or variable
-      const pattern1 = new RegExp(`\\b${varName}\\s*\\([^)]*\\)`, 'gi')
+      const pattern1 = new RegExp(`\\b${escapedVarName}\\s*\\([^)]*\\)`, 'gi')
       formula = formula.replace(pattern1, `${colLetter}${currentRow}`)
       
-      const pattern2 = new RegExp(`\\b${varName}\\b`, 'gi')
+      const pattern2 = new RegExp(`\\b${escapedVarName}\\b`, 'gi')
       formula = formula.replace(pattern2, `${colLetter}${currentRow}`)
     }
   }
   
   // Handle references to constant variables
+  // Build a map of constant variable names to their row numbers in the constant sheet
+  const constantRowMap = new Map()
+  let constantRow = 1
+  for (const constVar of constantVars) {
+    constantRowMap.set(constVar, constantRow)
+    constantRow++
+  }
+  
   for (const constVar of constantVars) {
     const constVarXml = variableMap.get(constVar)
     if (constVarXml) {
-      // Reference to constant sheet (simplified - would need to track row numbers)
-      const pattern = new RegExp(`\\b${constVar}\\b`, 'gi')
-      // For now, use a simple reference - in reality we'd need to know the row
-      formula = formula.replace(pattern, `constant!$B$1`)
+      // Reference to constant sheet with the appropriate row number
+      const escapedConstVar = escapeRegex(constVar)
+      const pattern = new RegExp(`\\b${escapedConstVar}\\b`, 'gi')
+      const constRowNum = constantRowMap.get(constVar) || 1
+      formula = formula.replace(pattern, `constant!$B$${constRowNum}`)
     }
   }
   
