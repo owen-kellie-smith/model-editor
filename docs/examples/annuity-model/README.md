@@ -17,6 +17,24 @@ Benefits are level and payable while alive. There are no reversionary or lump su
 Mortality depends on integer attained age via externally supplied tables. 
 Discounting is derived from spot rates.
 
+## Files in this Directory
+
+### Model Definition Files
+- `vendor-format-model.xml` - Model in recommended format
+- `legacy-format-model.xml` - Model in legacy format
+
+### Reference Spreadsheet
+- `spreadsheet_rendered.xlsx` - Reference Excel file showing expected output
+
+### Human-Readable Reference Files (NEW)
+- `AI_READABLE_FORMATS.md` - Explains what spreadsheet formats can be directly read by AI assistants
+- `SPREADSHEET_STRUCTURE.md` - Complete description of spreadsheet structure in text format
+- `sheet1_constant.csv` - CSV export of constant sheet
+- `sheet5_calc_cohort.csv` - CSV export of calc_cohort sheet
+- `sheet6_calc_cohort_step.csv` - CSV export of calc_cohort_step sheet (12 months)
+
+**Note:** The CSV files provide an easily readable reference for the spreadsheet structure without needing to extract the binary XLSX file.
+
 ## Usage
 
 To use this example in the model editor:

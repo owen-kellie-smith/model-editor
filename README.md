@@ -18,7 +18,7 @@ A single web page for parsing, validating, and editing large declarative models 
 - **Graph Visualization** - Interactive dependency graphs with configurable depth (using Viz.js/DOT format)
 - **Multiple Definition Types** - Support for expression, constant, table, tableLookup, and piecewise definitions
 - **Parameterized Variables** - Variables with index sets for multi-dimensional modeling
-- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG
+- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets
 - **Zero-build Architecture** - Pure client-side application with no build step required
 
 ---
@@ -41,12 +41,39 @@ No build step or server required.
 
 ---
 
+## File Format Support
+
+### What files can the model-editor read?
+
+The model-editor reads **XML files only**:
+- **Language files** (`language.xml`) - Define available functions and their arities
+- **Model files** (`model.xml`) - Define variables, their relationships, and calculations
+
+### What files can the model-editor write?
+
+The model-editor can export:
+- **XML files** (`.xml`) - Export language and model definitions
+- **Excel spreadsheets** (`.xlsx`) - Render models as calculation-ready spreadsheets with multiple sheets, formulas, and sample data
+- **SVG/PNG files** - Download dependency graphs as images
+
+### Can the model-editor read spreadsheet files?
+
+**No.** The model-editor is a declarative model editor, not a spreadsheet converter. The "Render model as spreadsheet" feature is **one-way** - it generates Excel files from XML models but cannot import spreadsheet files back into XML format.
+
+If you have calculations in a spreadsheet and want to use the model-editor, you must:
+1. Define your model structure in XML format
+2. Use the model-editor to validate and visualize dependencies
+3. Export to Excel for calculations and presentations
+
+---
+
 ## Technology Stack
 
 - **JavaScript:** ES6+ modules running directly in the browser 
 - **DOM Manipulation:** Vanilla JavaScript (no framework)
 - **XML Processing:** `@xmldom/xmldom`, `xpath`
 - **Graph Visualization:** Viz.js (DOT format rendering to SVG)
+- **Spreadsheet Generation:** ExcelJS for creating Excel workbooks with formulas
 - **Testing:** Vitest with jsdom for browser environment simulation
 - **Deployment:** GitHub Pages (static files served from `docs/` directory)
 
