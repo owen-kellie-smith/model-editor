@@ -4,6 +4,7 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
+import { renderModelAsSpreadsheet, renderModelAsExcel } from "../domain/spreadsheetRenderer.js";
 import { setElementContent } from "../utils/helpers.js";
 
 
@@ -70,6 +71,7 @@ function validateModel(text, filename, lang) {
     modelCommitTime = new Date();
     lastCommittedText = text;
     ui.downloadModel.disabled = false;   // ✅ valid
+    ui.downloadSpreadsheet.disabled = false;  // ✅ enable spreadsheet download
     updateModelStatus("✓ Valid", "success");
     updateLoadedInfo();
     updateDirtyIndicator();
@@ -80,6 +82,7 @@ function validateModel(text, filename, lang) {
     setLogText(formatError(er));
     modelEnv = null;
     ui.downloadModel.disabled = true;    // ❌ invalid
+    ui.downloadSpreadsheet.disabled = true;  // ❌ disable spreadsheet download
     updateModelStatus(formatErrorNoStack(er), "error");
     updateDirtyIndicator();  // ✅ ADD THIS - also update on error
   }
@@ -176,6 +179,27 @@ export function wireModelHandlers() {
     lastCommittedText = xml.trim();
     updateDirtyIndicator();
   });
+  
+  ui.downloadSpreadsheet.addEventListener("click", async () => {
+    if (!modelEnv) return;
+    try {
+      const blob = await renderModelAsExcel(modelEnv.obj, modelEnv.features);
+      
+      // Download the blob as a file
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "model_spreadsheet.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Error rendering spreadsheet: " + error.message);
+      console.error("Spreadsheet rendering error:", error);
+    }
+  });
+  
   ui.loadModelText.addEventListener("click", () => {
     if (!languageEnvIsSet()) return;
     const text = ui.modelText.value.trim();
