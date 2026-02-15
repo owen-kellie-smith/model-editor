@@ -27,7 +27,12 @@ function topologicalSort(incoming, variableNames) {
     for (const dep of deps) {
       // dep might be an object with name property or just a string
       const depName = typeof dep === "object" && dep.name ? dep.name : dep
-      visit(depName)
+      // Only follow dependencies with zero shift (same time step)
+      // Dependencies with non-zero shifts (e.g., X(t) depends on X(t-1)) are not cycles
+      const depShift = typeof dep === "object" && dep.shift !== undefined ? dep.shift : 0
+      if (depShift === 0) {
+        visit(depName)
+      }
     }
     
     visiting.delete(varName)
