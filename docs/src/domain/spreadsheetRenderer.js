@@ -317,85 +317,243 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars)
 }
 
 /**
- * Generate Excel formula for a variable
+ * Generate Excel formula for a variable based on its definition
  */
 function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap) {
   const defType = getDefinitionType(varXml)
   const expression = getDefinitionText(varXml)
-  const varId = varXml.id.toLowerCase()
   
-  // Special handling for known variables based on the reference spreadsheet
-  switch (varId) {
-    case 'attained_age':
-      // current_age(cohort) + step * step_length
-      // = calc_cohort!D$2 + constant!$B$1 * A2
-      return `calc_cohort!D$2+constant!$B$1*A${currentRow}`
-      
-    case 'attained_age_years_floor':
-      // floor(attained_age(cohort, step))
-      // Use INT() for better compatibility with older Excel and LibreOffice Calc
-      return `INT(B${currentRow})`
-      
-    case 'annual_mortality_rate':
-      // tableLookup from mortality_rate table using dimension constants
-      const maxMortalityRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxRow
-      return `INDEX(table_mortality_rate!$A$1:$C$${maxMortalityRow},MATCH(C${currentRow},table_mortality_rate!$A$1:$A$${maxMortalityRow},0),MATCH(calc_cohort!$E$2,table_mortality_rate!A$1:C$1,0))`
-      
-    case 'monthly_survival_rate':
-      // (1 - annual_mortality_rate(cohort, step)) ^ step_length
-      return `(1-D${currentRow})^constant!$B$1`
-      
-    case 'survival_to_start_of_step':
-      // Piecewise: if step=0 then 1, else previous * monthly_survival_rate
-      // Handle first row (step=0) specially
-      if (step === 0) {
-        return `1`  // First step always has survival = 1
-      } else {
-        return `F${currentRow - 1}*E${currentRow}`
-      }
-      
-    case 'payable_at_start_of_step':
-      // attained_age(cohort, step) >= annuity_start_age(cohort)
-      return `B${currentRow}>=calc_cohort!C$2`
-      
-    case 'payment_indicator':
-      // payable_at_start_of_step ? 1 : 0
-      return `IF(G${currentRow},1,0)`
-      
-    case 'cashflow':
-      // annual_annuity_amount * step_length * payment_indicator * survival_to_start_of_step
-      return `calc_cohort!$B$2*constant!$B$1*F${currentRow}*H${currentRow}`
-      
-    case 'spot_rate':
-      // table lookup from spot_rate table using dimension constants
-      const maxSpotRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
-      return `INDEX(table_spot_rate!B$1:B$${maxSpotRow},MATCH(A${currentRow},table_spot_rate!A$1:A$${maxSpotRow},0))`
-      
-    case 'discount_factor':
-      // (1 + spot_rate) ^ (-step * step_length)
-      return `(1+J${currentRow})^(-A${currentRow}*constant!$B$1)`
-      
-    case 'discounted_cashflow':
-      // discount_factor * cashflow
-      return `K${currentRow}*I${currentRow}`
-      
-    default:
-      // Generic handling based on definition type
-      if (defType === 'expression') {
-        return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars)
-      } else if (defType === 'piecewise') {
-        return null // Handled above for specific variables
-      } else if (defType === 'tableLookup') {
-        return null // Handled above for specific variables
+  // Handle based on definition type, reading from actual model
+  if (defType === 'expression') {
+    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+  } else if (defType === 'table') {
+    return generateTableLookupFormula(varXml, currentRow)
+  } else if (defType === 'tableLookup') {
+    return generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, cohortStepVars)
+  } else if (defType === 'piecewise') {
+    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+  } else if (defType === 'constant') {
+    // Constants should be in their own sheet, referenced by name
+    const constantSheetName = 'constant'
+    // Find row in constant sheet (would need to track this, simplified for now)
+    return null // Constants are typically not in step-by-step calculations
+  }
+  
+  return null
+}
+
+/**
+ * Escapes special regex characters in a string for use in RegExp
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Generate Excel formula for a table lookup
+ */
+function generateTableLookupFormula(varXml, currentRow) {
+  const tableDef = varXml.definition
+  if (!tableDef || !tableDef.table || !tableDef.column) {
+    return null
+  }
+  
+  const tableRef = tableDef.table.ref || tableDef.table['#text'] || ''
+  const columnRef = tableDef.column.ref || tableDef.column['#text'] || ''
+  
+  if (!tableRef || !columnRef) {
+    return null
+  }
+  
+  // Use table dimensions from constants
+  const maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
+  const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
+  
+  // Generate INDEX/MATCH formula for table lookup
+  // INDEX(table!range, MATCH(rowKey, table!rowRange, 0), MATCH(colKey, table!colRange, 0))
+  return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A${currentRow},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(${columnRef},table_${tableRef}!$A$1:$${maxCol}$1,0))`
+}
+
+/**
+ * Generate Excel formula for an advanced table lookup (with selectors)
+ */
+function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, cohortStepVars) {
+  const tableDef = varXml.definition
+  if (!tableDef || !tableDef.table) {
+    return null
+  }
+  
+  const tableRef = tableDef.table.ref || tableDef.table['#text'] || ''
+  const rowRef = tableDef.row?.ref || tableDef.row?.['#text'] || ''
+  const columnSelector = tableDef.columnSelector?.ref || tableDef.columnSelector?.['#text'] || ''
+  
+  if (!tableRef) {
+    return null
+  }
+  
+  // Determine the appropriate table dimensions
+  let maxRow, maxCol
+  if (tableRef.toLowerCase().includes('mortality')) {
+    maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxRow
+    maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
+  } else if (tableRef.toLowerCase().includes('spot')) {
+    maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
+    maxCol = 'B'  // spot_rate has 2 columns
+  } else {
+    maxRow = 100  // default
+    maxCol = 'Z'
+  }
+  
+  // Generate INDEX/MATCH formula with dynamic column selection
+  if (rowRef && columnSelector) {
+    // Find the column index for the row variable if it's in cohortStepVars
+    const rowVarUpper = rowRef.toUpperCase()
+    const rowColIndex = colIndexMap.get(rowVarUpper)
+    const rowCell = rowColIndex ? `${getColumnLetter(rowColIndex)}${currentRow}` : rowRef
+    
+    // Column selector is typically from cohort sheet
+    return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH(${rowCell},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(calc_cohort!$E$2,table_${tableRef}!$A$1:$${maxCol}$1,0))`
+  }
+  
+  return null
+}
+
+/**
+ * Generate Excel formula for piecewise conditional logic
+ */
+function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap) {
+  const definition = varXml.definition
+  if (!definition || !definition.case) {
+    return null
+  }
+  
+  // Get the cases (could be single or array)
+  const cases = Array.isArray(definition.case) ? definition.case : [definition.case]
+  
+  if (cases.length === 0) {
+    return null
+  }
+  
+  // Special handling for step-dependent piecewise (e.g., survival calculations)
+  // If the first case condition references "step" and checks for 0
+  const firstCase = cases[0]
+  const whenText = firstCase.when?.['#text'] || firstCase.when || ''
+  const valueText = firstCase.value?.['#text'] || firstCase.value || ''
+  
+  // Check if this is a step = 0 condition
+  if (whenText.includes('step') && whenText.includes('0')) {
+    // Handle "if step=0 then value else otherValue" pattern
+    if (step === 0) {
+      // Evaluate the value for step 0
+      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+      return evaluatedValue || valueText
+    } else {
+      // Use the else case or second case
+      if (cases.length > 1) {
+        const secondCase = cases[1]
+        const elseValue = secondCase.value?.['#text'] || secondCase.value || ''
+        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
       }
       return null
+    }
   }
+  
+  // General IF formula generation
+  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+  
+  if (condition && thenValue) {
+    return `IF(${condition},${thenValue},0)`
+  }
+  
+  return null
+}
+
+/**
+ * Convert a model expression to an Excel formula
+ */
+function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step) {
+  if (!expression || typeof expression !== 'string') {
+    return null
+  }
+  
+  let formula = expression.trim()
+  
+  // Replace variable references with cell references
+  // We need to identify variable names and replace them with appropriate cell references
+  
+  // First, handle function calls like floor(), max(), min()
+  formula = formula.replace(/\bfloor\s*\(/gi, 'INT(')
+  formula = formula.replace(/\bceiling\s*\(/gi, 'ROUNDUP(')
+  formula = formula.replace(/\bROUNDUP\s*\(([^)]+)\)/g, 'ROUNDUP($1,0)')  // Add second parameter for ROUNDUP
+  formula = formula.replace(/\bmax\s*\(/gi, 'MAX(')
+  formula = formula.replace(/\bmin\s*\(/gi, 'MIN(')
+  
+  // Handle comparison operators for Excel
+  // >= and <= are already valid in Excel
+  // = becomes = for comparison
+  
+  // Handle ternary operator: condition ? value1 : value2 => IF(condition, value1, value2)
+  const ternaryMatch = formula.match(/(.+?)\s*\?\s*(.+?)\s*:\s*(.+)/)
+  if (ternaryMatch) {
+    const condition = ternaryMatch[1].trim()
+    const trueValue = ternaryMatch[2].trim()
+    const falseValue = ternaryMatch[3].trim()
+    formula = `IF(${condition},${trueValue},${falseValue})`
+  }
+  
+  // Replace variable references
+  // For each variable in the current calculation context
+  for (const varName of cohortStepVars) {
+    const colIndex = colIndexMap.get(varName)
+    if (colIndex) {
+      const colLetter = getColumnLetter(colIndex)
+      // Escape variable name for regex
+      const escapedVarName = escapeRegex(varName)
+      // Handle both with and without arguments: variable(cohort, step) or variable
+      const pattern1 = new RegExp(`\\b${escapedVarName}\\s*\\([^)]*\\)`, 'gi')
+      formula = formula.replace(pattern1, `${colLetter}${currentRow}`)
+      
+      const pattern2 = new RegExp(`\\b${escapedVarName}\\b`, 'gi')
+      formula = formula.replace(pattern2, `${colLetter}${currentRow}`)
+    }
+  }
+  
+  // Handle references to constant variables
+  // Build a map of constant variable names to their row numbers in the constant sheet
+  const constantRowMap = new Map()
+  let constantRow = 1
+  for (const constVar of constantVars) {
+    constantRowMap.set(constVar, constantRow)
+    constantRow++
+  }
+  
+  for (const constVar of constantVars) {
+    const constVarXml = variableMap.get(constVar)
+    if (constVarXml) {
+      // Reference to constant sheet with the appropriate row number
+      const escapedConstVar = escapeRegex(constVar)
+      const pattern = new RegExp(`\\b${escapedConstVar}\\b`, 'gi')
+      const constRowNum = constantRowMap.get(constVar) || 1
+      formula = formula.replace(pattern, `constant!$B$${constRowNum}`)
+    }
+  }
+  
+  // Handle "step" reference (column A in calc_cohort_step sheet)
+  formula = formula.replace(/\bstep\b/gi, `A${currentRow}`)
+  
+  // Handle references to cohort-only variables (from calc_cohort sheet)
+  // These would need special handling to reference the cohort sheet
+  // For simplicity, we'll reference specific known locations
+  
+  return formula || null
 }
 
 /**
  * Convert a model expression to an Excel formula (simplified)
+ * @deprecated Use the full convertExpressionToFormula function instead
  */
-function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars) {
+function convertExpressionToFormulaSimple(expression, currentRow, colIndexMap, cohortStepVars) {
   // This is a simplified conversion - a full implementation would need proper parsing
   // For now, return null to use default value
   return null
