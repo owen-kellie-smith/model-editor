@@ -4,6 +4,30 @@
  * Generates a spreadsheet for a single cohort calculation
  */
 
+// Module-level constants for table dimensions
+const TABLE_DIMENSIONS = {
+  COHORT_DATA: {
+    maxRow: 8,  // 4 header rows + 4 data rows
+    maxCol: 'E',  // 5 columns
+  },
+  MORTALITY_RATE: {
+    minAge: 17,
+    maxAge: 104,
+    numCols: 3,  // age, AM92U, AF92U
+  },
+  SPOT_RATE: {
+    minStep: 0,
+    maxStep: 120,
+  },
+  CALC_COHORT_STEP: {
+    stepCount: 12,  // 12 months for annual projection
+  }
+}
+
+// Computed values
+TABLE_DIMENSIONS.MORTALITY_RATE.maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge + 2  // +1 for header, +1 for inclusive range
+TABLE_DIMENSIONS.SPOT_RATE.maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep + 1  // +1 for inclusive range
+
 /**
  * Gets the definition text from a variable's XML representation
  */
@@ -76,9 +100,11 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
         // Try to evaluate simple expressions
         let value = expression
         try {
-          // Simple evaluation for constants like "1/12"
+          // Simple evaluation for basic arithmetic constants like "1/12"
+          // Only allow digits, spaces, and basic arithmetic operators
           if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
-            value = eval(expression)
+            // Safe evaluation using Function constructor (safer than eval)
+            value = Function('"use strict"; return (' + expression + ')')()
           }
         } catch (e) {
           value = expression
@@ -156,12 +182,13 @@ function addTableSheets(workbook) {
   const mortalitySheet = workbook.addWorksheet('table_mortality_rate')
   mortalitySheet.addRow(['age', 'AM92U', 'AF92U'])
   
-  // Add mortality data for ages 17-104 (matching reference)
-  for (let age = 17; age <= 104; age++) {
+  // Add mortality data using constants
+  for (let age = TABLE_DIMENSIONS.MORTALITY_RATE.minAge; age <= TABLE_DIMENSIONS.MORTALITY_RATE.maxAge; age++) {
     // Use realistic mortality rates that increase with age
     const baseMale = 0.0006
     const baseFemale = 0.000172
-    const ageFactor = Math.pow((age - 17) / 87, 3)
+    const ageRange = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge
+    const ageFactor = Math.pow((age - TABLE_DIMENSIONS.MORTALITY_RATE.minAge) / ageRange, 3)
     const maleRate = baseMale + ageFactor * (1 - baseMale)
     const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
     mortalitySheet.addRow([age, maleRate, femaleRate])
@@ -171,10 +198,11 @@ function addTableSheets(workbook) {
   const spotSheet = workbook.addWorksheet('table_spot_rate')
   spotSheet.addRow(['step', 'rate'])
   
-  // Add spot rates for steps 0-120
-  for (let step = 0; step <= 120; step++) {
-    // Use varying spot rates (example: 5-6% range)
-    const rate = 0.05 + 0.01 * Math.random()
+  // Add spot rates using constants
+  for (let step = TABLE_DIMENSIONS.SPOT_RATE.minStep; step <= TABLE_DIMENSIONS.SPOT_RATE.maxStep; step++) {
+    // Use deterministic spot rates
+    const stepRange = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep
+    const rate = 0.05 + 0.01 * (step / stepRange)
     spotSheet.addRow([step, rate])
   }
 }
@@ -219,8 +247,11 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
       const columnRef = tableDef.column?.ref || tableDef.column?.['#text'] || ''
       
       if (tableRef && columnRef) {
+        // Use table dimensions from constants
+        const maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
+        const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
         row.push({ 
-          formula: `INDEX(table_${tableRef}!$A$1:$E$8,MATCH($A2,table_${tableRef}!$A1:$A8,0),MATCH(${colLetter}$1,table_${tableRef}!$A$1:$E$1,0))` 
+          formula: `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A2,table_${tableRef}!$A1:$A${maxRow},0),MATCH(${colLetter}$1,table_${tableRef}!$A$1:$${maxCol}$1,0))` 
         })
       } else {
         row.push('')
@@ -253,8 +284,8 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars)
   }
   sheet.addRow(headers)
   
-  // Add rows for steps 0-11 (12 months for a year)
-  const stepCount = 12
+  // Add rows for steps using constant
+  const stepCount = TABLE_DIMENSIONS.CALC_COHORT_STEP.stepCount
   
   for (let step = 0; step < stepCount; step++) {
     const row = [step]
@@ -302,11 +333,13 @@ function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter
       
     case 'attained_age_years_floor':
       // floor(attained_age(cohort, step))
-      return `_xlfn.FLOOR.MATH(B${currentRow})`
+      // Use INT() for better compatibility with older Excel and LibreOffice Calc
+      return `INT(B${currentRow})`
       
     case 'annual_mortality_rate':
-      // tableLookup from mortality_rate table
-      return `INDEX(table_mortality_rate!$A$1:$C$2000,MATCH(C${currentRow},table_mortality_rate!$A$1:$A$2000,0),MATCH(calc_cohort!$E$2,table_mortality_rate!A$1:C$1,0))`
+      // tableLookup from mortality_rate table using dimension constants
+      const maxMortalityRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxRow
+      return `INDEX(table_mortality_rate!$A$1:$C$${maxMortalityRow},MATCH(C${currentRow},table_mortality_rate!$A$1:$A$${maxMortalityRow},0),MATCH(calc_cohort!$E$2,table_mortality_rate!A$1:C$1,0))`
       
     case 'monthly_survival_rate':
       // (1 - annual_mortality_rate(cohort, step)) ^ step_length
@@ -314,7 +347,12 @@ function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter
       
     case 'survival_to_start_of_step':
       // Piecewise: if step=0 then 1, else previous * monthly_survival_rate
-      return `IF(A${currentRow}=0,1,F${currentRow - 1}*E${currentRow})`
+      // Handle first row (step=0) specially
+      if (step === 0) {
+        return `1`  // First step always has survival = 1
+      } else {
+        return `F${currentRow - 1}*E${currentRow}`
+      }
       
     case 'payable_at_start_of_step':
       // attained_age(cohort, step) >= annuity_start_age(cohort)
@@ -329,8 +367,9 @@ function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter
       return `calc_cohort!$B$2*constant!$B$1*F${currentRow}*H${currentRow}`
       
     case 'spot_rate':
-      // table lookup from spot_rate table
-      return `INDEX(table_spot_rate!B$1:B$2000,MATCH(A${currentRow},table_spot_rate!A$1:A$2000,0))`
+      // table lookup from spot_rate table using dimension constants
+      const maxSpotRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
+      return `INDEX(table_spot_rate!B$1:B$${maxSpotRow},MATCH(A${currentRow},table_spot_rate!A$1:A$${maxSpotRow},0))`
       
     case 'discount_factor':
       // (1 + spot_rate) ^ (-step * step_length)
