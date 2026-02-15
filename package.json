@@ -21,6 +21,7 @@
   "devDependencies": {
     "@vitest/browser": "^4.0.18",
     "@xmldom/xmldom": "^0.8.11",
+    "exceljs": "^4.4.0",
     "jsdom": "^28.0.0",
     "vitest": "^4.0.18",
     "xpath": "^0.0.34"
