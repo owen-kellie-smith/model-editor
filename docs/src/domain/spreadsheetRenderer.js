@@ -485,6 +485,15 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
   // >= and <= are already valid in Excel
   // = becomes = for comparison
   
+  // Handle ternary operator: condition ? value1 : value2 => IF(condition, value1, value2)
+  const ternaryMatch = formula.match(/(.+?)\s*\?\s*(.+?)\s*:\s*(.+)/)
+  if (ternaryMatch) {
+    const condition = ternaryMatch[1].trim()
+    const trueValue = ternaryMatch[2].trim()
+    const falseValue = ternaryMatch[3].trim()
+    formula = `IF(${condition},${trueValue},${falseValue})`
+  }
+  
   // Replace variable references
   // For each variable in the current calculation context
   for (const varName of cohortStepVars) {
