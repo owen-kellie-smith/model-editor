@@ -124,7 +124,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Add calculation sheet for cohort-step variables (single cohort, multiple steps)
   if (categorized.cohortStep.length > 0) {
-    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants)
+    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly)
   }
   
   // Generate Excel file
@@ -267,7 +267,7 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
 /**
  * Add cohort-step calculation sheet
  */
-function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars) {
+function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars) {
   const sheet = workbook.addWorksheet('calc_cohort_step')
   
   // Build header row
@@ -283,6 +283,15 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars)
     colIdx++
   }
   sheet.addRow(headers)
+  
+  // Build a map of cohort-only variables to their column letters in calc_cohort sheet
+  // Column A contains cohort ID, so cohort-only variables start at column B
+  const cohortVarColMap = new Map()
+  let cohortColIdx = 1 // Start at column B (A is cohort ID)
+  for (const varName of cohortOnlyVars) {
+    cohortVarColMap.set(varName, getColumnLetter(cohortColIdx + 1)) // Column B=2, C=3, etc.
+    cohortColIdx++
+  }
   
   // Add rows for steps using constant
   const stepCount = TABLE_DIMENSIONS.CALC_COHORT_STEP.stepCount
@@ -303,7 +312,7 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars)
       const colLetter = getColumnLetter(colIndexMap.get(varName))
       
       // Generate appropriate formula based on variable type
-      let formula = generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap)
+      let formula = generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap)
       
       if (formula) {
         row.push({ formula })
@@ -319,19 +328,19 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars)
 /**
  * Generate Excel formula for a variable based on its definition
  */
-function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap) {
+function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap) {
   const defType = getDefinitionType(varXml)
   const expression = getDefinitionText(varXml)
   
   // Handle based on definition type, reading from actual model
   if (defType === 'expression') {
-    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
   } else if (defType === 'table') {
     return generateTableLookupFormula(varXml, currentRow)
   } else if (defType === 'tableLookup') {
     return generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, cohortStepVars)
   } else if (defType === 'piecewise') {
-    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap)
   } else if (defType === 'constant') {
     // Constants should be in their own sheet, referenced by name
     const constantSheetName = 'constant'
@@ -421,7 +430,7 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
 /**
  * Generate Excel formula for piecewise conditional logic
  */
-function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap) {
+function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap) {
   const definition = varXml.definition
   if (!definition || !definition.case) {
     return null
@@ -445,22 +454,22 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
     // Handle "if step=0 then value else otherValue" pattern
     if (step === 0) {
       // Evaluate the value for step 0
-      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
       return evaluatedValue || valueText
     } else {
       // Use the else case or second case
       if (cases.length > 1) {
         const secondCase = cases[1]
         const elseValue = secondCase.value?.['#text'] || secondCase.value || ''
-        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
       }
       return null
     }
   }
   
   // General IF formula generation
-  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
-  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step)
+  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
   
   if (condition && thenValue) {
     return `IF(${condition},${thenValue},0)`
@@ -472,7 +481,7 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
 /**
  * Convert a model expression to an Excel formula
  */
-function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step) {
+function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap) {
   if (!expression || typeof expression !== 'string') {
     return null
   }
@@ -500,6 +509,19 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
     const trueValue = ternaryMatch[2].trim()
     const falseValue = ternaryMatch[3].trim()
     formula = `IF(${condition},${trueValue},${falseValue})`
+  }
+  
+  // Handle references to cohort-only variables (from calc_cohort sheet)
+  // These are variables with arguments like current_age(cohort) or annuity_start_age(cohort)
+  // They should reference cells in the calc_cohort sheet
+  if (cohortVarColMap) {
+    for (const [varName, colLetter] of cohortVarColMap) {
+      const escapedVarName = escapeRegex(varName)
+      // Match variable with (cohort) argument - this is a model function call
+      const patternWithCohort = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*\\)`, 'gi')
+      // Replace with reference to calc_cohort sheet, row 2 (data row), absolute column
+      formula = formula.replace(patternWithCohort, `calc_cohort!${colLetter}$2`)
+    }
   }
   
   // Replace variable references
@@ -541,10 +563,6 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
   
   // Handle "step" reference (column A in calc_cohort_step sheet)
   formula = formula.replace(/\bstep\b/gi, `A${currentRow}`)
-  
-  // Handle references to cohort-only variables (from calc_cohort sheet)
-  // These would need special handling to reference the cohort sheet
-  // For simplicity, we'll reference specific known locations
   
   return formula || null
 }
