@@ -182,5 +182,59 @@ describe('Spreadsheet Renderer', () => {
       expect(csv).toContain('XXX')
       expect(csv).toContain('999')
     })
+
+    it('should reflect changes when model formulae are edited', () => {
+      // Create two models with different formulas for the same variable IDs
+      const modelXml1 = `<?xml version="1.0"?>
+<model id="test1">
+  <variables>
+    <variable id="A">
+      <definition type="constant">10</definition>
+    </variable>
+    <variable id="B">
+      <definition type="constant">20</definition>
+    </variable>
+    <variable id="C">
+      <definition type="expression">A + B</definition>
+    </variable>
+  </variables>
+</model>`
+
+      const modelXml2 = `<?xml version="1.0"?>
+<model id="test2">
+  <variables>
+    <variable id="A">
+      <definition type="constant">100</definition>
+    </variable>
+    <variable id="B">
+      <definition type="constant">200</definition>
+    </variable>
+    <variable id="C">
+      <definition type="expression">A * B</definition>
+    </variable>
+  </variables>
+</model>`
+
+      const model1 = validateModelCore(modelXml1, 'test1.xml', lang)
+      const model2 = validateModelCore(modelXml2, 'test2.xml', lang)
+
+      const csv1 = renderModelAsSpreadsheet(model1.obj, model1.features)
+      const csv2 = renderModelAsSpreadsheet(model2.obj, model2.features)
+
+      // CSVs should be different because formulas are different
+      expect(csv1).not.toEqual(csv2)
+      
+      // Check that first model has addition formula
+      expect(csv1).toContain('A + B')
+      
+      // Check that second model has multiplication formula  
+      expect(csv2).toContain('A * B')
+      
+      // Check that constant values are different
+      expect(csv1).toContain('10')
+      expect(csv1).toContain('20')
+      expect(csv2).toContain('100')
+      expect(csv2).toContain('200')
+    })
   })
 })
