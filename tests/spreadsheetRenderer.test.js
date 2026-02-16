@@ -395,6 +395,8 @@ describe('Spreadsheet Renderer', () => {
 
     it('should use model-driven min/max for rowIndex to determine sample row count', () => {
       // Test that rowIndex min/max attributes control the number of sample rows generated
+      // Note: This test verifies XML parsing only. Actual sample data generation happens
+      // in renderModelAsExcel which requires ExcelJS (not available in test environment).
       const modelXml = `<?xml version="1.0"?>
 <model id="test_rowindex_minmax">
   <indexSets>
@@ -460,17 +462,35 @@ describe('Spreadsheet Renderer', () => {
       expect(smallRangeTable.rowIndex.min).toBe('20')
       expect(smallRangeTable.rowIndex.max).toBe('25')
       
+      // Verify column min/max are also parsed
+      const smallRangeColumns = Array.isArray(smallRangeTable.columns.column)
+        ? smallRangeTable.columns.column
+        : [smallRangeTable.columns.column]
+      const valueCol = smallRangeColumns.find(c => c.id === 'value')
+      expect(valueCol).toBeTruthy()
+      expect(valueCol.min).toBe('1.0')
+      expect(valueCol.max).toBe('10.0')
+      
       const largeRangeTable = tables.find(t => t.id === 'large_range')
       expect(largeRangeTable).toBeTruthy()
       expect(largeRangeTable.rowIndex.min).toBe('0')
       expect(largeRangeTable.rowIndex.max).toBe('120')
+      
+      // Verify column min/max for large range
+      const largeRangeColumns = Array.isArray(largeRangeTable.columns.column)
+        ? largeRangeTable.columns.column
+        : [largeRangeTable.columns.column]
+      const rateCol = largeRangeColumns.find(c => c.id === 'rate')
+      expect(rateCol).toBeTruthy()
+      expect(rateCol.min).toBe('0.01')
+      expect(rateCol.max).toBe('0.08')
       
       const noMinMaxTable = tables.find(t => t.id === 'no_minmax')
       expect(noMinMaxTable).toBeTruthy()
       expect(noMinMaxTable.rowIndex.min).toBeUndefined()
       expect(noMinMaxTable.rowIndex.max).toBeUndefined()
       
-      // Should render successfully
+      // Should render successfully (validates the model is well-formed)
       const csv = renderModelAsSpreadsheet(model.obj, model.features)
       expect(csv).toBeTruthy()
     })

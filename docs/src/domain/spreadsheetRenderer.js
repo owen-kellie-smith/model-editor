@@ -384,7 +384,7 @@ function addTableSheets(workbook, modelObj) {
           // Generate evenly-spaced values across the range
           // This ensures we cover the full range including both min and max
           const step = range / (numSampleRows - 1)
-          rowIndexValue = tableDef.rowIndexMin + Math.round(i * step)
+          rowIndexValue = Math.round(tableDef.rowIndexMin + i * step)
         }
         
         row.push(rowIndexValue)
