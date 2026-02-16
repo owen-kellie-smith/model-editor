@@ -4,31 +4,6 @@
  * Generates a spreadsheet for a single cohort calculation
  */
 
-// Module-level constants for table dimensions
-const TABLE_DIMENSIONS = {
-  COHORT_DATA: {
-    maxRow: 8,  // 4 header rows + 4 data rows
-    maxCol: 'E',  // 5 columns
-  },
-  MORTALITY_RATE: {
-    minAge: 17,
-    maxAge: 104,
-    numCols: 3,  // age, AM92U, AF92U
-  },
-  SPOT_RATE: {
-    minStep: 0,
-    maxStep: 120,
-    numCols: 2,  // step, rate
-  },
-  CALC_COHORT_STEP: {
-    stepCount: 12,  // 12 months for annual projection
-  }
-}
-
-// Computed values
-TABLE_DIMENSIONS.MORTALITY_RATE.maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge + 2  // +1 for header, +1 for inclusive range
-TABLE_DIMENSIONS.SPOT_RATE.maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep + 2  // +1 for header, +1 for inclusive range
-
 /**
  * Gets the definition text from a variable's XML representation
  */
@@ -237,9 +212,10 @@ function extractTableDefinitions(modelObj) {
  * @param {number} rowIndex - Row index for variation
  * @param {number} [min] - Optional minimum value for numeric types
  * @param {number} [max] - Optional maximum value for numeric types
+ * @param {string} [tableId] - Optional table identifier for generic string generation
  * @returns {*} - Sample value
  */
-function generateSampleValue(columnId, dataType, rowIndex, min, max) {
+function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId) {
   const lowerColId = columnId.toLowerCase()
   
   // If min and max are provided, generate value within that range
@@ -286,13 +262,12 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max) {
     return 0.02 + rowIndex * 0.01  // 0.02, 0.03, 0.04, 0.05, 0.06
   }
   
-  if (lowerColId.includes('mortality') && lowerColId.includes('table')) {
-    const tables = ['AM92U', 'AF92U']
-    return tables[rowIndex % tables.length]
-  }
-  
   // Generic handling by data type
   if (dataType === 'string') {
+    // Use table-based naming if tableId is provided
+    if (tableId) {
+      return `${tableId}_column${rowIndex + 1}`
+    }
     return `value_${rowIndex}`
   }
   
@@ -334,13 +309,9 @@ function addTableSheets(workbook, modelObj) {
         headers.push(col.id)
       }
     } else {
-      // Handle unconstrained columns (like mortality_rate)
-      // Use common column patterns based on table name
-      if (tableId.toLowerCase().includes('mortality')) {
-        headers.push('AM92U', 'AF92U')
-      } else {
-        headers.push('value')  // Generic fallback
-      }
+      // Generate generic column names for unconstrained tables
+      // Use pattern: {tableId}_column1, {tableId}_column2, etc.
+      headers.push(`${tableId}_column1`, `${tableId}_column2`)
     }
     
     sheet.addRow(headers)
@@ -396,31 +367,24 @@ function addTableSheets(workbook, modelObj) {
       // Add values for each column
       if (tableDef.columns.length > 0) {
         for (const col of tableDef.columns) {
-          row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max))
+          row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max, tableId))
         }
       } else {
-        // Generic unconstrained columns - use sensible defaults based on table name
-        if (tableId.toLowerCase().includes('mortality')) {
-          // Generate realistic mortality rates for unconstrained mortality tables
-          const rowIndexValue = row[0]
-          const baseMale = 0.0006
-          const baseFemale = 0.000172
-          
-          // If we have min/max for row index, use that for scaling
-          if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
-            const ageRange = tableDef.rowIndexMax - tableDef.rowIndexMin
-            const ageFactor = Math.pow((rowIndexValue - tableDef.rowIndexMin) / ageRange, 3)
-            const maleRate = baseMale + ageFactor * (1 - baseMale)
-            const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
-            row.push(maleRate, femaleRate)
-          } else {
-            // Fallback without min/max
-            row.push(baseMale * (1 + i), baseFemale * (1 + i))
-          }
-        } else {
-          // Generic fallback for other unconstrained tables
-          row.push(100 + i * 25)
-        }
+        // Generate generic values for unconstrained columns
+        // Get the row index value that was added to the row
+        const rowIndexValue = row[0]
+        
+        // Column 1: use real number based on row index with sensible scaling
+        const col1Value = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
+          ? 0.001 + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.1
+          : 0.001 * (1 + i)
+        row.push(col1Value)
+        
+        // Column 2: similar but with different scaling
+        const col2Value = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
+          ? 0.0005 + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.05
+          : 0.0005 * (1 + i)
+        row.push(col2Value)
       }
       
       sheet.addRow(row)
@@ -463,36 +427,40 @@ function addTableSheetsFallback(workbook) {
   cohortSheet.addRow(['dataType', 'real', 'real', 'real', 'string'])
   cohortSheet.addRow(['unit', 'GBP per year', 'years', 'years'])
   cohortSheet.addRow(['cohort'])
-  cohortSheet.addRow([1, 12.34, 61, 31.2, 'AM92U'])
-  cohortSheet.addRow([2, 23.45, 62, 32.3, 'AM92U'])
-  cohortSheet.addRow([3, 34.56, 63, 33.4, 'AM92U'])
-  cohortSheet.addRow([4, 45.67, 64, 34.5, 'AF92U'])
+  cohortSheet.addRow([1, 12.34, 61, 31.2, 'mortality_rate_column1'])
+  cohortSheet.addRow([2, 23.45, 62, 32.3, 'mortality_rate_column1'])
+  cohortSheet.addRow([3, 34.56, 63, 33.4, 'mortality_rate_column1'])
+  cohortSheet.addRow([4, 45.67, 64, 34.5, 'mortality_rate_column2'])
   
-  // Add mortality_rate table
+  // Add mortality_rate table with generic columns
   const mortalitySheet = workbook.addWorksheet('input_mortality_rate')
-  mortalitySheet.addRow(['age', 'AM92U', 'AF92U'])
+  mortalitySheet.addRow(['age', 'mortality_rate_column1', 'mortality_rate_column2'])
   
-  // Add mortality data using constants
-  for (let age = TABLE_DIMENSIONS.MORTALITY_RATE.minAge; age <= TABLE_DIMENSIONS.MORTALITY_RATE.maxAge; age++) {
-    // Use realistic mortality rates that increase with age
-    const baseMale = 0.0006
-    const baseFemale = 0.000172
-    const ageRange = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge
-    const ageFactor = Math.pow((age - TABLE_DIMENSIONS.MORTALITY_RATE.minAge) / ageRange, 3)
-    const maleRate = baseMale + ageFactor * (1 - baseMale)
-    const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
-    mortalitySheet.addRow([age, maleRate, femaleRate])
+  // Generate 5 sample rows (used when model has no table definitions)
+  const minAge = 17
+  const maxAge = 104
+  const numSampleRows = 5
+  
+  for (let i = 0; i < numSampleRows; i++) {
+    const age = minAge + Math.round(i * (maxAge - minAge) / (numSampleRows - 1))
+    const ageRange = maxAge - minAge
+    const ageFactor = (age - minAge) / ageRange
+    const col1Value = 0.001 + ageFactor * 0.1
+    const col2Value = 0.0005 + ageFactor * 0.05
+    mortalitySheet.addRow([age, col1Value, col2Value])
   }
   
   // Add spot_rate table
   const spotSheet = workbook.addWorksheet('input_spot_rate')
   spotSheet.addRow(['step', 'rate'])
   
-  // Add spot rates using constants
-  for (let step = TABLE_DIMENSIONS.SPOT_RATE.minStep; step <= TABLE_DIMENSIONS.SPOT_RATE.maxStep; step++) {
-    // Use deterministic spot rates
-    const stepRange = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep
-    const rate = 0.05 + 0.01 * (step / stepRange)
+  // Generate 5 sample rows (used when model has no table definitions)
+  const minStep = 0
+  const maxStep = 120
+  
+  for (let i = 0; i < numSampleRows; i++) {
+    const step = minStep + Math.round(i * (maxStep - minStep) / (numSampleRows - 1))
+    const rate = 0.02 + i * 0.01
     spotSheet.addRow([step, rate])
   }
 }
@@ -588,8 +556,8 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
       const columnRef = tableDef.column?.ref || tableDef.column?.['#text'] || ''
       
       if (tableRef && columnRef) {
-        // Use table dimensions from constants for column
-        const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
+        // Use generic column range that works for any table
+        const maxCol = 'Z'
         row.push({ 
           formula: `INDEX(input_${tableRef}!A:${maxCol},MATCH($A2,input_${tableRef}!A:A,0),MATCH(${colLetter}$1,input_${tableRef}!$1:$1,0))` 
         })
@@ -637,7 +605,7 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
   // First row (step=0): Hardcoded value 0
   // Subsequent rows (step>0): Formula referencing previous row (e.g., =A2+1, =A3+1)
   // This makes the sheet copyable - users can copy rows down and step values auto-increment
-  const stepCount = TABLE_DIMENSIONS.CALC_COHORT_STEP.stepCount
+  const stepCount = 12  // Default to 12 steps for monthly projection
   
   for (let step = 0; step < stepCount; step++) {
     const currentRow = step + 2 // +2 because row 1 is header
@@ -719,17 +687,8 @@ function generateTableLookupFormula(varXml, currentRow) {
   }
   
   // Determine the appropriate table dimensions based on tableRef
-  let maxCol
-  if (tableRef.toLowerCase().includes('mortality')) {
-    maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
-  } else if (tableRef.toLowerCase().includes('spot')) {
-    maxCol = getColumnLetter(TABLE_DIMENSIONS.SPOT_RATE.numCols)
-  } else if (tableRef.toLowerCase().includes('cohort')) {
-    maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
-  } else {
-    // Default to cohort_data dimensions for unknown tables
-    maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
-  }
+  // Use generic column range that works for any table size
+  const maxCol = 'Z'  // Generic range supporting up to 26 columns
   
   // Generate INDEX/MATCH formula for table lookup using dynamic ranges
   // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!$1:$1, 0))
@@ -756,14 +715,8 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
   }
   
   // Determine the appropriate table dimensions
-  let maxCol
-  if (tableRef.toLowerCase().includes('mortality')) {
-    maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
-  } else if (tableRef.toLowerCase().includes('spot')) {
-    maxCol = getColumnLetter(TABLE_DIMENSIONS.SPOT_RATE.numCols)
-  } else {
-    maxCol = 'Z'  // default
-  }
+  // Use generic column range that works for any table size
+  const maxCol = 'Z'  // Generic range supporting up to 26 columns
   
   // Generate INDEX/MATCH formula with dynamic column selection using dynamic ranges
   if (rowRef && columnSelector) {

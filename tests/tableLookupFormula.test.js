@@ -15,8 +15,9 @@ describe('Table Lookup Formula Generation', () => {
   })
 
   it('should generate correct INDEX/MATCH formula with dynamic ranges for spot_rate table', async () => {
-    // This test validates that formulas use dynamic ranges (A:B instead of $A$1:$B$122)
+    // This test validates that formulas use dynamic ranges (A:Z instead of $A$1:$B$122)
     // Dynamic ranges allow users to extend tables without breaking formulas
+    // Generic A:Z range works for any table regardless of column count
     const modelXml = `<?xml version="1.0"?>
 <model id="spot_rate_test">
   <indexSets>
@@ -54,8 +55,8 @@ describe('Table Lookup Formula Generation', () => {
     const formula = generateTableLookupFormula(varXml, 2)
     expect(formula).toBeTruthy()
     
-    // Verify the formula uses dynamic ranges (A:B) instead of static ranges ($A$1:$B$122)
-    expect(formula).toContain('input_spot_rate!A:B')
+    // Verify the formula uses dynamic ranges (A:Z) instead of static ranges ($A$1:$B$122)
+    expect(formula).toContain('input_spot_rate!A:Z')
     expect(formula).toContain('input_spot_rate!A:A')
     
     // Verify column reference is quoted to avoid #NAME errors
@@ -66,12 +67,13 @@ describe('Table Lookup Formula Generation', () => {
     expect(formula).not.toContain('$122')
     
     // Expected formula pattern:
-    // =INDEX(input_spot_rate!A:B,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))
+    // =INDEX(input_spot_rate!A:Z,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))
   })
 
   it('should use dynamic ranges that work with extended tables', async () => {
     // This test validates that dynamic ranges allow tables to grow beyond original dimensions
     // Users can add rows (e.g., steps 121-200) without modifying formulas
+    // Generic A:Z range works for any table regardless of column count
     const modelXml = `<?xml version="1.0"?>
 <model id="spot_rate_dimensions">
   <indexSets>
@@ -106,7 +108,7 @@ describe('Table Lookup Formula Generation', () => {
     const formula = generateTableLookupFormula(varXml, 2)
     
     // Verify dynamic ranges that support unlimited table extension
-    expect(formula).toBe('INDEX(input_spot_rate!A:B,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))')
+    expect(formula).toBe('INDEX(input_spot_rate!A:Z,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))')
     
     // The table can now be extended from 122 rows to any size without formula updates
   })
@@ -164,18 +166,19 @@ describe('Table Lookup Formula Generation', () => {
     const amountFormula = generateTableLookupFormula(amountVar, 2)
     const ageFormula = generateTableLookupFormula(ageVar, 2)
     
-    // Both formulas should use dynamic ranges
-    expect(amountFormula).toContain('input_cohort_data!A:E')
+    // Both formulas should use dynamic ranges (generic A:Z)
+    expect(amountFormula).toContain('input_cohort_data!A:Z')
     expect(amountFormula).toContain('MATCH("annual_amount"')
     expect(amountFormula).toContain('input_cohort_data!$1:$1') // Column header matching
     
-    expect(ageFormula).toContain('input_cohort_data!A:E')
+    expect(ageFormula).toContain('input_cohort_data!A:Z')
     expect(ageFormula).toContain('MATCH("start_age"')
     expect(ageFormula).toContain('input_cohort_data!$1:$1') // Column header matching
   })
 
   it('should generate advanced formulas with dynamic ranges for tableLookup definition type', () => {
     // Test advanced table lookup (tableLookup type) uses dynamic ranges
+    // Generic A:Z range works for any table regardless of column count
     const varXml = {
       id: 'mortality_lookup',
       definition: {
@@ -192,8 +195,8 @@ describe('Table Lookup Formula Generation', () => {
     const formula = generateTableLookupFormulaAdvanced(varXml, 2, colIndexMap, cohortStepVars)
     expect(formula).toBeTruthy()
     
-    // Verify dynamic ranges
-    expect(formula).toContain('input_mortality_rate!A:C')
+    // Verify dynamic ranges (generic A:Z)
+    expect(formula).toContain('input_mortality_rate!A:Z')
     expect(formula).toContain('input_mortality_rate!A:A')
     expect(formula).toContain('input_mortality_rate!$1:$1') // Column header matching
     
