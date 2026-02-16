@@ -532,6 +532,23 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       const colLetter = getColumnLetter(colIndex)
       // Escape variable name for regex
       const escapedVarName = escapeRegex(varName)
+      
+      // First, handle function calls with step parameter shifts
+      // Pattern: variable(cohort, step - N) or variable(cohort, step-N)
+      // Note: This assumes the standard index set names 'cohort' and 'step' used throughout the codebase
+      const patternWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      formula = formula.replace(patternWithOffset, (match, offset) => {
+        // offset is the number after "step - "
+        const targetRow = currentRow - parseInt(offset, 10)
+        // Validate that targetRow is within valid range (row 2+ since row 1 is header)
+        if (targetRow < 2) {
+          // If the offset would reference before the data rows, clamp to row 2
+          // This handles edge cases where step=0 with step-1 would reference row 1 (header)
+          return `${colLetter}2`
+        }
+        return `${colLetter}${targetRow}`
+      })
+      
       // Handle both with and without arguments: variable(cohort, step) or variable
       const pattern1 = new RegExp(`\\b${escapedVarName}\\s*\\([^)]*\\)`, 'gi')
       formula = formula.replace(pattern1, `${colLetter}${currentRow}`)
