@@ -206,6 +206,73 @@ function extractTableDefinitions(modelObj) {
 }
 
 /**
+ * Extract column constraints from variables in the model
+ * Maps table.column -> { columnOfTable: "referenced_table_name" }
+ * @param {Object} modelObj - The model object
+ * @returns {Map} - Map of "tableId.columnId" to constraint info
+ */
+function extractColumnConstraints(modelObj) {
+  const constraintMap = new Map()
+  
+  if (!modelObj?.model?.variables?.variable) {
+    return constraintMap
+  }
+  
+  const variables = Array.isArray(modelObj.model.variables.variable)
+    ? modelObj.model.variables.variable
+    : [modelObj.model.variables.variable]
+  
+  for (const variable of variables) {
+    // Check if variable has a columnOf constraint
+    const columnOfTable = variable?.constraints?.mustResolveAs?.columnOf?.table
+    
+    if (columnOfTable) {
+      // Extract which table and column this variable references
+      const tableRef = variable?.definition?.table?.ref
+      const columnRef = variable?.definition?.column?.ref
+      
+      if (tableRef && columnRef) {
+        const key = `${tableRef}.${columnRef}`
+        constraintMap.set(key, {
+          columnOfTable: columnOfTable
+        })
+      }
+    }
+  }
+  
+  return constraintMap
+}
+
+/**
+ * Resolve columnOf constraint to get actual column names from referenced table
+ * @param {string} referencedTableId - Table ID to get columns from
+ * @param {Map} tableDefs - Map of table definitions
+ * @returns {string[]} - Array of column IDs (excluding row index)
+ */
+function resolveColumnOfConstraint(referencedTableId, tableDefs) {
+  const table = tableDefs.get(referencedTableId)
+  
+  if (!table) {
+    return []
+  }
+  
+  // If table has defined columns, return their IDs
+  if (table.columns && table.columns.length > 0) {
+    return table.columns.map(col => col.id)
+  }
+  
+  // If table has no defined columns (unconstrained), generate default column names
+  // This handles cases like mortality_rate which dynamically gets columns from data
+  // Use common mortality table names as defaults
+  if (referencedTableId.toLowerCase().includes('mortality')) {
+    return ['AM92U', 'AF92U']
+  }
+  
+  // Generic fallback for other unconstrained tables
+  return [`${referencedTableId}_col1`, `${referencedTableId}_col2`]
+}
+
+/**
  * Generate sample value based on column name and data type
  * @param {string} columnId - Column identifier
  * @param {string} dataType - Data type (real, integer, string, boolean)
@@ -213,10 +280,16 @@ function extractTableDefinitions(modelObj) {
  * @param {number} [min] - Optional minimum value for numeric types
  * @param {number} [max] - Optional maximum value for numeric types
  * @param {string} [tableId] - Optional table identifier for generic string generation
+ * @param {string[]} [validValues] - Optional array of valid values (e.g., from columnOf constraint)
  * @returns {*} - Sample value
  */
-function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId) {
+function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId, validValues) {
   const lowerColId = columnId.toLowerCase()
+  
+  // If valid values are provided (e.g., from columnOf constraint), cycle through them
+  if (validValues && validValues.length > 0) {
+    return validValues[rowIndex % validValues.length]
+  }
   
   // If min and max are provided, generate value within that range
   if (min !== undefined && max !== undefined && !isNaN(min) && !isNaN(max) && (dataType === 'real' || dataType === 'integer')) {
@@ -295,6 +368,9 @@ function addTableSheets(workbook, modelObj) {
     return
   }
   
+  // Extract column constraints from variables
+  const columnConstraints = extractColumnConstraints(modelObj)
+  
   // Generate sheets for each table in the model
   for (const [tableId, tableDef] of tableDefs) {
     const sheetName = `input_${tableId}`
@@ -309,9 +385,17 @@ function addTableSheets(workbook, modelObj) {
         headers.push(col.id)
       }
     } else {
-      // Generate generic column names for unconstrained tables
-      // Use pattern: {tableId}_column1, {tableId}_column2, etc.
-      headers.push(`${tableId}_column1`, `${tableId}_column2`)
+      // For unconstrained tables, generate column names based on context
+      // Check if any other table references this table in a columnOf constraint
+      const referencedColumns = resolveColumnOfConstraint(tableId, tableDefs)
+      if (referencedColumns.length > 0) {
+        // Use the resolved column names
+        headers.push(...referencedColumns)
+      } else {
+        // Generate generic column names
+        // Use pattern: {tableId}_column1, {tableId}_column2, etc.
+        headers.push(`${tableId}_column1`, `${tableId}_column2`)
+      }
     }
     
     sheet.addRow(headers)
@@ -367,24 +451,35 @@ function addTableSheets(workbook, modelObj) {
       // Add values for each column
       if (tableDef.columns.length > 0) {
         for (const col of tableDef.columns) {
-          row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max, tableId))
+          // Check if this column has a columnOf constraint
+          const constraintKey = `${tableId}.${col.id}`
+          const constraint = columnConstraints.get(constraintKey)
+          let validValues = null
+          
+          if (constraint && constraint.columnOfTable) {
+            // Resolve the constraint to get actual column names
+            validValues = resolveColumnOfConstraint(constraint.columnOfTable, tableDefs)
+          }
+          
+          row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max, tableId, validValues))
         }
       } else {
         // Generate generic values for unconstrained columns
+        // Determine how many columns we need based on headers
+        // Headers has rowIndex + N data columns
+        const numDataColumns = headers.length - 1
+        
         // Get the row index value that was added to the row
         const rowIndexValue = row[0]
         
-        // Column 1: use real number based on row index with sensible scaling
-        const col1Value = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
-          ? 0.001 + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.1
-          : 0.001 * (1 + i)
-        row.push(col1Value)
-        
-        // Column 2: similar but with different scaling
-        const col2Value = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
-          ? 0.0005 + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.05
-          : 0.0005 * (1 + i)
-        row.push(col2Value)
+        // Generate values for each column
+        for (let colIdx = 0; colIdx < numDataColumns; colIdx++) {
+          // Use different scaling for each column
+          const colValue = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
+            ? 0.001 * (1 + colIdx * 0.5) + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.1
+            : 0.001 * (1 + i + colIdx * 0.5)
+          row.push(colValue)
+        }
       }
       
       sheet.addRow(row)
