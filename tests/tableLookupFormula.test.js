@@ -67,7 +67,7 @@ describe('Table Lookup Formula Generation', () => {
     expect(formula).not.toContain('$122')
     
     // Expected formula pattern:
-    // =INDEX(input_spot_rate!A:Z,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))
+    // =INDEX(input_spot_rate!A:Z,MATCH($A2,input_spot_rate!A:A,1),MATCH("rate",input_spot_rate!$1:$1,0))
   })
 
   it('should use dynamic ranges that work with extended tables', async () => {
@@ -108,7 +108,7 @@ describe('Table Lookup Formula Generation', () => {
     const formula = generateTableLookupFormula(varXml, 2)
     
     // Verify dynamic ranges that support unlimited table extension
-    expect(formula).toBe('INDEX(input_spot_rate!A:Z,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))')
+    expect(formula).toBe('INDEX(input_spot_rate!A:Z,MATCH($A2,input_spot_rate!A:A,1),MATCH("rate",input_spot_rate!$1:$1,0))')
     
     // The table can now be extended from 122 rows to any size without formula updates
   })

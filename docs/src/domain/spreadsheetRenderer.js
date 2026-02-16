@@ -610,6 +610,14 @@ function addReadmeSheet(workbook, modelObj) {
   sheet.addRow([])
   sheet.addRow(['All input tables are pre-filled with sample values for reference only.'])
   sheet.addRow(['These values should be replaced with your actual data before using the model.'])
+  sheet.addRow([])
+  
+  // Add information about table lookup behavior
+  sheet.addRow(['Table Lookup Behavior:'])
+  sheet.addRow(['  - Lookup columns (e.g., age, step) must be sorted in ascending order'])
+  sheet.addRow(['  - Table lookups use approximate matching: finds the largest value ≤ lookup value'])
+  sheet.addRow(['  - Sparse tables with gaps are supported (e.g., age 0, 5, 10, 15 works for intermediate ages)'])
+  sheet.addRow(['  - This allows flexible table design without requiring entries for every possible value'])
   
   // Style the title
   sheet.getRow(1).font = { bold: true, size: 14 }
@@ -794,10 +802,13 @@ function generateTableLookupFormula(varXml, currentRow) {
   const maxCol = 'Z'  // Generic range supporting up to 26 columns
   
   // Generate INDEX/MATCH formula for table lookup using dynamic ranges
-  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!$1:$1, 0))
+  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 1), MATCH(colKey, table!$1:$1, 0))
   // Using entire columns allows tables to be extended without breaking formulas
-  // Column matching uses $1:$1 (absolute header row reference) to avoid accidental matches in data columns
-  return `INDEX(input_${tableRef}!A:${maxCol},MATCH($A${currentRow},input_${tableRef}!A:A,0),MATCH("${columnRef}",input_${tableRef}!$1:$1,0))`
+  // Row matching uses approximate match (1): finds largest value ≤ lookup value
+  //   - Requires lookup column to be sorted in ascending order (e.g., step 0, 1, 2, ...)
+  //   - Allows sparse tables with gaps (e.g., step 0, 5, 10, 15 works for any intermediate step)
+  // Column matching uses exact match (0): column headers must match exactly
+  return `INDEX(input_${tableRef}!A:${maxCol},MATCH($A${currentRow},input_${tableRef}!A:A,1),MATCH("${columnRef}",input_${tableRef}!$1:$1,0))`
 }
 
 /**
@@ -830,8 +841,11 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     
     // Column selector is typically from cohort sheet
     // Using entire columns allows tables to be extended without breaking formulas
-    // Column matching uses $1:$1 (absolute header row reference) to avoid accidental matches in data columns
-    return `INDEX(input_${tableRef}!A:${maxCol},MATCH(${rowCell},input_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,input_${tableRef}!$1:$1,0))`
+    // Row matching uses approximate match (1): finds largest value ≤ lookup value
+    //   - Requires lookup column to be sorted in ascending order (e.g., age 0, 1, 2, ...)
+    //   - Allows sparse tables with gaps (e.g., age 0, 5, 10, 15 works for any intermediate age)
+    // Column matching uses exact match (0): column headers must match exactly
+    return `INDEX(input_${tableRef}!A:${maxCol},MATCH(${rowCell},input_${tableRef}!A:A,1),MATCH(calc_cohort!$E$2,input_${tableRef}!$1:$1,0))`
   }
   
   return null
