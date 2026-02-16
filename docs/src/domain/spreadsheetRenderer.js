@@ -312,30 +312,9 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId, va
     return dataType === 'integer' ? Math.round(value) : value
   }
   
-  // Handle row index columns
+  // Handle row index columns (structural logic required for any model)
   if (lowerColId === 'id' || lowerColId === 'cohort') {
     return rowIndex
-  }
-  
-  if (lowerColId === 'age') {
-    return 20 + rowIndex * 15  // Ages: 20, 35, 50, 65, 80
-  }
-  
-  if (lowerColId === 'step') {
-    return rowIndex * 30  // Steps: 0, 30, 60, 90, 120
-  }
-  
-  // Handle specific column patterns
-  if (lowerColId.includes('amount') || lowerColId.includes('annuity')) {
-    return 10000 + rowIndex * 2500  // 10000, 12500, 15000, 17500, 20000
-  }
-  
-  if (lowerColId.includes('age')) {
-    return 55 + rowIndex * 3  // 55, 58, 61, 64, 67
-  }
-  
-  if (lowerColId.includes('rate')) {
-    return 0.02 + rowIndex * 0.01  // 0.02, 0.03, 0.04, 0.05, 0.06
   }
   
   // Generic handling by data type
