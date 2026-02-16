@@ -536,9 +536,16 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       // Escape variable name for regex
       const escapedVarName = escapeRegex(varName)
       
-      // First, handle function calls with step parameter shifts
-      // Pattern: variable(cohort, step - N) or variable(cohort, step-N)
-      // Note: This assumes the standard index set names 'cohort' and 'step' used throughout the codebase
+      // Replace variable references with cell references
+      // Patterns are ordered from most specific to least specific to avoid incorrect replacements
+      // Each pattern uses word boundaries (\b) to match only complete variable names
+      // Note: The replacements are safe because:
+      // 1. Cell references (like K2) will not match variable name patterns
+      // 2. Each regex matches the actual variable name, not the replacement text
+      // 3. Word boundaries prevent partial matches
+      
+      // Pattern 1: Handle function calls with step parameter shifts
+      // Example: variable(cohort, step - 1) or variable(cohort, step-2)
       const patternWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
       formula = formula.replace(patternWithOffset, (match, offset) => {
         // offset is the number after "step - "
@@ -552,17 +559,18 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
         return `${colLetter}${targetRow}`
       })
       
-      // Handle step-only variables: variable(step)
-      // This pattern matches variables called with just the step argument
+      // Pattern 2: Handle step-only variables
+      // Example: discount_factor(step) -> K2
       const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
       formula = formula.replace(patternStepOnly, `${colLetter}${currentRow}`)
       
-      // Handle cohort-step variables: variable(cohort, step)
-      // This pattern matches variables called with both cohort and step arguments
+      // Pattern 3: Handle cohort-step variables
+      // Example: cashflow(cohort, step) -> I2
       const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi')
       formula = formula.replace(patternCohortStep, `${colLetter}${currentRow}`)
       
-      // Handle bare variable name without arguments
+      // Pattern 4: Handle bare variable name without arguments (least specific, applied last)
+      // Example: rate -> constant!$B$1
       const pattern2 = new RegExp(`\\b${escapedVarName}\\b`, 'gi')
       formula = formula.replace(pattern2, `${colLetter}${currentRow}`)
     }
