@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { renderModelAsExcel } from '../docs/src/domain/spreadsheetRenderer.js'
+import { renderModelAsExcel, generateTableLookupFormula, generateTableLookupFormulaAdvanced } from '../docs/src/domain/spreadsheetRenderer.js'
 import { validateModelCore } from '@/domain/model.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
 import { loadXml } from './helpers/xml.js'
@@ -14,9 +14,9 @@ describe('Table Lookup Formula Generation', () => {
     lang = getFunctionsFromLanguage(xml, 'test')
   })
 
-  it('should generate correct INDEX/MATCH formula with quoted column reference for spot_rate table', async () => {
-    // This test validates fix for Issue 1: Column Reference Not Quoted
-    // The MATCH function for column lookup should use "rate" (quoted) not rate (unquoted)
+  it('should generate correct INDEX/MATCH formula with dynamic ranges for spot_rate table', async () => {
+    // This test validates that formulas use dynamic ranges (A:B instead of $A$1:$B$122)
+    // Dynamic ranges allow users to extend tables without breaking formulas
     const modelXml = `<?xml version="1.0"?>
 <model id="spot_rate_test">
   <indexSets>
@@ -47,19 +47,31 @@ describe('Table Lookup Formula Generation', () => {
     const model = validateModelCore(modelXml, 'test.xml', lang)
     expect(model).toBeTruthy()
     
-    // The renderModelAsExcel function should create formulas with quoted column references
-    const blob = await renderModelAsExcel(model.obj, model.features)
-    expect(blob).toBeTruthy()
+    // Get the variable XML for direct formula testing
+    const varXml = model.obj.model.variables.variable
     
-    // Note: Since ExcelJS is mocked in tests, we can't directly verify the formula content
-    // The expected formula should be:
-    // =INDEX(table_spot_rate!$A$1:$B$122,MATCH(A2,table_spot_rate!$A$1:$A$122,0),MATCH("rate",table_spot_rate!$A$1:$B$1,0))
-    // NOT: MATCH(rate,...) without quotes
+    // Test formula generation directly
+    const formula = generateTableLookupFormula(varXml, 2)
+    expect(formula).toBeTruthy()
+    
+    // Verify the formula uses dynamic ranges (A:B) instead of static ranges ($A$1:$B$122)
+    expect(formula).toContain('table_spot_rate!A:B')
+    expect(formula).toContain('table_spot_rate!A:A')
+    
+    // Verify column reference is quoted to avoid #NAME errors
+    expect(formula).toContain('MATCH("rate"')
+    
+    // Verify the formula does NOT use old static ranges
+    expect(formula).not.toContain('$A$1:')
+    expect(formula).not.toContain('$122')
+    
+    // Expected formula pattern:
+    // =INDEX(table_spot_rate!A:B,MATCH($A2,table_spot_rate!A:A,0),MATCH("rate",table_spot_rate!A:B,0))
   })
 
-  it('should use correct table dimensions for spot_rate with header row', async () => {
-    // This test validates fix for Issue 2: Insufficient Table Dimensions
-    // The maxRow should be 122 (1 header + 121 data rows for steps 0-120), not 121
+  it('should use dynamic ranges that work with extended tables', async () => {
+    // This test validates that dynamic ranges allow tables to grow beyond original dimensions
+    // Users can add rows (e.g., steps 121-200) without modifying formulas
     const modelXml = `<?xml version="1.0"?>
 <model id="spot_rate_dimensions">
   <indexSets>
@@ -90,19 +102,16 @@ describe('Table Lookup Formula Generation', () => {
     const model = validateModelCore(modelXml, 'test.xml', lang)
     expect(model).toBeTruthy()
     
-    const blob = await renderModelAsExcel(model.obj, model.features)
-    expect(blob).toBeTruthy()
+    const varXml = model.obj.model.variables.variable
+    const formula = generateTableLookupFormula(varXml, 2)
     
-    // Expected formula should reference $A$1:$B$122 and $A$1:$A$122
-    // The table has:
-    // - minStep: 0
-    // - maxStep: 120
-    // - 121 data rows (steps 0-120)
-    // - 1 header row
-    // - Total: 122 rows
+    // Verify dynamic ranges that support unlimited table extension
+    expect(formula).toBe('INDEX(table_spot_rate!A:B,MATCH($A2,table_spot_rate!A:A,0),MATCH("rate",table_spot_rate!A:B,0))')
+    
+    // The table can now be extended from 122 rows to any size without formula updates
   })
 
-  it('should handle table lookups with different table references', async () => {
+  it('should handle table lookups with different table references using dynamic ranges', async () => {
     const modelXml = `<?xml version="1.0"?>
 <model id="multi_table_test">
   <indexSets>
@@ -144,11 +153,51 @@ describe('Table Lookup Formula Generation', () => {
     const model = validateModelCore(modelXml, 'test.xml', lang)
     expect(model).toBeTruthy()
     
-    const blob = await renderModelAsExcel(model.obj, model.features)
-    expect(blob).toBeTruthy()
+    const vars = Array.isArray(model.obj.model.variables.variable) 
+      ? model.obj.model.variables.variable 
+      : [model.obj.model.variables.variable]
     
-    // Both formulas should have quoted column references:
-    // MATCH("annual_amount",...) not MATCH(annual_amount,...)
-    // MATCH("start_age",...) not MATCH(start_age,...)
+    // Test both variables
+    const amountVar = vars.find(v => v.id === 'amount')
+    const ageVar = vars.find(v => v.id === 'age')
+    
+    const amountFormula = generateTableLookupFormula(amountVar, 2)
+    const ageFormula = generateTableLookupFormula(ageVar, 2)
+    
+    // Both formulas should use dynamic ranges
+    expect(amountFormula).toContain('table_cohort_data!A:E')
+    expect(amountFormula).toContain('MATCH("annual_amount"')
+    expect(amountFormula).not.toContain('$1:')
+    
+    expect(ageFormula).toContain('table_cohort_data!A:E')
+    expect(ageFormula).toContain('MATCH("start_age"')
+    expect(ageFormula).not.toContain('$1:')
+  })
+
+  it('should generate advanced formulas with dynamic ranges for tableLookup definition type', () => {
+    // Test advanced table lookup (tableLookup type) uses dynamic ranges
+    const varXml = {
+      id: 'mortality_lookup',
+      definition: {
+        type: 'tableLookup',
+        table: { ref: 'mortality_rate' },
+        row: { ref: 'age' },
+        columnSelector: { ref: 'gender_column' }
+      }
+    }
+    
+    const colIndexMap = new Map([['AGE', 1]])
+    const cohortStepVars = ['age']
+    
+    const formula = generateTableLookupFormulaAdvanced(varXml, 2, colIndexMap, cohortStepVars)
+    expect(formula).toBeTruthy()
+    
+    // Verify dynamic ranges
+    expect(formula).toContain('table_mortality_rate!A:C')
+    expect(formula).toContain('table_mortality_rate!A:A')
+    
+    // Verify no static ranges
+    expect(formula).not.toContain('$A$1:')
+    expect(formula).not.toContain('$90')
   })
 })

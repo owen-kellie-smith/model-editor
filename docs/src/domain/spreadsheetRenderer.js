@@ -379,25 +379,22 @@ function generateTableLookupFormula(varXml, currentRow) {
   }
   
   // Determine the appropriate table dimensions based on tableRef
-  let maxRow, maxCol
+  let maxCol
   if (tableRef.toLowerCase().includes('mortality')) {
-    maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxRow
     maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
   } else if (tableRef.toLowerCase().includes('spot')) {
-    maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
     maxCol = getColumnLetter(TABLE_DIMENSIONS.SPOT_RATE.numCols)
   } else if (tableRef.toLowerCase().includes('cohort')) {
-    maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
     maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
   } else {
     // Default to cohort_data dimensions for unknown tables
-    maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
     maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
   }
   
-  // Generate INDEX/MATCH formula for table lookup
-  // INDEX(table!range, MATCH(rowKey, table!rowRange, 0), MATCH(colKey, table!colRange, 0))
-  return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A${currentRow},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH("${columnRef}",table_${tableRef}!$A$1:$${maxCol}$1,0))`
+  // Generate INDEX/MATCH formula for table lookup using dynamic ranges
+  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!A:maxCol, 0))
+  // Using entire columns allows tables to be extended without breaking formulas
+  return `INDEX(table_${tableRef}!A:${maxCol},MATCH($A${currentRow},table_${tableRef}!A:A,0),MATCH("${columnRef}",table_${tableRef}!A:${maxCol},0))`
 }
 
 /**
@@ -418,19 +415,16 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
   }
   
   // Determine the appropriate table dimensions
-  let maxRow, maxCol
+  let maxCol
   if (tableRef.toLowerCase().includes('mortality')) {
-    maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxRow
     maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
   } else if (tableRef.toLowerCase().includes('spot')) {
-    maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
     maxCol = getColumnLetter(TABLE_DIMENSIONS.SPOT_RATE.numCols)
   } else {
-    maxRow = 100  // default
-    maxCol = 'Z'
+    maxCol = 'Z'  // default
   }
   
-  // Generate INDEX/MATCH formula with dynamic column selection
+  // Generate INDEX/MATCH formula with dynamic column selection using dynamic ranges
   if (rowRef && columnSelector) {
     // Find the column index for the row variable if it's in cohortStepVars
     const rowVarUpper = rowRef.toUpperCase()
@@ -438,7 +432,8 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     const rowCell = rowColIndex ? `${getColumnLetter(rowColIndex)}${currentRow}` : rowRef
     
     // Column selector is typically from cohort sheet
-    return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH(${rowCell},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(calc_cohort!$E$2,table_${tableRef}!$A$1:$${maxCol}$1,0))`
+    // Using entire columns allows tables to be extended without breaking formulas
+    return `INDEX(table_${tableRef}!A:${maxCol},MATCH(${rowCell},table_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,table_${tableRef}!A:${maxCol},0))`
   }
   
   return null
@@ -784,3 +779,6 @@ export function renderModelAsSpreadsheet(modelObj, modelFeatures) {
   
   return csv.join("\n")
 }
+
+// Export formula generation functions for testing
+export { generateTableLookupFormula, generateTableLookupFormulaAdvanced }
