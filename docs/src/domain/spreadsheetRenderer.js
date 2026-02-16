@@ -115,11 +115,11 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
     }
   }
   
+  // Add README sheet first (so it appears as first tab)
+  addReadmeSheet(workbook, modelObj)
+  
   // Add table sheets with sample data
   addTableSheets(workbook, modelObj)
-  
-  // Add README sheet
-  addReadmeSheet(workbook, modelObj)
   
   // Add calculation sheet for cohort variables (single cohort, no steps)
   if (categorized.cohortOnly.length > 0) {
@@ -255,7 +255,7 @@ function generateSampleValue(columnId, dataType, rowIndex) {
   }
   
   if (lowerColId.includes('mortality') && lowerColId.includes('table')) {
-    const tables = ['AM92U', 'AF92U', 'AM92U', 'AF92U', 'AM92U']
+    const tables = ['AM92U', 'AF92U']
     return tables[rowIndex % tables.length]
   }
   
@@ -449,14 +449,6 @@ function addTableSheetsFallback(workbook) {
  */
 function addReadmeSheet(workbook, modelObj) {
   const sheet = workbook.addWorksheet('README', { properties: { tabColor: { argb: 'FF4472C4' } } })
-  
-  // Make it the first sheet
-  workbook.worksheets.forEach((ws, index) => {
-    if (ws.name === 'README') {
-      workbook.removeWorksheet(ws.id)
-      workbook.addWorksheet(ws, 0)
-    }
-  })
   
   // Add title
   sheet.addRow(['Input Tables - README'])
