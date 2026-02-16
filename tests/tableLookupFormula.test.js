@@ -55,8 +55,8 @@ describe('Table Lookup Formula Generation', () => {
     expect(formula).toBeTruthy()
     
     // Verify the formula uses dynamic ranges (A:B) instead of static ranges ($A$1:$B$122)
-    expect(formula).toContain('table_spot_rate!A:B')
-    expect(formula).toContain('table_spot_rate!A:A')
+    expect(formula).toContain('input_spot_rate!A:B')
+    expect(formula).toContain('input_spot_rate!A:A')
     
     // Verify column reference is quoted to avoid #NAME errors
     expect(formula).toContain('MATCH("rate"')
@@ -66,7 +66,7 @@ describe('Table Lookup Formula Generation', () => {
     expect(formula).not.toContain('$122')
     
     // Expected formula pattern:
-    // =INDEX(table_spot_rate!A:B,MATCH($A2,table_spot_rate!A:A,0),MATCH("rate",table_spot_rate!$1:$1,0))
+    // =INDEX(input_spot_rate!A:B,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))
   })
 
   it('should use dynamic ranges that work with extended tables', async () => {
@@ -106,7 +106,7 @@ describe('Table Lookup Formula Generation', () => {
     const formula = generateTableLookupFormula(varXml, 2)
     
     // Verify dynamic ranges that support unlimited table extension
-    expect(formula).toBe('INDEX(table_spot_rate!A:B,MATCH($A2,table_spot_rate!A:A,0),MATCH("rate",table_spot_rate!$1:$1,0))')
+    expect(formula).toBe('INDEX(input_spot_rate!A:B,MATCH($A2,input_spot_rate!A:A,0),MATCH("rate",input_spot_rate!$1:$1,0))')
     
     // The table can now be extended from 122 rows to any size without formula updates
   })
@@ -165,13 +165,13 @@ describe('Table Lookup Formula Generation', () => {
     const ageFormula = generateTableLookupFormula(ageVar, 2)
     
     // Both formulas should use dynamic ranges
-    expect(amountFormula).toContain('table_cohort_data!A:E')
+    expect(amountFormula).toContain('input_cohort_data!A:E')
     expect(amountFormula).toContain('MATCH("annual_amount"')
-    expect(amountFormula).toContain('table_cohort_data!$1:$1') // Column header matching
+    expect(amountFormula).toContain('input_cohort_data!$1:$1') // Column header matching
     
-    expect(ageFormula).toContain('table_cohort_data!A:E')
+    expect(ageFormula).toContain('input_cohort_data!A:E')
     expect(ageFormula).toContain('MATCH("start_age"')
-    expect(ageFormula).toContain('table_cohort_data!$1:$1') // Column header matching
+    expect(ageFormula).toContain('input_cohort_data!$1:$1') // Column header matching
   })
 
   it('should generate advanced formulas with dynamic ranges for tableLookup definition type', () => {
@@ -193,9 +193,9 @@ describe('Table Lookup Formula Generation', () => {
     expect(formula).toBeTruthy()
     
     // Verify dynamic ranges
-    expect(formula).toContain('table_mortality_rate!A:C')
-    expect(formula).toContain('table_mortality_rate!A:A')
-    expect(formula).toContain('table_mortality_rate!$1:$1') // Column header matching
+    expect(formula).toContain('input_mortality_rate!A:C')
+    expect(formula).toContain('input_mortality_rate!A:A')
+    expect(formula).toContain('input_mortality_rate!$1:$1') // Column header matching
     
     // Verify no static ranges
     expect(formula).not.toContain('$A$1:')
