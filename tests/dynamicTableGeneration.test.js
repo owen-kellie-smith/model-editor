@@ -242,4 +242,187 @@ describe('Dynamic Table Generation', () => {
     expect(spotColumns.length).toBe(1)
     expect(spotColumns[0].id).toBe('rate')
   })
+
+  it('should extract column constraints from variables', () => {
+    const modelXml = `<?xml version="1.0"?>
+<model id="constraint_test">
+  <indexSets>
+    <indexSet id="cohort"/>
+    <indexSet id="age"/>
+  </indexSets>
+  <tables>
+    <table id="cohort_data">
+      <rowIndex ref="cohort"/>
+      <columns>
+        <column id="mortality_table" dataType="string"/>
+      </columns>
+    </table>
+    <table id="mortality_rate">
+      <rowIndex ref="age"/>
+      <!-- columns unconstrained -->
+    </table>
+  </tables>
+  <variables>
+    <variable id="mortality_table">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>string</dataType>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="mortality_table"/>
+      </definition>
+      <constraints>
+        <mustResolveAs>
+          <columnOf table="mortality_rate"/>
+        </mustResolveAs>
+      </constraints>
+    </variable>
+  </variables>
+</model>`
+    
+    const model = validateModelCore(modelXml, 'test.xml', lang)
+    expect(model).toBeTruthy()
+    
+    // Verify constraint is present in variable
+    const variable = model.obj.model.variables.variable
+    expect(variable.id).toBe('mortality_table')
+    expect(variable.constraints?.mustResolveAs?.columnOf?.table).toBe('mortality_rate')
+    
+    // Verify the definition references the correct table and column
+    expect(variable.definition?.table?.ref).toBe('cohort_data')
+    expect(variable.definition?.column?.ref).toBe('mortality_table')
+  })
+
+  it('should resolve columnOf constraint for mortality tables', () => {
+    // Test that mortality tables get default column names when unconstrained
+    const modelXml = `<?xml version="1.0"?>
+<model id="mortality_constraint_test">
+  <indexSets>
+    <indexSet id="cohort"/>
+    <indexSet id="age"/>
+  </indexSets>
+  <tables>
+    <table id="cohort_data">
+      <rowIndex ref="cohort"/>
+      <columns>
+        <column id="annual_amount" dataType="real"/>
+        <column id="mortality_table" dataType="string"/>
+      </columns>
+    </table>
+    <table id="mortality_rate">
+      <rowIndex ref="age" min="17" max="104"/>
+      <!-- columns unconstrained -->
+    </table>
+  </tables>
+  <variables>
+    <variable id="annual_amount">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="annual_amount"/>
+      </definition>
+    </variable>
+    <variable id="mortality_table">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>string</dataType>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="mortality_table"/>
+      </definition>
+      <constraints>
+        <mustResolveAs>
+          <columnOf table="mortality_rate"/>
+        </mustResolveAs>
+      </constraints>
+    </variable>
+  </variables>
+</model>`
+    
+    const model = validateModelCore(modelXml, 'test.xml', lang)
+    expect(model).toBeTruthy()
+    
+    // Verify both tables exist
+    const tables = Array.isArray(model.obj.model.tables.table)
+      ? model.obj.model.tables.table
+      : [model.obj.model.tables.table]
+    
+    expect(tables.length).toBe(2)
+    expect(tables.map(t => t.id)).toEqual(['cohort_data', 'mortality_rate'])
+    
+    // Verify cohort_data has the mortality_table column with string type
+    const cohortTable = tables.find(t => t.id === 'cohort_data')
+    const columns = Array.isArray(cohortTable.columns.column)
+      ? cohortTable.columns.column
+      : [cohortTable.columns.column]
+    
+    const mortalityTableColumn = columns.find(c => c.id === 'mortality_table')
+    expect(mortalityTableColumn).toBeTruthy()
+    expect(mortalityTableColumn.dataType).toBe('string')
+  })
+
+  it('should cycle through valid column values for constrained columns', () => {
+    // Test that sample data generation cycles through valid values
+    const modelXml = `<?xml version="1.0"?>
+<model id="cycling_test">
+  <indexSets>
+    <indexSet id="cohort"/>
+    <indexSet id="age"/>
+  </indexSets>
+  <tables>
+    <table id="test_data">
+      <rowIndex ref="cohort"/>
+      <columns>
+        <column id="ref_column" dataType="string"/>
+      </columns>
+    </table>
+    <table id="ref_table">
+      <rowIndex ref="age"/>
+      <columns>
+        <column id="col1" dataType="real"/>
+        <column id="col2" dataType="real"/>
+        <column id="col3" dataType="real"/>
+      </columns>
+    </table>
+  </tables>
+  <variables>
+    <variable id="ref_column">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>string</dataType>
+      <definition type="table">
+        <table ref="test_data"/>
+        <column ref="ref_column"/>
+      </definition>
+      <constraints>
+        <mustResolveAs>
+          <columnOf table="ref_table"/>
+        </mustResolveAs>
+      </constraints>
+    </variable>
+  </variables>
+</model>`
+    
+    const model = validateModelCore(modelXml, 'test.xml', lang)
+    expect(model).toBeTruthy()
+    
+    // Verify the ref_table has 3 columns
+    const tables = Array.isArray(model.obj.model.tables.table)
+      ? model.obj.model.tables.table
+      : [model.obj.model.tables.table]
+    
+    const refTable = tables.find(t => t.id === 'ref_table')
+    const refColumns = Array.isArray(refTable.columns.column)
+      ? refTable.columns.column
+      : [refTable.columns.column]
+    
+    expect(refColumns.length).toBe(3)
+    expect(refColumns.map(c => c.id)).toEqual(['col1', 'col2', 'col3'])
+  })
 })
