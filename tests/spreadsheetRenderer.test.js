@@ -315,5 +315,78 @@ describe('Spreadsheet Renderer', () => {
       expect(csv).toBeTruthy()
       expect(csv).toContain('amount')
     })
+
+    it('should handle edge cases for min/max attributes', () => {
+      const modelXml = `<?xml version="1.0"?>
+<model id="test_edge_cases">
+  <indexSets>
+    <indexSet id="cohort">
+      <dataType>string</dataType>
+    </indexSet>
+  </indexSets>
+  
+  <tables>
+    <table id="edge_cases">
+      <rowIndex ref="cohort"/>
+      <columns>
+        <column id="same_value" dataType="real" min="100" max="100"/>
+        <column id="invalid_min" dataType="real" min="invalid" max="50"/>
+        <column id="string_with_minmax" dataType="string" min="10" max="50"/>
+      </columns>
+    </table>
+  </tables>
+  
+  <variables>
+    <variable id="same_value">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="edge_cases"/>
+        <column ref="same_value"/>
+      </definition>
+    </variable>
+  </variables>
+</model>`
+      
+      // Should validate successfully even with edge case min/max values
+      const model = validateModelCore(modelXml, 'test.xml', lang)
+      
+      expect(model).toBeTruthy()
+      expect(model.obj).toBeTruthy()
+      
+      // Check that table definitions are parsed correctly
+      const tables = Array.isArray(model.obj.model.tables.table) 
+        ? model.obj.model.tables.table 
+        : [model.obj.model.tables.table]
+      
+      const edgeCaseTable = tables.find(t => t.id === 'edge_cases')
+      expect(edgeCaseTable).toBeTruthy()
+      
+      const columns = Array.isArray(edgeCaseTable.columns.column) 
+        ? edgeCaseTable.columns.column 
+        : [edgeCaseTable.columns.column]
+      
+      // Check that same min/max is handled
+      const sameValueCol = columns.find(c => c.id === 'same_value')
+      expect(sameValueCol).toBeTruthy()
+      expect(sameValueCol.min).toBe('100')
+      expect(sameValueCol.max).toBe('100')
+      
+      // Check that invalid min is present but will be filtered during parsing
+      const invalidMinCol = columns.find(c => c.id === 'invalid_min')
+      expect(invalidMinCol).toBeTruthy()
+      
+      // Check that string columns with min/max don't break
+      const stringCol = columns.find(c => c.id === 'string_with_minmax')
+      expect(stringCol).toBeTruthy()
+      expect(stringCol.dataType).toBe('string')
+      
+      // Should render as CSV successfully despite edge cases
+      const csv = renderModelAsSpreadsheet(model.obj, model.features)
+      expect(csv).toBeTruthy()
+      expect(csv).toContain('same_value')
+    })
   })
 })

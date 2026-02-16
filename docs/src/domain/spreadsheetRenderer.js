@@ -200,12 +200,14 @@ function extractTableDefinitions(modelObj) {
         : [table.columns.column]
       
       for (const col of cols) {
+        const minValue = col.min !== undefined ? parseFloat(col.min) : undefined
+        const maxValue = col.max !== undefined ? parseFloat(col.max) : undefined
         columns.push({
           id: col.id || '',
           dataType: col.dataType || 'real',
           unit: col.unit || '',
-          min: col.min !== undefined ? parseFloat(col.min) : undefined,
-          max: col.max !== undefined ? parseFloat(col.max) : undefined
+          min: (minValue !== undefined && !isNaN(minValue)) ? minValue : undefined,
+          max: (maxValue !== undefined && !isNaN(maxValue)) ? maxValue : undefined
         })
       }
     }
@@ -233,9 +235,15 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max) {
   const lowerColId = columnId.toLowerCase()
   
   // If min and max are provided, generate value within that range
-  if (min !== undefined && max !== undefined && (dataType === 'real' || dataType === 'integer')) {
+  if (min !== undefined && max !== undefined && !isNaN(min) && !isNaN(max) && (dataType === 'real' || dataType === 'integer')) {
     const range = max - min
     const numSamples = 4  // Generate 4 different values across the range
+    
+    // Handle edge cases
+    if (numSamples <= 1 || range === 0) {
+      return dataType === 'integer' ? Math.round(min) : min
+    }
+    
     const value = min + (rowIndex % numSamples) * (range / (numSamples - 1))
     return dataType === 'integer' ? Math.round(value) : value
   }
