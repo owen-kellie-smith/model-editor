@@ -236,5 +236,84 @@ describe('Spreadsheet Renderer', () => {
       expect(csv2).toContain('100')
       expect(csv2).toContain('200')
     })
+
+    it('should handle models with table definitions including min/max attributes', () => {
+      const modelXml = `<?xml version="1.0"?>
+<model id="test_with_minmax">
+  <indexSets>
+    <indexSet id="cohort">
+      <dataType>string</dataType>
+    </indexSet>
+  </indexSets>
+  
+  <tables>
+    <table id="cohort_data">
+      <rowIndex ref="cohort"/>
+      <columns>
+        <column id="amount" dataType="real" min="10" max="50"/>
+        <column id="age" dataType="real" min="55" max="75"/>
+        <column id="count" dataType="integer" min="100" max="200"/>
+      </columns>
+    </table>
+  </tables>
+  
+  <variables>
+    <variable id="amount">
+      <arguments>
+        <arg indexSet="cohort"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="cohort_data"/>
+        <column ref="amount"/>
+      </definition>
+    </variable>
+  </variables>
+</model>`
+      
+      // Should validate successfully with min/max attributes
+      const model = validateModelCore(modelXml, 'test.xml', lang)
+      
+      expect(model).toBeTruthy()
+      expect(model.obj).toBeTruthy()
+      expect(model.obj.model).toBeTruthy()
+      expect(model.obj.model.tables).toBeTruthy()
+      
+      // Check that table definitions are parsed correctly
+      const tables = Array.isArray(model.obj.model.tables.table) 
+        ? model.obj.model.tables.table 
+        : [model.obj.model.tables.table]
+      
+      expect(tables.length).toBeGreaterThan(0)
+      const cohortTable = tables.find(t => t.id === 'cohort_data')
+      expect(cohortTable).toBeTruthy()
+      
+      // Check that columns with min/max are present
+      const columns = Array.isArray(cohortTable.columns.column) 
+        ? cohortTable.columns.column 
+        : [cohortTable.columns.column]
+      
+      expect(columns.length).toBe(3)
+      
+      const amountCol = columns.find(c => c.id === 'amount')
+      expect(amountCol).toBeTruthy()
+      expect(amountCol.min).toBe('10')
+      expect(amountCol.max).toBe('50')
+      
+      const ageCol = columns.find(c => c.id === 'age')
+      expect(ageCol).toBeTruthy()
+      expect(ageCol.min).toBe('55')
+      expect(ageCol.max).toBe('75')
+      
+      const countCol = columns.find(c => c.id === 'count')
+      expect(countCol).toBeTruthy()
+      expect(countCol.min).toBe('100')
+      expect(countCol.max).toBe('200')
+      
+      // Should render as CSV successfully
+      const csv = renderModelAsSpreadsheet(model.obj, model.features)
+      expect(csv).toBeTruthy()
+      expect(csv).toContain('amount')
+    })
   })
 })
