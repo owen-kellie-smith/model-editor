@@ -67,7 +67,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   const workbook = new ExcelJS.Workbook()
   
   // Add README sheet first (so it appears as first tab)
-  addReadmeSheet(workbook, modelObj)
+  addReadmeSheet(workbook, modelObj, modelFeatures)
   
   // Add constant sheet (variables with no arguments)
   if (categorized.constants.length > 0) {
@@ -564,9 +564,112 @@ function addInputConfigSheet(workbook) {
 }
 
 /**
+ * Analyze model for potential spreadsheet rendering issues
+ * @param {Object} modelObj - The model object
+ * @param {Object} modelFeatures - The model features
+ * @returns {Object} - Diagnostic results with categories of issues
+ */
+function analyzeModelDiagnostics(modelObj, modelFeatures) {
+  const diagnostics = {
+    unsupportedFunctions: new Map(), // function name -> array of variable names
+    temporalParameters: [],
+    missingArguments: [],
+    complexPatterns: [],
+    tableLookups: [],
+    totalVariables: 0,
+    variablesWithCustomFunctions: 0,
+    variablesWithTemporalParams: 0
+  }
+  
+  // List of unsupported custom functions (functions that don't have Excel equivalents)
+  const unsupportedFunctionNames = [
+    'GetModelPoint',
+    'GetDoubleTableValue',
+    'GetMultiUltMortRate',
+    'ProjectionTerm'
+  ]
+  
+  if (!modelObj?.model?.variables?.variable) {
+    return diagnostics
+  }
+  
+  const vars = Array.isArray(modelObj.model.variables.variable) 
+    ? modelObj.model.variables.variable 
+    : [modelObj.model.variables.variable]
+  
+  diagnostics.totalVariables = vars.length
+  
+  for (const varXml of vars) {
+    const varName = varXml.id || 'unknown'
+    const defType = getDefinitionType(varXml)
+    const expression = getDefinitionText(varXml)
+    
+    if (!expression && defType !== 'table') continue
+    
+    // Check for unsupported custom functions
+    let hasCustomFunction = false
+    for (const funcName of unsupportedFunctionNames) {
+      const pattern = new RegExp(`\\b${funcName}\\s*\\(`, 'i')
+      if (pattern.test(expression)) {
+        if (!diagnostics.unsupportedFunctions.has(funcName)) {
+          diagnostics.unsupportedFunctions.set(funcName, [])
+        }
+        diagnostics.unsupportedFunctions.get(funcName).push(varName)
+        hasCustomFunction = true
+      }
+    }
+    if (hasCustomFunction) {
+      diagnostics.variablesWithCustomFunctions++
+    }
+    
+    // Check for temporal parameters like (t), (t-1), (t+1)
+    const temporalPattern = /\(t[\)\-\+]|\(t\s*[\)\-\+]/gi
+    if (temporalPattern.test(expression)) {
+      diagnostics.temporalParameters.push({
+        variable: varName,
+        expression: expression.substring(0, 100) // Truncate long expressions
+      })
+      diagnostics.variablesWithTemporalParams++
+    }
+    
+    // Check for missing argument definitions (variables in modern format without explicit arguments)
+    const resolved = modelFeatures?.resolvedVarsWithArguments?.get(varName.toUpperCase())
+    if (defType === 'expression' && resolved && resolved.domain && resolved.domain.length > 0) {
+      // Check if arguments are explicitly defined in XML
+      const hasExplicitArgs = varXml.arguments && varXml.arguments.arg
+      if (!hasExplicitArgs) {
+        diagnostics.missingArguments.push({
+          variable: varName,
+          inferredDomain: resolved.domain.join(', ')
+        })
+      }
+    }
+    
+    // Check for complex patterns that might not convert well
+    // Ternary operators, comparison operators
+    const hasTernary = /\?[^:]*:/.test(expression)
+    const hasComparison = /[<>]=?|[!=]=/.test(expression)
+    if (hasTernary || hasComparison) {
+      diagnostics.complexPatterns.push({
+        variable: varName,
+        pattern: hasTernary ? 'ternary operator' : 'comparison operator',
+        expression: expression.substring(0, 100)
+      })
+    }
+    
+    // Track table lookup definitions (these require manual verification)
+    if (defType === 'table' || defType === 'tableLookup') {
+      diagnostics.tableLookups.push(varName)
+    }
+  }
+  
+  return diagnostics
+}
+
+/**
  * Add README sheet explaining input tables
  */
-function addReadmeSheet(workbook, modelObj) {
+function addReadmeSheet(workbook, modelObj, modelFeatures) {
   const sheet = workbook.addWorksheet('README', { properties: { tabColor: { argb: 'FF4472C4' } } })
   
   // Add title
@@ -613,12 +716,104 @@ function addReadmeSheet(workbook, modelObj) {
   sheet.addRow(['  - Sparse tables with gaps are supported (e.g., age 0, 5, 10, 15 works for intermediate ages)'])
   sheet.addRow(['  - This allows flexible table design without requiring entries for every possible value'])
   
+  // Add diagnostics section if modelFeatures is available
+  if (modelFeatures) {
+    sheet.addRow([])
+    sheet.addRow([])
+    
+    const diagnostics = analyzeModelDiagnostics(modelObj, modelFeatures)
+    
+    // Add diagnostics header
+    sheet.addRow(['⚠️ Compatibility & Diagnostics'])
+    const diagnosticsHeaderRow = sheet.lastRow.number
+    sheet.addRow([])
+    sheet.addRow(['The following issues were detected that may affect spreadsheet rendering:'])
+    sheet.addRow([])
+    
+    let hasIssues = false
+    
+    // Unsupported functions
+    if (diagnostics.unsupportedFunctions.size > 0) {
+      hasIssues = true
+      sheet.addRow([`🔴 Unsupported Functions (${diagnostics.unsupportedFunctions.size} found):`])
+      for (const [funcName, varNames] of diagnostics.unsupportedFunctions) {
+        sheet.addRow([`  - ${funcName}: Used by ${varNames.join(', ')}`])
+        
+        // Add specific guidance for each function type
+        if (funcName === 'GetModelPoint') {
+          sheet.addRow(['    Note: This function retrieves model point data. You\'ll need to populate input tables manually.'])
+        } else if (funcName === 'GetDoubleTableValue') {
+          sheet.addRow(['    Note: Table lookups were not automatically converted. Verify formulas in Excel.'])
+        } else if (funcName === 'GetMultiUltMortRate') {
+          sheet.addRow(['    Note: Custom mortality table lookup. Consider using INDEX/MATCH formulas instead.'])
+        } else if (funcName === 'ProjectionTerm') {
+          sheet.addRow(['    Note: This function needs to be replaced with a reference to the projection length.'])
+        }
+      }
+      sheet.addRow([])
+    }
+    
+    // Temporal parameters
+    if (diagnostics.temporalParameters.length > 0) {
+      hasIssues = true
+      sheet.addRow([`⚠️ Temporal Parameters (${diagnostics.temporalParameters.length} found):`])
+      // Show first few examples
+      const maxExamples = 5
+      const examples = diagnostics.temporalParameters.slice(0, maxExamples)
+      for (const item of examples) {
+        sheet.addRow([`  - ${item.variable} uses (t): May not render correctly. Verify step-based calculations.`])
+      }
+      if (diagnostics.temporalParameters.length > maxExamples) {
+        sheet.addRow([`  ... and ${diagnostics.temporalParameters.length - maxExamples} more`])
+      }
+      sheet.addRow(['    Note: Variables with (t) or (t-1) parameters may need manual adjustment for recursive references.'])
+      sheet.addRow([])
+    }
+    
+    // Complex patterns
+    if (diagnostics.complexPatterns.length > 0) {
+      hasIssues = true
+      sheet.addRow([`⚠️ Complex Expression Patterns (${diagnostics.complexPatterns.length} found):`])
+      const maxExamples = 3
+      const examples = diagnostics.complexPatterns.slice(0, maxExamples)
+      for (const item of examples) {
+        sheet.addRow([`  - ${item.variable}: Contains ${item.pattern}`])
+      }
+      if (diagnostics.complexPatterns.length > maxExamples) {
+        sheet.addRow([`  ... and ${diagnostics.complexPatterns.length - maxExamples} more`])
+      }
+      sheet.addRow(['    Note: Ternary operators and comparisons may need conversion to Excel IF() formulas.'])
+      sheet.addRow([])
+    }
+    
+    // Information summary
+    sheet.addRow(['ℹ️ Information:'])
+    sheet.addRow([`  - ${diagnostics.totalVariables} variables total`])
+    if (diagnostics.variablesWithCustomFunctions > 0) {
+      sheet.addRow([`  - ${diagnostics.variablesWithCustomFunctions} with custom functions (may need manual adjustment)`])
+    }
+    if (diagnostics.variablesWithTemporalParams > 0) {
+      sheet.addRow([`  - ${diagnostics.variablesWithTemporalParams} using temporal parameters (step/time-based)`])
+    }
+    if (diagnostics.tableLookups.length > 0) {
+      sheet.addRow([`  - ${diagnostics.tableLookups.length} table lookup variables`])
+    }
+    
+    if (!hasIssues) {
+      sheet.addRow([])
+      sheet.addRow(['✅ No compatibility issues detected. All expressions should render correctly.'])
+    }
+    
+    // Style the diagnostics header
+    sheet.getRow(diagnosticsHeaderRow).font = { bold: true, size: 12 }
+  }
+  
   // Style the title
   sheet.getRow(1).font = { bold: true, size: 14 }
   sheet.getRow(3).font = { italic: true, size: 10 }
   
   // Auto-width for column A
-  sheet.getColumn(1).width = 80
+  sheet.getColumn(1).width = 90
 }
 
 /**
