@@ -55,7 +55,7 @@ describe('Spreadsheet Diagnostics Integration', () => {
     }
     
     // Check if model has temporal parameters
-    const hasTemporalParams = /Formula=.*\(t[\)\-\+]/.test(modelXml)
+    const hasTemporalParams = /\(t\)|\(t[\-\+]\d*\)/.test(modelXml)
     if (hasTemporalParams) {
       console.log('  ✓ Model contains temporal parameters - diagnostics should be present')
     }

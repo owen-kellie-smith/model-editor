@@ -623,7 +623,7 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
     }
     
     // Check for temporal parameters like (t), (t-1), (t+1)
-    const temporalPattern = /\(t[\)\-\+]|\(t\s*[\)\-\+]/gi
+    const temporalPattern = /\(t\)|\(t[\-\+]\d*\)/gi
     if (temporalPattern.test(expression)) {
       diagnostics.temporalParameters.push({
         variable: varName,

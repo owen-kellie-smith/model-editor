@@ -89,7 +89,8 @@ describe('Spreadsheet Diagnostics', () => {
     
     // Verify the expression contains temporal parameters
     const expression = modelObj.model.variables.variable[0].definition['#text']
-    expect(expression).toMatch(/\(t[\-\+\)]/)
+    // Pattern matches (t), (t-1), (t+1), etc.
+    expect(expression).toMatch(/\(t\)|\(t[\-\+]\d*\)/)
   })
   
   it('should handle models with table definitions', () => {
