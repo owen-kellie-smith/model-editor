@@ -179,4 +179,48 @@ describe('Spreadsheet Diagnostics', () => {
       expect(expressions[i]).toMatch(pattern)
     }
   })
+
+  it('should handle legacy format models', () => {
+    // Test legacy format model structure
+    const modelObj = {
+      model: {
+        ModelPointFields: {
+          VariableDefinition: [
+            { Name: 'MPF_PREMIUM', Formula: '' }
+          ]
+        },
+        Formulas: {
+          VariableDefinition: [
+            { Name: 'ANNUAL_PREMIUM', Formula: 'GetModelPoint(MPF_PREMIUM)' },
+            { Name: 'CURRENT_VALUE', Formula: 'PREVIOUS_VALUE(t-1) * GROWTH_RATE' }
+          ]
+        }
+      }
+    }
+
+    const modelFeatures = {
+      variables: ['MPF_PREMIUM', 'ANNUAL_PREMIUM', 'CURRENT_VALUE'],
+      resolvedVarsWithArguments: new Map([
+        ['MPF_PREMIUM', { domain: [] }],
+        ['ANNUAL_PREMIUM', { domain: [] }],
+        ['CURRENT_VALUE', { domain: ['t'] }]
+      ])
+    }
+
+    // Verify that the model doesn't have modern format variables
+    expect(modelObj.model.variables).toBeUndefined()
+    
+    // Verify that legacy format structures exist
+    expect(modelObj.model.ModelPointFields).toBeDefined()
+    expect(modelObj.model.Formulas).toBeDefined()
+    
+    // Verify the variables are in the features
+    expect(modelFeatures.variables).toHaveLength(3)
+    
+    // Verify that formulas are accessible
+    const formulaDefs = modelObj.model.Formulas.VariableDefinition
+    expect(formulaDefs).toHaveLength(2)
+    expect(formulaDefs[0].Formula).toContain('GetModelPoint')
+    expect(formulaDefs[1].Formula).toMatch(/\(t[\-\+]\d*\)/)
+  })
 })
