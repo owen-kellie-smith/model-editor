@@ -101,4 +101,73 @@ describe('Spreadsheet Formula Conversion', () => {
     const calculatedValueResolved = resolvedVarsWithArguments.get('CALCULATED_VALUE')
     expect(calculatedValueResolved.domain).toEqual(['cohort', 'step'])
   })
+
+  it('should handle step-only variables referenced in cohort-step formulas', () => {
+    // Test with a simplified annuity model structure
+    // - discount_factor(step) - a step-only variable
+    // - cashflow(cohort, step) - a cohort-step variable
+    // - discounted_cashflow(cohort, step) = cashflow(cohort, step) * discount_factor(step)
+    const modelXml = `<?xml version="1.0"?>
+<model id="test_step_only">
+  <indexSets>
+    <indexSet id="cohort"/>
+    <indexSet id="step"/>
+  </indexSets>
+  <variables>
+    <variable id="rate">
+      <definition type="constant">0.05</definition>
+    </variable>
+    <variable id="discount_factor">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <definition type="expression">(1 + rate) ^ (- step)</definition>
+    </variable>
+    <variable id="cashflow">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <definition type="constant">100</definition>
+    </variable>
+    <variable id="discounted_cashflow">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <definition type="expression">cashflow(cohort, step) * discount_factor(step)</definition>
+    </variable>
+  </variables>
+</model>`
+    
+    const model = validateModelCore(modelXml, 'test.xml', lang)
+    
+    // Verify model loaded successfully
+    expect(model).toBeTruthy()
+    expect(model.features.variables).toBeTruthy()
+    
+    // Check that we have the expected variables
+    const variableNames = model.features.variables.map(v => v.toUpperCase())
+    expect(variableNames).toContain('DISCOUNT_FACTOR')
+    expect(variableNames).toContain('CASHFLOW')
+    expect(variableNames).toContain('DISCOUNTED_CASHFLOW')
+    
+    // Verify categorization
+    const resolvedVarsWithArguments = model.features.resolvedVarsWithArguments
+    
+    // discount_factor should be step-only
+    const discountFactorResolved = resolvedVarsWithArguments.get('DISCOUNT_FACTOR')
+    expect(discountFactorResolved).toBeTruthy()
+    expect(discountFactorResolved.domain).toEqual(['step'])
+    
+    // cashflow should be cohort-step
+    const cashflowResolved = resolvedVarsWithArguments.get('CASHFLOW')
+    expect(cashflowResolved).toBeTruthy()
+    expect(cashflowResolved.domain).toEqual(['cohort', 'step'])
+    
+    // discounted_cashflow should be cohort-step
+    const discountedCashflowResolved = resolvedVarsWithArguments.get('DISCOUNTED_CASHFLOW')
+    expect(discountedCashflowResolved).toBeTruthy()
+    expect(discountedCashflowResolved.domain).toEqual(['cohort', 'step'])
+  })
 })
