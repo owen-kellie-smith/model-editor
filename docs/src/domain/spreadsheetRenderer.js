@@ -4,6 +4,8 @@
  * Generates a spreadsheet for a single cohort calculation
  */
 
+import { asArray } from '../utils/helpers.js'
+
 /**
  * Gets the definition text from a variable's XML representation
  */
@@ -589,18 +591,67 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
     'ProjectionTerm'
   ]
   
-  if (!modelObj?.model?.variables?.variable) {
+  // Use validated variable list from modelFeatures
+  const varNames = modelFeatures?.variables || []
+  if (varNames.length === 0) {
     return diagnostics
   }
   
-  const vars = Array.isArray(modelObj.model.variables.variable) 
-    ? modelObj.model.variables.variable 
-    : [modelObj.model.variables.variable]
+  // Build a case-insensitive map of all variables from the XML object
+  // This handles both modern format (modelObj.model.variables.variable)
+  // and legacy format (ModelPointFields and Formulas)
+  const variableMap = new Map()
   
-  diagnostics.totalVariables = vars.length
+  // Modern format: modelObj.model.variables.variable
+  if (modelObj?.model?.variables?.variable) {
+    const modernVars = Array.isArray(modelObj.model.variables.variable) 
+      ? modelObj.model.variables.variable 
+      : [modelObj.model.variables.variable]
+    
+    for (const varXml of modernVars) {
+      const id = (varXml.id || '').toUpperCase()
+      if (id) {
+        variableMap.set(id, varXml)
+      }
+    }
+  }
   
-  for (const varXml of vars) {
-    const varName = varXml.id || 'unknown'
+  // Legacy format: ModelPointFields
+  if (modelObj?.model?.ModelPointFields) {
+    for (const v of asArray(modelObj.model.ModelPointFields.VariableDefinition)) {
+      const name = (v.Name || '').toUpperCase()
+      if (name) {
+        // Convert legacy format to modern-like structure for consistent processing
+        variableMap.set(name, {
+          id: name,
+          definition: { type: 'expression', '#text': v.Formula || '' }
+        })
+      }
+    }
+  }
+  
+  // Legacy format: Formulas
+  if (modelObj?.model?.Formulas) {
+    for (const v of asArray(modelObj.model.Formulas.VariableDefinition)) {
+      const name = (v.Name || '').toUpperCase()
+      if (name) {
+        // Convert legacy format to modern-like structure for consistent processing
+        variableMap.set(name, {
+          id: name,
+          definition: { type: 'expression', '#text': v.Formula || '' }
+        })
+      }
+    }
+  }
+  
+  diagnostics.totalVariables = varNames.length
+  
+  // Analyze each validated variable
+  for (const varName of varNames) {
+    const varXml = variableMap.get(varName.toUpperCase())
+    if (!varXml) continue // Skip if not found in map
+    
+    const displayName = varXml.id || varName
     const defType = getDefinitionType(varXml)
     const expression = getDefinitionText(varXml)
     
@@ -614,7 +665,7 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
         if (!diagnostics.unsupportedFunctions.has(funcName)) {
           diagnostics.unsupportedFunctions.set(funcName, [])
         }
-        diagnostics.unsupportedFunctions.get(funcName).push(varName)
+        diagnostics.unsupportedFunctions.get(funcName).push(displayName)
         hasCustomFunction = true
       }
     }
@@ -626,7 +677,7 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
     const temporalPattern = /\(t\)|\(t[\-\+]\d*\)/gi
     if (temporalPattern.test(expression)) {
       diagnostics.temporalParameters.push({
-        variable: varName,
+        variable: displayName,
         expression: expression.substring(0, 100) // Truncate long expressions
       })
       diagnostics.variablesWithTemporalParams++
@@ -639,7 +690,7 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
       const hasExplicitArgs = varXml.arguments && varXml.arguments.arg
       if (!hasExplicitArgs) {
         diagnostics.missingArguments.push({
-          variable: varName,
+          variable: displayName,
           inferredDomain: resolved.domain.join(', ')
         })
       }
@@ -651,7 +702,7 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
     const hasComparison = /[<>]=?|[!=]=/.test(expression)
     if (hasTernary || hasComparison) {
       diagnostics.complexPatterns.push({
-        variable: varName,
+        variable: displayName,
         pattern: hasTernary ? 'ternary operator' : 'comparison operator',
         expression: expression.substring(0, 100)
       })
@@ -659,7 +710,7 @@ function analyzeModelDiagnostics(modelObj, modelFeatures) {
     
     // Track table lookup definitions (these require manual verification)
     if (defType === 'table' || defType === 'tableLookup') {
-      diagnostics.tableLookups.push(varName)
+      diagnostics.tableLookups.push(displayName)
     }
   }
   
