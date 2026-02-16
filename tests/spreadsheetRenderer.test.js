@@ -238,6 +238,10 @@ describe('Spreadsheet Renderer', () => {
     })
 
     it('should handle models with table definitions including min/max attributes', () => {
+      // Note: This test verifies that min/max attributes are correctly parsed from XML.
+      // The actual sample value generation using min/max only occurs in Excel rendering
+      // (renderModelAsExcel), not in CSV rendering (renderModelAsSpreadsheet).
+      // Excel rendering is not tested here due to ExcelJS dependencies in the test environment.
       const modelXml = `<?xml version="1.0"?>
 <model id="test_with_minmax">
   <indexSets>

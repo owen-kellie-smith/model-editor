@@ -244,6 +244,10 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max) {
       return dataType === 'integer' ? Math.round(min) : min
     }
     
+    // Generate evenly spaced values that include both min and max
+    // For numSamples=4: rowIndex % 4 gives 0,1,2,3
+    // Division by (numSamples-1) ensures: index 0 → min, index 3 → max
+    // Example: min=10, max=50, range=40: values are 10, 23.33, 36.67, 50
     const value = min + (rowIndex % numSamples) * (range / (numSamples - 1))
     return dataType === 'integer' ? Math.round(value) : value
   }
