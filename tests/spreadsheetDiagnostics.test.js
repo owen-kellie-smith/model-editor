@@ -216,5 +216,11 @@ describe('Spreadsheet Diagnostics', () => {
     
     // Verify the variables are in the features
     expect(modelFeatures.variables).toHaveLength(3)
+    
+    // Verify that formulas are accessible
+    const formulaDefs = modelObj.model.Formulas.VariableDefinition
+    expect(formulaDefs).toHaveLength(2)
+    expect(formulaDefs[0].Formula).toContain('GetModelPoint')
+    expect(formulaDefs[1].Formula).toMatch(/\(t[\-\+]\d*\)/)
   })
 })
