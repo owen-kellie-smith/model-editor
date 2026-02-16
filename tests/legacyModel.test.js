@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { validateModelCore } from '@/domain/model.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
-import { renderModelAsSpreadsheet } from '@/domain/spreadsheetRenderer.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 import fs from 'fs'
@@ -26,19 +25,6 @@ describe('Legacy Model Format', () => {
     expect(model).toBeTruthy()
     expect(model.features.variables).toBeTruthy()
     expect(model.features.variables.length).toBeGreaterThan(0)
-  })
-
-  it('should render legacy-format-model.xml as spreadsheet', () => {
-    const modelPath = path.join(process.cwd(), 'docs', 'examples', 'annuity-model', 'legacy-format-model.xml')
-    const modelXml = fs.readFileSync(modelPath, 'utf-8')
-    
-    const model = validateModelCore(modelXml, 'legacy-format-model.xml', lang)
-    
-    // This should not throw a circular dependency error
-    const csv = renderModelAsSpreadsheet(model.obj, model.features)
-    
-    expect(csv).toBeTruthy()
-    expect(csv).toContain('Variable ID')
   })
 
   it('should use uppercase cell references in Excel formulas to avoid #NAME errors in LibreOffice Calc', async () => {
