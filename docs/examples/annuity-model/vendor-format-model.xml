@@ -56,14 +56,14 @@
     </table>
 
     <table id="mortality_rate">
-      <rowIndex ref="age"/>
+      <rowIndex ref="age" min="17" max="104"/>
       <!-- columns unconstrained -->
     </table>
 
     <table id="spot_rate">
-      <rowIndex ref="step"/>
+      <rowIndex ref="step" min="0" max="120"/>
       <columns>
-        <column id="rate" dataType="real"/>
+        <column id="rate" dataType="real" min="0.01" max="0.08"/>
       </columns>
     </table>
 

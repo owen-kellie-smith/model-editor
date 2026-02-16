@@ -192,6 +192,12 @@ function extractTableDefinitions(modelObj) {
     const tableId = table.id
     const rowIndex = table.rowIndex?.ref || table.rowIndex?.['#text'] || tableId
     
+    // Extract min/max from rowIndex if present
+    const rowIndexMinValue = table.rowIndex?.min !== undefined ? parseFloat(table.rowIndex.min) : undefined
+    const rowIndexMaxValue = table.rowIndex?.max !== undefined ? parseFloat(table.rowIndex.max) : undefined
+    const rowIndexMin = (rowIndexMinValue !== undefined && !isNaN(rowIndexMinValue)) ? rowIndexMinValue : undefined
+    const rowIndexMax = (rowIndexMaxValue !== undefined && !isNaN(rowIndexMaxValue)) ? rowIndexMaxValue : undefined
+    
     // Extract columns if defined
     const columns = []
     if (table.columns?.column) {
@@ -215,6 +221,8 @@ function extractTableDefinitions(modelObj) {
     tableMap.set(tableId, {
       id: tableId,
       rowIndex: rowIndex,
+      rowIndexMin: rowIndexMin,
+      rowIndexMax: rowIndexMax,
       columns: columns
     })
   }
@@ -355,45 +363,62 @@ function addTableSheets(workbook, modelObj) {
     }
     
     // Generate sample data rows
-    const numSampleRows = determineSampleRowCount(tableId)
+    const numSampleRows = determineSampleRowCount(tableDef)
     
     for (let i = 0; i < numSampleRows; i++) {
       const row = []
       
-      // Special handling for mortality_rate which needs actual age values
-      if (tableId.toLowerCase().includes('mortality')) {
-        const age = TABLE_DIMENSIONS.MORTALITY_RATE.minAge + i
-        row.push(age)
+      // Generate row index value
+      if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
+        // Use model-specified range for row index
+        const range = tableDef.rowIndexMax - tableDef.rowIndexMin
+        let rowIndexValue
         
-        // Generate mortality rates
-        const baseMale = 0.0006
-        const baseFemale = 0.000172
-        const ageRange = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge
-        const ageFactor = Math.pow((age - TABLE_DIMENSIONS.MORTALITY_RATE.minAge) / ageRange, 3)
-        const maleRate = baseMale + ageFactor * (1 - baseMale)
-        const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
-        row.push(maleRate, femaleRate)
-      } else if (tableId.toLowerCase().includes('spot')) {
-        // Special handling for spot_rate
-        const step = TABLE_DIMENSIONS.SPOT_RATE.minStep + i
-        row.push(step)
+        if (numSampleRows <= 1) {
+          // Single row: use minimum value
+          rowIndexValue = tableDef.rowIndexMin
+        } else if (range < numSampleRows) {
+          // If range is smaller than sample count, generate sequential values
+          rowIndexValue = tableDef.rowIndexMin + i
+        } else {
+          // Generate evenly-spaced values across the range
+          // This ensures we cover the full range including both min and max
+          const step = range / (numSampleRows - 1)
+          rowIndexValue = Math.round(tableDef.rowIndexMin + i * step)
+        }
         
-        // Generate spot rate
-        const stepRange = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep
-        const rate = 0.05 + 0.01 * (step / stepRange)
-        row.push(rate)
+        row.push(rowIndexValue)
       } else {
-        // Standard table handling
-        // First column is the row index
+        // Fallback: use simple sequential integers
         row.push(generateSampleValue(tableDef.rowIndex, 'integer', i))
-        
-        // Add values for each column
-        if (tableDef.columns.length > 0) {
-          for (const col of tableDef.columns) {
-            row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max))
+      }
+      
+      // Add values for each column
+      if (tableDef.columns.length > 0) {
+        for (const col of tableDef.columns) {
+          row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max))
+        }
+      } else {
+        // Generic unconstrained columns - use sensible defaults based on table name
+        if (tableId.toLowerCase().includes('mortality')) {
+          // Generate realistic mortality rates for unconstrained mortality tables
+          const rowIndexValue = row[0]
+          const baseMale = 0.0006
+          const baseFemale = 0.000172
+          
+          // If we have min/max for row index, use that for scaling
+          if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
+            const ageRange = tableDef.rowIndexMax - tableDef.rowIndexMin
+            const ageFactor = Math.pow((rowIndexValue - tableDef.rowIndexMin) / ageRange, 3)
+            const maleRate = baseMale + ageFactor * (1 - baseMale)
+            const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
+            row.push(maleRate, femaleRate)
+          } else {
+            // Fallback without min/max
+            row.push(baseMale * (1 + i), baseFemale * (1 + i))
           }
         } else {
-          // Generic unconstrained columns
+          // Generic fallback for other unconstrained tables
           row.push(100 + i * 25)
         }
       }
@@ -405,23 +430,27 @@ function addTableSheets(workbook, modelObj) {
 
 /**
  * Determine the number of sample rows to generate for a table
+ * @param {Object} tableDef - Table definition with optional rowIndexMin/rowIndexMax
+ * @returns {number} - Number of sample rows to generate
  */
-function determineSampleRowCount(tableId) {
-  const lowerTableId = tableId.toLowerCase()
-  
-  // mortality_rate and spot_rate need many rows for realistic lookups
-  if (lowerTableId.includes('mortality')) {
-    // Generate full mortality table
-    return TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge + 1
+function determineSampleRowCount(tableDef) {
+  // If rowIndex has min/max defined, generate ~10 sample rows across the range
+  // (or the full range if it's small enough)
+  if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
+    const range = tableDef.rowIndexMax - tableDef.rowIndexMin + 1
+    
+    // If the range is small (<= 20), generate the full range
+    if (range <= 20) {
+      return range
+    }
+    
+    // For larger ranges, generate approximately 10 evenly-spaced samples
+    // This provides a good balance between realistic data and file size
+    return Math.min(10, range)
   }
   
-  if (lowerTableId.includes('spot')) {
-    // Generate full spot rate table
-    return TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep + 1
-  }
-  
-  // For other tables (like cohort_data), use 4-5 sample rows
-  return 4
+  // Fallback: For tables without min/max constraints, generate 5 sample rows
+  return 5
 }
 
 /**

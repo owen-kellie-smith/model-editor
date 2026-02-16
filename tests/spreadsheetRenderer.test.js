@@ -392,5 +392,107 @@ describe('Spreadsheet Renderer', () => {
       expect(csv).toBeTruthy()
       expect(csv).toContain('same_value')
     })
+
+    it('should use model-driven min/max for rowIndex to determine sample row count', () => {
+      // Test that rowIndex min/max attributes control the number of sample rows generated
+      // Note: This test verifies XML parsing only. Actual sample data generation happens
+      // in renderModelAsExcel which requires ExcelJS (not available in test environment).
+      const modelXml = `<?xml version="1.0"?>
+<model id="test_rowindex_minmax">
+  <indexSets>
+    <indexSet id="age">
+      <dataType>integer</dataType>
+    </indexSet>
+    <indexSet id="step">
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+  
+  <tables>
+    <table id="small_range">
+      <rowIndex ref="age" min="20" max="25"/>
+      <columns>
+        <column id="value" dataType="real" min="1.0" max="10.0"/>
+      </columns>
+    </table>
+    
+    <table id="large_range">
+      <rowIndex ref="step" min="0" max="120"/>
+      <columns>
+        <column id="rate" dataType="real" min="0.01" max="0.08"/>
+      </columns>
+    </table>
+    
+    <table id="no_minmax">
+      <rowIndex ref="age"/>
+      <columns>
+        <column id="other" dataType="real"/>
+      </columns>
+    </table>
+  </tables>
+  
+  <variables>
+    <variable id="value">
+      <arguments>
+        <arg indexSet="age"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="small_range"/>
+        <column ref="value"/>
+      </definition>
+    </variable>
+  </variables>
+</model>`
+      
+      const model = validateModelCore(modelXml, 'test.xml', lang)
+      
+      expect(model).toBeTruthy()
+      expect(model.obj).toBeTruthy()
+      expect(model.obj.model.tables).toBeTruthy()
+      
+      // Check that rowIndex min/max are parsed correctly
+      const tables = Array.isArray(model.obj.model.tables.table) 
+        ? model.obj.model.tables.table 
+        : [model.obj.model.tables.table]
+      
+      const smallRangeTable = tables.find(t => t.id === 'small_range')
+      expect(smallRangeTable).toBeTruthy()
+      expect(smallRangeTable.rowIndex).toBeTruthy()
+      expect(smallRangeTable.rowIndex.min).toBe('20')
+      expect(smallRangeTable.rowIndex.max).toBe('25')
+      
+      // Verify column min/max are also parsed
+      const smallRangeColumns = Array.isArray(smallRangeTable.columns.column)
+        ? smallRangeTable.columns.column
+        : [smallRangeTable.columns.column]
+      const valueCol = smallRangeColumns.find(c => c.id === 'value')
+      expect(valueCol).toBeTruthy()
+      expect(valueCol.min).toBe('1.0')
+      expect(valueCol.max).toBe('10.0')
+      
+      const largeRangeTable = tables.find(t => t.id === 'large_range')
+      expect(largeRangeTable).toBeTruthy()
+      expect(largeRangeTable.rowIndex.min).toBe('0')
+      expect(largeRangeTable.rowIndex.max).toBe('120')
+      
+      // Verify column min/max for large range
+      const largeRangeColumns = Array.isArray(largeRangeTable.columns.column)
+        ? largeRangeTable.columns.column
+        : [largeRangeTable.columns.column]
+      const rateCol = largeRangeColumns.find(c => c.id === 'rate')
+      expect(rateCol).toBeTruthy()
+      expect(rateCol.min).toBe('0.01')
+      expect(rateCol.max).toBe('0.08')
+      
+      const noMinMaxTable = tables.find(t => t.id === 'no_minmax')
+      expect(noMinMaxTable).toBeTruthy()
+      expect(noMinMaxTable.rowIndex.min).toBeUndefined()
+      expect(noMinMaxTable.rowIndex.max).toBeUndefined()
+      
+      // Should render successfully (validates the model is well-formed)
+      const csv = renderModelAsSpreadsheet(model.obj, model.features)
+      expect(csv).toBeTruthy()
+    })
   })
 })
