@@ -392,9 +392,10 @@ function generateTableLookupFormula(varXml, currentRow) {
   }
   
   // Generate INDEX/MATCH formula for table lookup using dynamic ranges
-  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!A:maxCol, 0))
+  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!1:1, 0))
   // Using entire columns allows tables to be extended without breaking formulas
-  return `INDEX(table_${tableRef}!A:${maxCol},MATCH($A${currentRow},table_${tableRef}!A:A,0),MATCH("${columnRef}",table_${tableRef}!A:${maxCol},0))`
+  // Column matching uses 1:1 (header row only) to avoid accidental matches in data columns
+  return `INDEX(table_${tableRef}!A:${maxCol},MATCH($A${currentRow},table_${tableRef}!A:A,0),MATCH("${columnRef}",table_${tableRef}!1:1,0))`
 }
 
 /**
@@ -433,7 +434,8 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     
     // Column selector is typically from cohort sheet
     // Using entire columns allows tables to be extended without breaking formulas
-    return `INDEX(table_${tableRef}!A:${maxCol},MATCH(${rowCell},table_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,table_${tableRef}!A:${maxCol},0))`
+    // Column matching uses 1:1 (header row only) to avoid accidental matches in data columns
+    return `INDEX(table_${tableRef}!A:${maxCol},MATCH(${rowCell},table_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,table_${tableRef}!1:1,0))`
   }
   
   return null
