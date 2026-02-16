@@ -26,7 +26,7 @@ const TABLE_DIMENSIONS = {
 
 // Computed values
 TABLE_DIMENSIONS.MORTALITY_RATE.maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge + 2  // +1 for header, +1 for inclusive range
-TABLE_DIMENSIONS.SPOT_RATE.maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep + 1  // +1 for inclusive range
+TABLE_DIMENSIONS.SPOT_RATE.maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep + 2  // +1 for header, +1 for inclusive range
 
 /**
  * Gets the definition text from a variable's XML representation
@@ -383,7 +383,7 @@ function generateTableLookupFormula(varXml, currentRow) {
   
   // Generate INDEX/MATCH formula for table lookup
   // INDEX(table!range, MATCH(rowKey, table!rowRange, 0), MATCH(colKey, table!colRange, 0))
-  return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A${currentRow},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH(${columnRef},table_${tableRef}!$A$1:$${maxCol}$1,0))`
+  return `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A${currentRow},table_${tableRef}!$A$1:$A$${maxRow},0),MATCH("${columnRef}",table_${tableRef}!$A$1:$${maxCol}$1,0))`
 }
 
 /**
