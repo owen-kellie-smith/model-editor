@@ -236,7 +236,7 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max) {
   if (min !== undefined && max !== undefined && (dataType === 'real' || dataType === 'integer')) {
     const range = max - min
     const numSamples = 4  // Generate 4 different values across the range
-    const value = min + (rowIndex % numSamples) * (range / numSamples)
+    const value = min + (rowIndex % numSamples) * (range / (numSamples - 1))
     return dataType === 'integer' ? Math.round(value) : value
   }
   
