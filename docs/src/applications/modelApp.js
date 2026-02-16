@@ -4,7 +4,7 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
-import { renderModelAsSpreadsheet, renderModelAsExcel } from "../domain/spreadsheetRenderer.js";
+import { renderModelAsExcel } from "../domain/spreadsheetRenderer.js";
 import { setElementContent } from "../utils/helpers.js";
 
 
