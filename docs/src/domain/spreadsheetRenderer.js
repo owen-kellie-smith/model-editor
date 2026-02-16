@@ -116,7 +116,10 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   }
   
   // Add table sheets with sample data
-  addTableSheets(workbook)
+  addTableSheets(workbook, modelObj)
+  
+  // Add README sheet
+  addReadmeSheet(workbook, modelObj)
   
   // Add calculation sheet for cohort variables (single cohort, no steps)
   if (categorized.cohortOnly.length > 0) {
@@ -168,11 +171,228 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
 }
 
 /**
- * Add table sheets with sample data
+ * Extract table definitions from model object
+ * @param {Object} modelObj - The model object
+ * @returns {Map} - Map of table ID to table definition with columns array
  */
-function addTableSheets(workbook) {
+function extractTableDefinitions(modelObj) {
+  const tableMap = new Map()
+  
+  if (!modelObj?.model?.tables?.table) {
+    return tableMap
+  }
+  
+  const tables = Array.isArray(modelObj.model.tables.table) 
+    ? modelObj.model.tables.table 
+    : [modelObj.model.tables.table]
+  
+  for (const table of tables) {
+    if (!table.id) continue
+    
+    const tableId = table.id
+    const rowIndex = table.rowIndex?.ref || table.rowIndex?.['#text'] || tableId
+    
+    // Extract columns if defined
+    const columns = []
+    if (table.columns?.column) {
+      const cols = Array.isArray(table.columns.column) 
+        ? table.columns.column 
+        : [table.columns.column]
+      
+      for (const col of cols) {
+        columns.push({
+          id: col.id || '',
+          dataType: col.dataType || 'real',
+          unit: col.unit || ''
+        })
+      }
+    }
+    
+    tableMap.set(tableId, {
+      id: tableId,
+      rowIndex: rowIndex,
+      columns: columns
+    })
+  }
+  
+  return tableMap
+}
+
+/**
+ * Generate sample value based on column name and data type
+ * @param {string} columnId - Column identifier
+ * @param {string} dataType - Data type (real, integer, string, boolean)
+ * @param {number} rowIndex - Row index for variation
+ * @returns {*} - Sample value
+ */
+function generateSampleValue(columnId, dataType, rowIndex) {
+  const lowerColId = columnId.toLowerCase()
+  
+  // Handle row index columns
+  if (lowerColId === 'id' || lowerColId === 'cohort') {
+    return rowIndex
+  }
+  
+  if (lowerColId === 'age') {
+    return 20 + rowIndex * 15  // Ages: 20, 35, 50, 65, 80
+  }
+  
+  if (lowerColId === 'step') {
+    return rowIndex * 30  // Steps: 0, 30, 60, 90, 120
+  }
+  
+  // Handle specific column patterns
+  if (lowerColId.includes('amount') || lowerColId.includes('annuity')) {
+    return 10000 + rowIndex * 2500  // 10000, 12500, 15000, 17500, 20000
+  }
+  
+  if (lowerColId.includes('age')) {
+    return 55 + rowIndex * 3  // 55, 58, 61, 64, 67
+  }
+  
+  if (lowerColId.includes('rate')) {
+    return 0.02 + rowIndex * 0.01  // 0.02, 0.03, 0.04, 0.05, 0.06
+  }
+  
+  if (lowerColId.includes('mortality') && lowerColId.includes('table')) {
+    const tables = ['AM92U', 'AF92U', 'AM92U', 'AF92U', 'AM92U']
+    return tables[rowIndex % tables.length]
+  }
+  
+  // Generic handling by data type
+  if (dataType === 'string') {
+    return `value_${rowIndex}`
+  }
+  
+  if (dataType === 'integer') {
+    return rowIndex * 10
+  }
+  
+  if (dataType === 'boolean') {
+    return rowIndex % 2 === 0
+  }
+  
+  // Default for real numbers
+  return 100 + rowIndex * 25
+}
+
+/**
+ * Add table sheets with sample data (extracted from model definitions)
+ */
+function addTableSheets(workbook, modelObj) {
+  const tableDefs = extractTableDefinitions(modelObj)
+  
+  // If no tables defined in model, use fallback with hardcoded tables
+  if (tableDefs.size === 0) {
+    addTableSheetsFallback(workbook)
+    return
+  }
+  
+  // Generate sheets for each table in the model
+  for (const [tableId, tableDef] of tableDefs) {
+    const sheetName = `input_${tableId}`
+    const sheet = workbook.addWorksheet(sheetName)
+    
+    // Build header row: row index column + data columns
+    const headers = [tableDef.rowIndex]
+    
+    if (tableDef.columns.length > 0) {
+      // Use defined columns
+      for (const col of tableDef.columns) {
+        headers.push(col.id)
+      }
+    } else {
+      // Handle unconstrained columns (like mortality_rate)
+      // Use common column patterns based on table name
+      if (tableId.toLowerCase().includes('mortality')) {
+        headers.push('AM92U', 'AF92U')
+      } else {
+        headers.push('value')  // Generic fallback
+      }
+    }
+    
+    sheet.addRow(headers)
+    
+    // Add metadata rows if columns are defined
+    if (tableDef.columns.length > 0) {
+      const dataTypes = ['dataType']
+      const units = ['unit']
+      const domains = [tableDef.rowIndex]
+      
+      for (const col of tableDef.columns) {
+        dataTypes.push(col.dataType || '')
+        units.push(col.unit || '')
+        domains.push('')
+      }
+      
+      sheet.addRow(dataTypes)
+      sheet.addRow(units)
+      sheet.addRow(domains)
+    }
+    
+    // Generate sample data rows
+    const numSampleRows = determineSampleRowCount(tableId)
+    
+    for (let i = 0; i < numSampleRows; i++) {
+      const row = []
+      
+      // First column is the row index
+      row.push(generateSampleValue(tableDef.rowIndex, 'integer', i))
+      
+      // Add values for each column
+      if (tableDef.columns.length > 0) {
+        for (const col of tableDef.columns) {
+          row.push(generateSampleValue(col.id, col.dataType, i))
+        }
+      } else {
+        // Unconstrained columns - generate realistic values
+        if (tableId.toLowerCase().includes('mortality')) {
+          // mortality_rate special handling
+          const age = 20 + i * 15
+          const baseMale = 0.0006
+          const baseFemale = 0.000172
+          const ageRange = 80
+          const ageFactor = Math.pow(i / numSampleRows, 3)
+          const maleRate = baseMale + ageFactor * (1 - baseMale)
+          const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
+          row.push(maleRate, femaleRate)
+        } else {
+          row.push(100 + i * 25)
+        }
+      }
+      
+      sheet.addRow(row)
+    }
+  }
+}
+
+/**
+ * Determine the number of sample rows to generate for a table
+ */
+function determineSampleRowCount(tableId) {
+  const lowerTableId = tableId.toLowerCase()
+  
+  // mortality_rate and spot_rate need many rows for realistic lookups
+  if (lowerTableId.includes('mortality')) {
+    // Generate full mortality table
+    return TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge + 1
+  }
+  
+  if (lowerTableId.includes('spot')) {
+    // Generate full spot rate table
+    return TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep + 1
+  }
+  
+  // For other tables (like cohort_data), use 4-5 sample rows
+  return 4
+}
+
+/**
+ * Add table sheets with sample data (fallback for models without table definitions)
+ */
+function addTableSheetsFallback(workbook) {
   // Add cohort_data table
-  const cohortSheet = workbook.addWorksheet('table_cohort_data')
+  const cohortSheet = workbook.addWorksheet('input_cohort_data')
   cohortSheet.addRow(['id', 'annual_annuity_amount', 'annuity_start_age', 'current_age', 'mortality_table'])
   cohortSheet.addRow(['dataType', 'real', 'real', 'real', 'string'])
   cohortSheet.addRow(['unit', 'GBP per year', 'years', 'years'])
@@ -183,7 +403,7 @@ function addTableSheets(workbook) {
   cohortSheet.addRow([4, 45.67, 64, 34.5, 'AF92U'])
   
   // Add mortality_rate table
-  const mortalitySheet = workbook.addWorksheet('table_mortality_rate')
+  const mortalitySheet = workbook.addWorksheet('input_mortality_rate')
   mortalitySheet.addRow(['age', 'AM92U', 'AF92U'])
   
   // Add mortality data using constants
@@ -199,7 +419,7 @@ function addTableSheets(workbook) {
   }
   
   // Add spot_rate table
-  const spotSheet = workbook.addWorksheet('table_spot_rate')
+  const spotSheet = workbook.addWorksheet('input_spot_rate')
   spotSheet.addRow(['step', 'rate'])
   
   // Add spot rates using constants
@@ -209,6 +429,65 @@ function addTableSheets(workbook) {
     const rate = 0.05 + 0.01 * (step / stepRange)
     spotSheet.addRow([step, rate])
   }
+}
+
+/**
+ * Add README sheet explaining input tables
+ */
+function addReadmeSheet(workbook, modelObj) {
+  const sheet = workbook.addWorksheet('README', { properties: { tabColor: { argb: 'FF4472C4' } } })
+  
+  // Make it the first sheet
+  workbook.worksheets.forEach((ws, index) => {
+    if (ws.name === 'README') {
+      workbook.removeWorksheet(ws.id)
+      workbook.addWorksheet(ws, 0)
+    }
+  })
+  
+  // Add title
+  sheet.addRow(['Input Tables - README'])
+  sheet.addRow([])
+  
+  // Add timestamp
+  const timestamp = new Date().toISOString()
+  sheet.addRow([`Generated on ${timestamp}`])
+  sheet.addRow([])
+  
+  // Add explanation
+  sheet.addRow(['This spreadsheet was pre-populated with sample data to show the expected format.'])
+  sheet.addRow(['Replace all values with your own data.'])
+  sheet.addRow([])
+  
+  // List input tables
+  sheet.addRow(['Input Tables:'])
+  
+  const tableDefs = extractTableDefinitions(modelObj)
+  if (tableDefs.size > 0) {
+    for (const [tableId, tableDef] of tableDefs) {
+      const sheetName = `input_${tableId}`
+      const columnList = tableDef.columns.length > 0 
+        ? tableDef.columns.map(c => c.id).join(', ') 
+        : 'unconstrained columns'
+      sheet.addRow([`  - ${sheetName}: ${columnList}`])
+    }
+  } else {
+    // Fallback for models without table definitions
+    sheet.addRow(['  - input_cohort_data: annual_annuity_amount, annuity_start_age, current_age, mortality_table'])
+    sheet.addRow(['  - input_mortality_rate: age-based mortality rates'])
+    sheet.addRow(['  - input_spot_rate: step-based discount rates'])
+  }
+  
+  sheet.addRow([])
+  sheet.addRow(['All input tables are pre-filled with sample values for reference only.'])
+  sheet.addRow(['These values should be replaced with your actual data before using the model.'])
+  
+  // Style the title
+  sheet.getRow(1).font = { bold: true, size: 14 }
+  sheet.getRow(3).font = { italic: true, size: 10 }
+  
+  // Auto-width for column A
+  sheet.getColumn(1).width = 80
 }
 
 /**
@@ -254,7 +533,7 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
         // Use table dimensions from constants for column
         const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
         row.push({ 
-          formula: `INDEX(table_${tableRef}!A:${maxCol},MATCH($A2,table_${tableRef}!A:A,0),MATCH(${colLetter}$1,table_${tableRef}!$1:$1,0))` 
+          formula: `INDEX(input_${tableRef}!A:${maxCol},MATCH($A2,input_${tableRef}!A:A,0),MATCH(${colLetter}$1,input_${tableRef}!$1:$1,0))` 
         })
       } else {
         row.push('')
@@ -398,7 +677,7 @@ function generateTableLookupFormula(varXml, currentRow) {
   // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!$1:$1, 0))
   // Using entire columns allows tables to be extended without breaking formulas
   // Column matching uses $1:$1 (absolute header row reference) to avoid accidental matches in data columns
-  return `INDEX(table_${tableRef}!A:${maxCol},MATCH($A${currentRow},table_${tableRef}!A:A,0),MATCH("${columnRef}",table_${tableRef}!$1:$1,0))`
+  return `INDEX(input_${tableRef}!A:${maxCol},MATCH($A${currentRow},input_${tableRef}!A:A,0),MATCH("${columnRef}",input_${tableRef}!$1:$1,0))`
 }
 
 /**
@@ -438,7 +717,7 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     // Column selector is typically from cohort sheet
     // Using entire columns allows tables to be extended without breaking formulas
     // Column matching uses $1:$1 (absolute header row reference) to avoid accidental matches in data columns
-    return `INDEX(table_${tableRef}!A:${maxCol},MATCH(${rowCell},table_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,table_${tableRef}!$1:$1,0))`
+    return `INDEX(input_${tableRef}!A:${maxCol},MATCH(${rowCell},input_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,input_${tableRef}!$1:$1,0))`
   }
   
   return null
