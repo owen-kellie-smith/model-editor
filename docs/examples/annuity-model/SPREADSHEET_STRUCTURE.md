@@ -95,10 +95,10 @@ Data (Row 2, Cohort 1):
 | Column | Formula | Value |
 |--------|---------|-------|
 | A | 1 | 1 |
-| B | `=INDEX(table_cohort_data!$A$1:$E$8,MATCH($A2,table_cohort_data!$A1:$A8,0),MATCH(B$1,table_cohort_data!$A$1:$E$1,0))` | 12.34 |
-| C | `=INDEX(table_cohort_data!$A$1:$E$8,MATCH($A2,table_cohort_data!$A1:$A8,0),MATCH(C$1,table_cohort_data!$A$1:$E$1,0))` | 61 |
-| D | `=INDEX(table_cohort_data!$A$1:$E$8,MATCH($A2,table_cohort_data!$A1:$A8,0),MATCH(D$1,table_cohort_data!$A$1:$E$1,0))` | 31.2 |
-| E | `=INDEX(table_cohort_data!$A$1:$E$8,MATCH($A2,table_cohort_data!$A1:$A8,0),MATCH(E$1,table_cohort_data!$A$1:$E$1,0))` | AM92U |
+| B | `=INDEX(table_cohort_data!A:E,MATCH($A2,table_cohort_data!A:A,0),MATCH(B$1,table_cohort_data!1:1,0))` | 12.34 |
+| C | `=INDEX(table_cohort_data!A:E,MATCH($A2,table_cohort_data!A:A,0),MATCH(C$1,table_cohort_data!1:1,0))` | 61 |
+| D | `=INDEX(table_cohort_data!A:E,MATCH($A2,table_cohort_data!A:A,0),MATCH(D$1,table_cohort_data!1:1,0))` | 31.2 |
+| E | `=INDEX(table_cohort_data!A:E,MATCH($A2,table_cohort_data!A:A,0),MATCH(E$1,table_cohort_data!1:1,0))` | AM92U |
 
 **Description:** Single row for cohort 1, pulling data from table_cohort_data using INDEX/MATCH
 
@@ -121,7 +121,7 @@ Sample formulas (Row 2, Step 0):
 | A | step | 0 | 0 |
 | B | attained_age | `=calc_cohort!D$2+constant!$B$1*A2` | 31.2 |
 | C | attained_age_years_floor | `=INT(B2)` | 31 |
-| D | annual_mortality_rate | `=INDEX(table_mortality_rate!$A$1:$C$89,MATCH(C2,table_mortality_rate!$A$1:$A$89,0),MATCH(calc_cohort!$E$2,table_mortality_rate!A$1:C$1,0))` | 0.000602 |
+| D | annual_mortality_rate | `=INDEX(table_mortality_rate!A:C,MATCH(C2,table_mortality_rate!A:A,0),MATCH(calc_cohort!$E$2,table_mortality_rate!1:1,0))` | 0.000602 |
 | E | monthly_survival_rate | `=(1-D2)^constant!$B$1` | 0.999950 |
 | F | survival_to_start_of_step | `=1` (first row) or `=F1*E2` (subsequent) | 1 |
 | G | payable_at_start_of_step | `=B2>=calc_cohort!C$2` | FALSE (0) |
@@ -139,10 +139,11 @@ Sample formulas (Row 2, Step 0):
 
 ### INDEX/MATCH for table lookup:
 ```excel
-=INDEX(table_name!$A$1:$E$8,MATCH($A2,table_name!$A1:$A8,0),MATCH(B$1,table_name!$A$1:$E$1,0))
+=INDEX(table_name!A:E,MATCH($A2,table_name!A:A,0),MATCH(B$1,table_name!1:1,0))
 ```
-- Looks up row by matching cohort ID in column A
-- Looks up column by matching header in row 1
+- Looks up row by matching cohort ID in column A (entire column A:A)
+- Looks up column by matching header in row 1 (header row only 1:1)
+- Uses dynamic ranges (A:E) that automatically expand when tables grow
 - Returns intersection value
 
 ### Cross-sheet references:

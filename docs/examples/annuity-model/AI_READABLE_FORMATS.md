@@ -171,7 +171,7 @@ unzip spreadsheet.xlsx
 <row r="2">
   <c r="A2" s="3" t="n"><v>1</v></c>  <!-- Cohort ID = 1 -->
   <c r="B2" s="0" t="n">
-    <f>INDEX(table_cohort_data!$A$1:$E$8,MATCH($A2,table_cohort_data!$A1:$A8,0),MATCH(B$1,table_cohort_data!$A$1:$E$1,0))</f>
+    <f>INDEX(table_cohort_data!A:E,MATCH($A2,table_cohort_data!A:A,0),MATCH(B$1,table_cohort_data!1:1,0))</f>
     <v>12.34</v>
   </c>
 </row>

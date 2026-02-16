@@ -251,11 +251,10 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
       const columnRef = tableDef.column?.ref || tableDef.column?.['#text'] || ''
       
       if (tableRef && columnRef) {
-        // Use table dimensions from constants
-        const maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
+        // Use table dimensions from constants for column
         const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
         row.push({ 
-          formula: `INDEX(table_${tableRef}!$A$1:$${maxCol}$${maxRow},MATCH($A2,table_${tableRef}!$A1:$A${maxRow},0),MATCH(${colLetter}$1,table_${tableRef}!$A$1:$${maxCol}$1,0))` 
+          formula: `INDEX(table_${tableRef}!A:${maxCol},MATCH($A2,table_${tableRef}!A:A,0),MATCH(${colLetter}$1,table_${tableRef}!1:1,0))` 
         })
       } else {
         row.push('')
