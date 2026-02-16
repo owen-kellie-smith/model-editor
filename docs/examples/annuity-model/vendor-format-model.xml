@@ -48,9 +48,9 @@
     <table id="cohort_data">
       <rowIndex ref="cohort"/>
       <columns>
-        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year"/>
-        <column id="annuity_start_age" dataType="real" unit="years"/>
-        <column id="current_age" dataType="real" unit="years"/>
+        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year" min="10" max="50"/>
+        <column id="annuity_start_age" dataType="real" unit="years" min="55" max="75"/>
+        <column id="current_age" dataType="real" unit="years" min="20" max="80"/>
         <column id="mortality_table" dataType="string"/>
       </columns>
     </table>

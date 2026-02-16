@@ -203,7 +203,9 @@ function extractTableDefinitions(modelObj) {
         columns.push({
           id: col.id || '',
           dataType: col.dataType || 'real',
-          unit: col.unit || ''
+          unit: col.unit || '',
+          min: col.min !== undefined ? parseFloat(col.min) : undefined,
+          max: col.max !== undefined ? parseFloat(col.max) : undefined
         })
       }
     }
@@ -223,10 +225,20 @@ function extractTableDefinitions(modelObj) {
  * @param {string} columnId - Column identifier
  * @param {string} dataType - Data type (real, integer, string, boolean)
  * @param {number} rowIndex - Row index for variation
+ * @param {number} [min] - Optional minimum value for numeric types
+ * @param {number} [max] - Optional maximum value for numeric types
  * @returns {*} - Sample value
  */
-function generateSampleValue(columnId, dataType, rowIndex) {
+function generateSampleValue(columnId, dataType, rowIndex, min, max) {
   const lowerColId = columnId.toLowerCase()
+  
+  // If min and max are provided, generate value within that range
+  if (min !== undefined && max !== undefined && (dataType === 'real' || dataType === 'integer')) {
+    const range = max - min
+    const numSamples = 4  // Generate 4 different values across the range
+    const value = min + (rowIndex % numSamples) * (range / numSamples)
+    return dataType === 'integer' ? Math.round(value) : value
+  }
   
   // Handle row index columns
   if (lowerColId === 'id' || lowerColId === 'cohort') {
@@ -366,7 +378,7 @@ function addTableSheets(workbook, modelObj) {
         // Add values for each column
         if (tableDef.columns.length > 0) {
           for (const col of tableDef.columns) {
-            row.push(generateSampleValue(col.id, col.dataType, i))
+            row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max))
           }
         } else {
           // Generic unconstrained columns
