@@ -3,6 +3,8 @@ import { validateModelCore } from '@/domain/model.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
+import fs from 'fs'
+import path from 'path'
 
 describe('Dynamic Table Generation', () => {
   let lang
@@ -194,8 +196,6 @@ describe('Dynamic Table Generation', () => {
 
   it('should handle vendor-format-model.xml with full annuity table definitions', () => {
     // Load the actual vendor format model directly
-    const fs = require('fs')
-    const path = require('path')
     const modelPath = path.join(process.cwd(), 'docs', 'examples', 'annuity-model', 'vendor-format-model.xml')
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
     

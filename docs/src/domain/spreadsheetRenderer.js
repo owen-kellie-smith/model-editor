@@ -336,27 +336,40 @@ function addTableSheets(workbook, modelObj) {
     for (let i = 0; i < numSampleRows; i++) {
       const row = []
       
-      // First column is the row index
-      row.push(generateSampleValue(tableDef.rowIndex, 'integer', i))
-      
-      // Add values for each column
-      if (tableDef.columns.length > 0) {
-        for (const col of tableDef.columns) {
-          row.push(generateSampleValue(col.id, col.dataType, i))
-        }
+      // Special handling for mortality_rate which needs actual age values
+      if (tableId.toLowerCase().includes('mortality')) {
+        const age = TABLE_DIMENSIONS.MORTALITY_RATE.minAge + i
+        row.push(age)
+        
+        // Generate mortality rates
+        const baseMale = 0.0006
+        const baseFemale = 0.000172
+        const ageRange = TABLE_DIMENSIONS.MORTALITY_RATE.maxAge - TABLE_DIMENSIONS.MORTALITY_RATE.minAge
+        const ageFactor = Math.pow((age - TABLE_DIMENSIONS.MORTALITY_RATE.minAge) / ageRange, 3)
+        const maleRate = baseMale + ageFactor * (1 - baseMale)
+        const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
+        row.push(maleRate, femaleRate)
+      } else if (tableId.toLowerCase().includes('spot')) {
+        // Special handling for spot_rate
+        const step = TABLE_DIMENSIONS.SPOT_RATE.minStep + i
+        row.push(step)
+        
+        // Generate spot rate
+        const stepRange = TABLE_DIMENSIONS.SPOT_RATE.maxStep - TABLE_DIMENSIONS.SPOT_RATE.minStep
+        const rate = 0.05 + 0.01 * (step / stepRange)
+        row.push(rate)
       } else {
-        // Unconstrained columns - generate realistic values
-        if (tableId.toLowerCase().includes('mortality')) {
-          // mortality_rate special handling
-          const age = 20 + i * 15
-          const baseMale = 0.0006
-          const baseFemale = 0.000172
-          const ageRange = 80
-          const ageFactor = Math.pow(i / numSampleRows, 3)
-          const maleRate = baseMale + ageFactor * (1 - baseMale)
-          const femaleRate = baseFemale + ageFactor * (1 - baseFemale)
-          row.push(maleRate, femaleRate)
+        // Standard table handling
+        // First column is the row index
+        row.push(generateSampleValue(tableDef.rowIndex, 'integer', i))
+        
+        // Add values for each column
+        if (tableDef.columns.length > 0) {
+          for (const col of tableDef.columns) {
+            row.push(generateSampleValue(col.id, col.dataType, i))
+          }
         } else {
+          // Generic unconstrained columns
           row.push(100 + i * 25)
         }
       }
