@@ -1016,8 +1016,5 @@ function topologicalSort(incoming, variableNames) {
   return sorted
 }
 
-/**
- * Escapes a string for CSV format
- */
 // Export formula generation functions for testing
 export { generateTableLookupFormula, generateTableLookupFormulaAdvanced }
