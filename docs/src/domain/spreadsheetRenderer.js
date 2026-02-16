@@ -153,6 +153,9 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
       constants.push(varName)
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
+    } else if (args.length === 1 && args[0].toUpperCase() === 'STEP') {
+      // Step-only variables should be included in the cohort-step sheet
+      cohortStep.push(varName)
     } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && args[1].toUpperCase() === 'STEP') {
       cohortStep.push(varName)
     } else {
@@ -549,10 +552,17 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
         return `${colLetter}${targetRow}`
       })
       
-      // Handle both with and without arguments: variable(cohort, step) or variable
-      const pattern1 = new RegExp(`\\b${escapedVarName}\\s*\\([^)]*\\)`, 'gi')
-      formula = formula.replace(pattern1, `${colLetter}${currentRow}`)
+      // Handle step-only variables: variable(step)
+      // This pattern matches variables called with just the step argument
+      const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
+      formula = formula.replace(patternStepOnly, `${colLetter}${currentRow}`)
       
+      // Handle cohort-step variables: variable(cohort, step)
+      // This pattern matches variables called with both cohort and step arguments
+      const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi')
+      formula = formula.replace(patternCohortStep, `${colLetter}${currentRow}`)
+      
+      // Handle bare variable name without arguments
       const pattern2 = new RegExp(`\\b${escapedVarName}\\b`, 'gi')
       formula = formula.replace(pattern2, `${colLetter}${currentRow}`)
     }
