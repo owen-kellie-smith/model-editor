@@ -436,7 +436,7 @@ function addTableSheetsFallback(workbook) {
   const mortalitySheet = workbook.addWorksheet('input_mortality_rate')
   mortalitySheet.addRow(['age', 'mortality_rate_column1', 'mortality_rate_column2'])
   
-  // Generate 5 sample rows for fallback
+  // Generate 5 sample rows (used when model has no table definitions)
   const minAge = 17
   const maxAge = 104
   const numSampleRows = 5
@@ -454,7 +454,7 @@ function addTableSheetsFallback(workbook) {
   const spotSheet = workbook.addWorksheet('input_spot_rate')
   spotSheet.addRow(['step', 'rate'])
   
-  // Generate 5 sample rows for fallback
+  // Generate 5 sample rows (used when model has no table definitions)
   const minStep = 0
   const maxStep = 120
   
