@@ -254,7 +254,7 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
         // Use table dimensions from constants for column
         const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
         row.push({ 
-          formula: `INDEX(table_${tableRef}!A:${maxCol},MATCH($A2,table_${tableRef}!A:A,0),MATCH(${colLetter}$1,table_${tableRef}!1:1,0))` 
+          formula: `INDEX(table_${tableRef}!A:${maxCol},MATCH($A2,table_${tableRef}!A:A,0),MATCH(${colLetter}$1,table_${tableRef}!$1:$1,0))` 
         })
       } else {
         row.push('')
@@ -391,10 +391,10 @@ function generateTableLookupFormula(varXml, currentRow) {
   }
   
   // Generate INDEX/MATCH formula for table lookup using dynamic ranges
-  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!1:1, 0))
+  // INDEX(table!A:maxCol, MATCH(rowKey, table!A:A, 0), MATCH(colKey, table!$1:$1, 0))
   // Using entire columns allows tables to be extended without breaking formulas
-  // Column matching uses 1:1 (header row only) to avoid accidental matches in data columns
-  return `INDEX(table_${tableRef}!A:${maxCol},MATCH($A${currentRow},table_${tableRef}!A:A,0),MATCH("${columnRef}",table_${tableRef}!1:1,0))`
+  // Column matching uses $1:$1 (absolute header row reference) to avoid accidental matches in data columns
+  return `INDEX(table_${tableRef}!A:${maxCol},MATCH($A${currentRow},table_${tableRef}!A:A,0),MATCH("${columnRef}",table_${tableRef}!$1:$1,0))`
 }
 
 /**
@@ -433,8 +433,8 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     
     // Column selector is typically from cohort sheet
     // Using entire columns allows tables to be extended without breaking formulas
-    // Column matching uses 1:1 (header row only) to avoid accidental matches in data columns
-    return `INDEX(table_${tableRef}!A:${maxCol},MATCH(${rowCell},table_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,table_${tableRef}!1:1,0))`
+    // Column matching uses $1:$1 (absolute header row reference) to avoid accidental matches in data columns
+    return `INDEX(table_${tableRef}!A:${maxCol},MATCH(${rowCell},table_${tableRef}!A:A,0),MATCH(calc_cohort!$E$2,table_${tableRef}!$1:$1,0))`
   }
   
   return null
