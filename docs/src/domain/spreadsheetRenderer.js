@@ -296,12 +296,16 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
     cohortColIdx++
   }
   
-  // Add rows for steps using constant
+  // Add rows for steps
+  // First row (step=0): Hardcoded value 0
+  // Subsequent rows (step>0): Formula referencing previous row (e.g., =A2+1, =A3+1)
+  // This makes the sheet copyable - users can copy rows down and step values auto-increment
   const stepCount = TABLE_DIMENSIONS.CALC_COHORT_STEP.stepCount
   
   for (let step = 0; step < stepCount; step++) {
-    const row = [step]
     const currentRow = step + 2 // +2 because row 1 is header
+    const stepValue = step === 0 ? 0 : { formula: `=A${currentRow-1}+1` }
+    const row = [stepValue]
     
     for (const varName of cohortStepVars) {
       const varXml = variableMap.get(varName)
