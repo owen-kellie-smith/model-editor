@@ -263,8 +263,11 @@ function resolveColumnOfConstraint(referencedTableId, tableDefs) {
   
   // If table has no defined columns (unconstrained), generate default column names
   // This handles cases like mortality_rate which dynamically gets columns from data
-  // Use common mortality table names as defaults
-  if (referencedTableId.toLowerCase().includes('mortality')) {
+  // Use domain-specific defaults based on table name patterns
+  const lowerTableId = referencedTableId.toLowerCase()
+  
+  if (lowerTableId.includes('mortality') || lowerTableId.includes('mortal')) {
+    // Common mortality table column names used in actuarial models
     return ['AM92U', 'AF92U']
   }
   
@@ -472,12 +475,17 @@ function addTableSheets(workbook, modelObj) {
         // Get the row index value that was added to the row
         const rowIndexValue = row[0]
         
+        // Constants for generic column value generation
+        const BASE_VALUE = 0.001           // Starting value for first column
+        const COLUMN_SCALE_FACTOR = 0.5    // Multiplier to differentiate columns
+        const RANGE_SCALE_FACTOR = 0.1     // Proportion of range to use for variation
+        
         // Generate values for each column
         for (let colIdx = 0; colIdx < numDataColumns; colIdx++) {
-          // Use different scaling for each column
+          // Use different scaling for each column to create variety
           const colValue = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
-            ? 0.001 * (1 + colIdx * 0.5) + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.1
-            : 0.001 * (1 + i + colIdx * 0.5)
+            ? BASE_VALUE * (1 + colIdx * COLUMN_SCALE_FACTOR) + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * RANGE_SCALE_FACTOR
+            : BASE_VALUE * (1 + i + colIdx * COLUMN_SCALE_FACTOR)
           row.push(colValue)
         }
       }
