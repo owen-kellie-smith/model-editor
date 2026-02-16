@@ -18,6 +18,7 @@ const TABLE_DIMENSIONS = {
   SPOT_RATE: {
     minStep: 0,
     maxStep: 120,
+    numCols: 2,  // step, rate
   },
   CALC_COHORT_STEP: {
     stepCount: 12,  // 12 months for annual projection
@@ -377,9 +378,22 @@ function generateTableLookupFormula(varXml, currentRow) {
     return null
   }
   
-  // Use table dimensions from constants
-  const maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
-  const maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
+  // Determine the appropriate table dimensions based on tableRef
+  let maxRow, maxCol
+  if (tableRef.toLowerCase().includes('mortality')) {
+    maxRow = TABLE_DIMENSIONS.MORTALITY_RATE.maxRow
+    maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
+  } else if (tableRef.toLowerCase().includes('spot')) {
+    maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
+    maxCol = getColumnLetter(TABLE_DIMENSIONS.SPOT_RATE.numCols)
+  } else if (tableRef.toLowerCase().includes('cohort')) {
+    maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
+    maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
+  } else {
+    // Default to cohort_data dimensions for unknown tables
+    maxRow = TABLE_DIMENSIONS.COHORT_DATA.maxRow
+    maxCol = TABLE_DIMENSIONS.COHORT_DATA.maxCol
+  }
   
   // Generate INDEX/MATCH formula for table lookup
   // INDEX(table!range, MATCH(rowKey, table!rowRange, 0), MATCH(colKey, table!colRange, 0))
@@ -410,7 +424,7 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
     maxCol = getColumnLetter(TABLE_DIMENSIONS.MORTALITY_RATE.numCols)
   } else if (tableRef.toLowerCase().includes('spot')) {
     maxRow = TABLE_DIMENSIONS.SPOT_RATE.maxRow
-    maxCol = 'B'  // spot_rate has 2 columns
+    maxCol = getColumnLetter(TABLE_DIMENSIONS.SPOT_RATE.numCols)
   } else {
     maxRow = 100  // default
     maxCol = 'Z'
