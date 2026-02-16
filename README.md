@@ -58,12 +58,7 @@ The model-editor can export:
 
 ### Can the model-editor read spreadsheet files?
 
-**No.** The model-editor is a declarative model editor, not a spreadsheet converter. The "Render model as spreadsheet" feature is **one-way** - it generates Excel files from XML models but cannot import spreadsheet files back into XML format.
-
-If you have calculations in a spreadsheet and want to use the model-editor, you must:
-1. Define your model structure in XML format
-2. Use the model-editor to validate and visualize dependencies
-3. Export to Excel for calculations and presentations
+**No.** The model-editor is a declarative model editor. The "Render model as spreadsheet" feature is **one-way** - it generates Excel files from XML models but cannot import spreadsheet files back into XML format.
 
 ---
 
@@ -106,6 +101,7 @@ All tests are located in the `tests/` directory and map to specific requirements
 | R8 | Calculate outgoing variables from formulae | `model.test.js::when model contains outgoing variables` | Variables that each variable flows into are exactly those in whose formulae it appears |
 | R9 | Visualize incoming and outgoing variables as graphs | `graphRelations.test.js::getRelations, getGraphOfRelations` | Graphs contain variables and edges within specified depth from a root variable |
 | R10 | Implement CRUD operations for a single variable | `variableCrud.test.js::createVariable, readVariable, updateVariable, deleteVariable, validateVariableId, listVariables, Integration: Create, Read, Update, Delete workflow` | Variables can be created, read, updated, and deleted with proper validation (duplicates, undefined references, circular dependencies, dependencies blocking deletion); full CRUD workflow maintains model validity 
+| R11 | Render model in Excel format with sample inputs to enable quick manual verification of model structure |  |   
 
 
 ### UI prototype
