@@ -66,6 +66,9 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   // Create workbook
   const workbook = new ExcelJS.Workbook()
   
+  // Add README sheet first (so it appears as first tab)
+  addReadmeSheet(workbook, modelObj)
+  
   // Add constant sheet (variables with no arguments)
   if (categorized.constants.length > 0) {
     const sheet = workbook.addWorksheet('constant')
@@ -90,8 +93,8 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
     }
   }
   
-  // Add README sheet first (so it appears as first tab)
-  addReadmeSheet(workbook, modelObj)
+  // Add input_config sheet for cohort configuration
+  addInputConfigSheet(workbook)
   
   // Add table sheets with sample data
   addTableSheets(workbook, modelObj)
@@ -548,6 +551,19 @@ function addTableSheetsFallback(workbook) {
 }
 
 /**
+ * Add input_config sheet for cohort configuration
+ */
+function addInputConfigSheet(workbook) {
+  const sheet = workbook.addWorksheet('input_config')
+  
+  // Add headers
+  sheet.addRow(['parameter', 'value', 'description'])
+  
+  // Add cohort value
+  sheet.addRow(['cohort', 1, 'Cohort identifier for calculations'])
+}
+
+/**
  * Add README sheet explaining input tables
  */
 function addReadmeSheet(workbook, modelObj) {
@@ -564,7 +580,7 @@ function addReadmeSheet(workbook, modelObj) {
   
   // Add explanation
   sheet.addRow(['This spreadsheet was pre-populated with sample data to show the expected format.'])
-  sheet.addRow(['Replace all values with your own data.'])
+  sheet.addRow(['Replace all values in Input Tables with your own data and assumptions.'])
   sheet.addRow([])
   
   // List input tables
@@ -588,7 +604,6 @@ function addReadmeSheet(workbook, modelObj) {
   
   sheet.addRow([])
   sheet.addRow(['All input tables are pre-filled with sample values for reference only.'])
-  sheet.addRow(['These values should be replaced with your actual data before using the model.'])
   sheet.addRow([])
   
   // Add information about table lookup behavior
@@ -626,8 +641,8 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
   }
   sheet.addRow(headers)
   
-  // Add a single cohort row (cohort = 1)
-  const row = [1]
+  // Add a single cohort row (cohort references input_config sheet)
+  const row = [{ formula: '=input_config!B2' }]
   
   for (const varName of cohortVars) {
     const varXml = variableMap.get(varName)
