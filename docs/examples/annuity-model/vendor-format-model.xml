@@ -48,22 +48,22 @@
     <table id="cohort_data">
       <rowIndex ref="cohort"/>
       <columns>
-        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year"/>
-        <column id="annuity_start_age" dataType="real" unit="years"/>
-        <column id="current_age" dataType="real" unit="years"/>
+        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year" min="10000" max="50000"/>
+        <column id="annuity_start_age" dataType="real" unit="years" min="55" max="75"/>
+        <column id="current_age" dataType="real" unit="years" min="30" max="80"/>
         <column id="mortality_table" dataType="string"/>
       </columns>
     </table>
 
     <table id="mortality_rate">
-      <rowIndex ref="age"/>
+      <rowIndex ref="age" min="17" max="104"/>
       <!-- columns unconstrained -->
     </table>
 
     <table id="spot_rate">
-      <rowIndex ref="step"/>
+      <rowIndex ref="step" min="0" max="120"/>
       <columns>
-        <column id="rate" dataType="real"/>
+        <column id="rate" dataType="real" min="0.01" max="0.08"/>
       </columns>
     </table>
 

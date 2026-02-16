@@ -18,7 +18,7 @@ A single web page for parsing, validating, and editing large declarative models 
 - **Graph Visualization** - Interactive dependency graphs with configurable depth (using Viz.js/DOT format)
 - **Multiple Definition Types** - Support for expression, constant, table, tableLookup, and piecewise definitions
 - **Parameterized Variables** - Variables with index sets for multi-dimensional modeling
-- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG
+- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets
 - **Zero-build Architecture** - Pure client-side application with no build step required
 
 ---
@@ -41,12 +41,39 @@ No build step or server required.
 
 ---
 
+## File Format Support
+
+### What files can the model-editor read?
+
+The model-editor reads **XML files only**:
+- **Language files** (`language.xml`) - Define available functions and their arities
+- **Model files** (`model.xml`) - Define variables, their relationships, and calculations
+
+### What files can the model-editor write?
+
+The model-editor can export:
+- **XML files** (`.xml`) - Export language and model definitions
+- **Excel spreadsheets** (`.xlsx`) - Render models as calculation-ready spreadsheets with multiple sheets, formulas, and sample data
+- **SVG/PNG files** - Download dependency graphs as images
+
+### Can the model-editor read spreadsheet files?
+
+**No.** The model-editor is a declarative model editor, not a spreadsheet converter. The "Render model as spreadsheet" feature is **one-way** - it generates Excel files from XML models but cannot import spreadsheet files back into XML format.
+
+If you have calculations in a spreadsheet and want to use the model-editor, you must:
+1. Define your model structure in XML format
+2. Use the model-editor to validate and visualize dependencies
+3. Export to Excel for calculations and presentations
+
+---
+
 ## Technology Stack
 
 - **JavaScript:** ES6+ modules running directly in the browser 
 - **DOM Manipulation:** Vanilla JavaScript (no framework)
 - **XML Processing:** `@xmldom/xmldom`, `xpath`
 - **Graph Visualization:** Viz.js (DOT format rendering to SVG)
+- **Spreadsheet Generation:** ExcelJS for creating Excel workbooks with formulas
 - **Testing:** Vitest with jsdom for browser environment simulation
 - **Deployment:** GitHub Pages (static files served from `docs/` directory)
 
@@ -145,6 +172,64 @@ Formulas can reference variables at different time steps:
   <definition type="expression">balance(step-1) * rate</definition>
 </variable>
 ```
+
+---
+
+## Rendering Models as Spreadsheets
+
+The model editor includes functionality to export a loaded model as a working Excel spreadsheet (XLSX format) with actual formulas that is semantically equivalent to the original model. This allows models to be used in spreadsheet applications like Excel, Google Sheets, or LibreOffice Calc with automatic calculation.
+
+### What is Rendered
+
+When a model is rendered as a spreadsheet, the output includes:
+
+1. **Variable Definitions Sheet**: Each variable becomes a named cell/row containing:
+   - Variable ID (name)
+   - Working formula or value in Excel format
+   - Definition type (expression, constant, table, etc.)
+   - Unit (if specified)
+   - Notes (INPUT marker for variables with no dependencies)
+
+2. **Working Formulas**: Expression variables are converted to Excel formulas with cell references that automatically calculate:
+   - `A + B` becomes `=B2+B3` (where B2 and B3 contain values for A and B)
+   - `C * 2` becomes `=B4*2` (where B4 contains the calculated value for C)
+   - Functions are preserved: `max(A, B)` becomes `=max(B2, B3)`
+
+3. **Input Space**: Variables with no dependencies (constants or table lookups) are marked as inputs and can be modified by users. When you change input values, all dependent formulas recalculate automatically.
+
+4. **Calculation Order**: Variables are arranged in dependency order, ensuring that each formula only references cells that have already been calculated.
+
+### Implementation Approach
+
+The spreadsheet renderer follows these steps:
+
+1. **Parse Model**: Extract all variables, their definitions, and dependencies using the existing `getModelFeatures()` function.
+
+2. **Topological Sort**: Order variables so dependencies are resolved before dependents (detecting cycles during validation).
+
+3. **Formula Conversion**: Transform model expressions to Excel formulas:
+   - Convert variable references to cell references (e.g., `A` → `B2`, `B` → `B3`)
+   - Preserve functions that exist in both domains (`max`, `floor`, etc.)
+   - Maintain operators: `+`, `-`, `*`, `/`, `^`
+
+4. **Generate Excel XML**: Create an Office Open XML SpreadsheetML file with:
+   - Variables listed in dependency order
+   - Constants as numeric values
+   - Expressions as Excel formulas with `ss:Formula` attribute
+   - Proper cell references (e.g., `=B2+B3`)
+
+5. **Download**: Use the browser's download mechanism to save the XLSX file.
+
+### Limitations
+
+- **Function compatibility**: Not all model functions may have direct Excel equivalents. Custom functions may require manual implementation or will appear as function names (Excel will show #NAME? error).
+- **Parameterized variables**: Variables with index sets (multi-dimensional) need to be expanded into multiple cells.
+- **Tables**: Table data must be embedded or referenced as separate sheets/ranges.
+- **Time-shift references**: Time-dependent formulas (e.g., `balance(step-1)`) require careful handling to maintain correct cell references.
+
+### Usage
+
+Once a model is loaded and validated, click the "Render model as spreadsheet" button to download the XLSX file. The file can then be opened in Excel, Google Sheets, or LibreOffice Calc, where formulas will automatically calculate based on input values.
 
 ---
 

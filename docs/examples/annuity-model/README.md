@@ -17,6 +17,12 @@ Benefits are level and payable while alive. There are no reversionary or lump su
 Mortality depends on integer attained age via externally supplied tables. 
 Discounting is derived from spot rates.
 
+## Files in this Directory
+
+### Model Definition Files
+- `vendor-format-model.xml` - Model in recommended format
+- `legacy-format-model.xml` - Model in legacy format
+
 ## Usage
 
 To use this example in the model editor:
