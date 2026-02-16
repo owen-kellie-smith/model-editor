@@ -300,8 +300,9 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
   const stepCount = TABLE_DIMENSIONS.CALC_COHORT_STEP.stepCount
   
   for (let step = 0; step < stepCount; step++) {
-    const row = [step]
     const currentRow = step + 2 // +2 because row 1 is header
+    const stepValue = step === 0 ? 0 : { formula: `=A${currentRow-1}+1` }
+    const row = [stepValue]
     
     for (const varName of cohortStepVars) {
       const varXml = variableMap.get(varName)
