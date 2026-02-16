@@ -371,6 +371,9 @@ function addTableSheets(workbook, modelObj) {
         }
       } else {
         // Generate generic values for unconstrained columns
+        // Get the row index value that was added to the row
+        const rowIndexValue = row[0]
+        
         // Column 1: use real number based on row index with sensible scaling
         const col1Value = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
           ? 0.001 + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * 0.1
