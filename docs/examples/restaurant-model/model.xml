@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="restaurant-profitability">
+
+  <!-- ================= -->
+  <!-- Index sets        -->
+  <!-- ================= -->
+
+  <indexSets>
+
+    <indexSet id="month">
+      <description>Projection month</description>
+      <dataType>integer</dataType>
+    </indexSet>
+
+    <indexSet id="day_type">
+      <description>Day type (weekday, weekend)</description>
+      <dataType>string</dataType>
+    </indexSet>
+
+  </indexSets>
+
+
+  <!-- ================= -->
+  <!-- Units             -->
+  <!-- ================= -->
+
+  <units>
+
+    <unit id="USD"/>
+    <unit id="USD_per_month"/>
+    <unit id="percent"/>
+    <unit id="customers"/>
+    <unit id="tables"/>
+    <unit id="hours"/>
+
+  </units>
+
+
+  <!-- ================= -->
+  <!-- Variables         -->
+  <!-- ================= -->
+
+  <variables>
+
+    <!-- Input Parameters -->
+    
+    <variable id="seating_capacity">
+      <dataType>integer</dataType>
+      <unit>tables</unit>
+      <definition type="constant">
+        25
+      </definition>
+    </variable>
+
+    <variable id="avg_party_size">
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="constant">
+        3.5
+      </definition>
+    </variable>
+
+    <variable id="avg_meal_price">
+      <dataType>real</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        45
+      </definition>
+    </variable>
+
+    <variable id="avg_beverage_price">
+      <dataType>real</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        12
+      </definition>
+    </variable>
+
+    <variable id="beverage_attach_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.75
+      </definition>
+    </variable>
+
+    <variable id="hours_open_per_day">
+      <dataType>real</dataType>
+      <unit>hours</unit>
+      <definition type="constant">
+        12
+      </definition>
+    </variable>
+
+    <variable id="table_turnover_rate">
+      <dataType>real</dataType>
+      <definition type="constant">
+        2.5
+      </definition>
+    </variable>
+
+    <variable id="weekdays_per_month">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        21
+      </definition>
+    </variable>
+
+    <variable id="weekend_days_per_month">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        9
+      </definition>
+    </variable>
+
+    <variable id="occupancy_rate_weekday">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.65
+      </definition>
+    </variable>
+
+    <variable id="occupancy_rate_weekend">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.90
+      </definition>
+    </variable>
+
+    <!-- Revenue Calculations -->
+
+    <variable id="max_customers_per_day">
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        seating_capacity * avg_party_size * table_turnover_rate
+      </definition>
+    </variable>
+
+    <variable id="customers_weekday">
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        max_customers_per_day * occupancy_rate_weekday
+      </definition>
+    </variable>
+
+    <variable id="customers_weekend">
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        max_customers_per_day * occupancy_rate_weekend
+      </definition>
+    </variable>
+
+    <variable id="food_revenue_per_customer">
+      <dataType>real</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        avg_meal_price
+      </definition>
+    </variable>
+
+    <variable id="beverage_revenue_per_customer">
+      <dataType>real</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        avg_beverage_price * beverage_attach_rate
+      </definition>
+    </variable>
+
+    <variable id="total_revenue_per_customer">
+      <dataType>real</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        food_revenue_per_customer + beverage_revenue_per_customer
+      </definition>
+    </variable>
+
+    <variable id="monthly_food_revenue">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        (customers_weekday * weekdays_per_month + customers_weekend * weekend_days_per_month) * food_revenue_per_customer
+      </definition>
+    </variable>
+
+    <variable id="monthly_beverage_revenue">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        (customers_weekday * weekdays_per_month + customers_weekend * weekend_days_per_month) * beverage_revenue_per_customer
+      </definition>
+    </variable>
+
+    <variable id="monthly_total_revenue">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_food_revenue(month) + monthly_beverage_revenue(month)
+      </definition>
+    </variable>
+
+    <!-- Cost Structure -->
+
+    <variable id="food_cost_percent">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.30
+      </definition>
+    </variable>
+
+    <variable id="beverage_cost_percent">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.25
+      </definition>
+    </variable>
+
+    <variable id="monthly_labor_cost">
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        35000
+      </definition>
+    </variable>
+
+    <variable id="monthly_rent">
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        12000
+      </definition>
+    </variable>
+
+    <variable id="monthly_utilities">
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        3500
+      </definition>
+    </variable>
+
+    <variable id="monthly_marketing">
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        2000
+      </definition>
+    </variable>
+
+    <variable id="monthly_insurance">
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        1500
+      </definition>
+    </variable>
+
+    <variable id="monthly_food_cost">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_food_revenue(month) * food_cost_percent
+      </definition>
+    </variable>
+
+    <variable id="monthly_beverage_cost">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_beverage_revenue(month) * beverage_cost_percent
+      </definition>
+    </variable>
+
+    <variable id="monthly_fixed_costs">
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_labor_cost + monthly_rent + monthly_utilities + monthly_marketing + monthly_insurance
+      </definition>
+    </variable>
+
+    <variable id="monthly_total_costs">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_food_cost(month) + monthly_beverage_cost(month) + monthly_fixed_costs
+      </definition>
+    </variable>
+
+    <!-- Profitability -->
+
+    <variable id="monthly_gross_profit">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_revenue(month) - monthly_food_cost(month) - monthly_beverage_cost(month)
+      </definition>
+    </variable>
+
+    <variable id="monthly_net_profit">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_revenue(month) - monthly_total_costs(month)
+      </definition>
+    </variable>
+
+    <variable id="monthly_profit_margin">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        monthly_net_profit(month) / monthly_total_revenue(month)
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>
