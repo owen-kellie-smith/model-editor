@@ -51,7 +51,11 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
     log("debug","shiftStd:" + shiftStd);
     const shift_t = computeShift(ref, extra.text, "t");
     log("debug","shift_t:" + shift_t);
-    const shift = (shiftStd == 0) ? shift_t : shiftStd;
+    const shift_month = computeShift(ref, extra.text, "month");
+    log("debug","shift_month:" + shift_month);
+    let shift = shiftStd;
+    if (shift === 0) shift = shift_t;
+    if (shift === 0) shift = shift_month;
     log("debug","shift:" + shift);
     deps.add({ name: ref, shift });
   }

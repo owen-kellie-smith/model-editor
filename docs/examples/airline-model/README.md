@@ -53,6 +53,10 @@ The model requires the following input parameters:
 - **monthly_admin_cost**: Administrative overhead (default: $150,000)
 - **monthly_marketing_cost**: Marketing and sales expenses (default: $50,000)
 
+### Debt & Interest
+- **annual_interest_rate**: Annual cost of borrowing (default: 6%)
+- **initial_debt**: Opening debt balance representing fleet financing (default: $5,000,000)
+
 ## Outputs
 
 The model projects the following key metrics for each month:
@@ -80,8 +84,13 @@ The model projects the following key metrics for each month:
 - **monthly_total_costs**: Total operating costs
 
 ### Profitability Metrics
-- **monthly_net_profit**: Revenue minus all costs
-- **monthly_profit_margin**: Net profit as percentage of revenue
+- **monthly_net_profit**: Revenue minus all operating costs (before interest)
+- **monthly_profit_margin**: Net profit as percentage of revenue (before interest)
+- **monthly_interest_rate**: Monthly cost of borrowing (derived from annual rate)
+- **outstanding_debt**: Remaining debt balance for each month (decreases as profits repay the loan)
+- **monthly_interest_cost**: Interest charged on outstanding debt each month
+- **monthly_net_profit_after_interest**: Net profit after deducting interest costs — **this varies over time** as debt is paid off
+- **monthly_profit_margin_after_interest**: Profit margin after interest — **improves over time** as debt is repaid
 
 ## Model Logic
 
@@ -93,7 +102,10 @@ The model calculates profitability through the following logic flow:
 4. **Revenue**: Passengers × ticket price (by class) × number of flights
 5. **Variable Costs**: Per-flight costs × number of flights (fuel, crew, maintenance, fees)
 6. **Fixed Costs**: Monthly recurring expenses (leases, admin, marketing)
-7. **Profitability**: Revenue - Variable Costs - Fixed Costs
+7. **Operating Profit**: Revenue - Variable Costs - Fixed Costs
+8. **Debt Repayment**: Each month's operating profit reduces the outstanding debt balance
+9. **Interest Cost**: Monthly interest = outstanding debt × monthly interest rate
+10. **Net Profit After Interest**: Operating profit minus interest charges — **varies over time** as the debt is paid down
 
 ## Usage
 
@@ -126,9 +138,11 @@ With default parameters, the airline projects approximately:
 - Monthly flights: 1,200
 - Monthly passengers: ~166 per flight
 - Monthly revenue: ~$5.1 million
-- Monthly costs: ~$4.1 million
-- Monthly net profit: ~$1.0 million
-- Profit margin: ~20%
+- Monthly operating costs: ~$4.1 million
+- Monthly operating profit: ~$1.0 million
+- Month 0 interest cost: ~$25,000 (on $5M initial debt at 6%/year)
+- Month 0 net profit after interest: ~$975,000
+- Profit margin after interest improves each month as debt is repaid (~5 months to pay off initial debt)
 
 ### High Load Factor Scenario
 Increase all load factors by 10 percentage points to model peak travel season with higher demand.
@@ -150,3 +164,4 @@ The model demonstrates several important airline economics principles:
 2. **Operating Leverage**: High fixed costs mean small changes in load factors significantly impact profitability
 3. **Fuel Sensitivity**: Fuel represents ~50% of variable costs, making fuel price a critical factor
 4. **Scale Economics**: Larger fleets can spread fixed admin/marketing costs over more flights
+5. **Time-Varying Profitability**: Interest costs on initial debt decrease as profits repay the loan, causing `monthly_profit_margin_after_interest` to improve over time until debt is cleared
