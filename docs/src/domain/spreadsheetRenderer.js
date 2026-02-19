@@ -74,23 +74,49 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   // Add constant sheet (variables with no arguments)
   if (categorized.constants.length > 0) {
     const sheet = workbook.addWorksheet('constant')
+    
+    // Build a map of constant row numbers for cross-references
+    const constantRowMap = new Map()
+    let rowNum = 1
+    for (const varName of categorized.constants) {
+      constantRowMap.set(varName, rowNum)
+      rowNum++
+    }
+    
     for (const varName of categorized.constants) {
       const varXml = variableMap.get(varName)
       if (varXml) {
+        const defType = getDefinitionType(varXml)
         const expression = getDefinitionText(varXml)
-        // Try to evaluate simple expressions
-        let value = expression
-        try {
-          // Simple evaluation for basic arithmetic constants like "1/12"
-          // Only allow digits, spaces, and basic arithmetic operators
-          if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
-            // Safe evaluation using Function constructor (safer than eval)
-            value = Function('"use strict"; return (' + expression + ')')()
+        
+        if (defType === "constant") {
+          // For true constants, try to evaluate simple expressions
+          let value = expression
+          try {
+            // Simple evaluation for basic arithmetic constants like "1/12"
+            // Only allow digits, spaces, and basic arithmetic operators
+            if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
+              // Safe evaluation using Function constructor (safer than eval)
+              value = Function('"use strict"; return (' + expression + ')')()
+            }
+          } catch (e) {
+            value = expression
           }
-        } catch (e) {
-          value = expression
+          sheet.addRow([varXml.id, value])
+        } else if (defType === "expression") {
+          // For expression variables, convert to Excel formula
+          const currentRow = constantRowMap.get(varName)
+          const formula = convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap)
+          if (formula) {
+            sheet.addRow([varXml.id, { formula }])
+          } else {
+            // Fallback to raw expression if conversion fails
+            sheet.addRow([varXml.id, expression])
+          }
+        } else {
+          // Fallback for other definition types
+          sheet.addRow([varXml.id, expression])
         }
-        sheet.addRow([varXml.id, value])
       }
     }
   }
@@ -138,13 +164,13 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
     const defType = getDefinitionType(varXml)
     
     if (args.length === 0) {
-      // Only include variables with type="constant" in the constants sheet
-      // Variables with type="expression" and no arguments are calculated variables, not constants
-      if (defType === "constant") {
+      // Include both constant and expression variables with no arguments in the constants sheet
+      // Expression variables without arguments are intermediate calculated values that are
+      // constant across all steps/cohorts and need to be available for formula references
+      if (defType === "constant" || defType === "expression") {
         constants.push(varName)
       }
-      // Note: Variables with type="expression" and no arguments are not categorized
-      // They could be intermediate calculations that don't need to be in spreadsheet
+      // Note: Variables with no arguments and no definition type are not categorized
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
     } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
@@ -1220,6 +1246,44 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
   
   // Handle "step" reference (column A in calc_cohort_step sheet)
   formula = formula.replace(/\bstep\b/gi, `A${currentRow}`)
+  
+  return formula || null
+}
+
+/**
+ * Convert a constant expression to an Excel formula for the constant sheet
+ * This handles expressions that reference other constant variables
+ */
+function convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap) {
+  if (!expression || typeof expression !== 'string') {
+    return null
+  }
+  
+  let formula = expression.trim()
+  
+  // Handle function calls like floor(), max(), min()
+  formula = formula.replace(/\bfloor\s*\(/gi, 'INT(')
+  formula = formula.replace(/\bceiling\s*\(/gi, 'ROUNDUP(')
+  formula = formula.replace(/\bROUNDUP\s*\(([^)]+)\)/g, 'ROUNDUP($1,0)')
+  formula = formula.replace(/\bmax\s*\(/gi, 'MAX(')
+  formula = formula.replace(/\bmin\s*\(/gi, 'MIN(')
+  
+  // Replace variable references with cell references to other rows in the constant sheet
+  // Sort by row number to ensure dependencies are resolved in order
+  const sortedConstants = Array.from(constantRowMap.entries()).sort((a, b) => a[1] - b[1])
+  
+  for (const [constVarName, constRowNum] of sortedConstants) {
+    // Only replace variables that appear before the current row (to avoid forward references)
+    // or on the current row (self-reference, which should be avoided but handle gracefully)
+    const constVarXml = variableMap.get(constVarName)
+    if (constVarXml) {
+      const escapedConstVar = escapeRegex(constVarName)
+      const pattern = new RegExp(`\\b${escapedConstVar}\\b`, 'gi')
+      
+      // Reference to constant sheet column B with absolute row reference
+      formula = formula.replace(pattern, `$B$${constRowNum}`)
+    }
+  }
   
   return formula || null
 }

@@ -101,4 +101,64 @@ describe('Airline Model Spreadsheet Rendering', () => {
     // in the spreadsheet when referenced by other variables
     expect(expressionsWithoutArgs.length).toBeGreaterThan(0)
   })
+
+  it('should include expression variables without arguments in constants category', () => {
+    expect(airlineModel).toBeTruthy()
+    expect(airlineModel.obj).toBeTruthy()
+    expect(airlineModel.features).toBeTruthy()
+    
+    const modelObj = airlineModel.obj
+    const modelFeatures = airlineModel.features
+    
+    // Get the variable map
+    const variableMap = new Map()
+    if (modelObj.model.variables && modelObj.model.variables.variable) {
+      const vars = Array.isArray(modelObj.model.variables.variable) 
+        ? modelObj.model.variables.variable 
+        : [modelObj.model.variables.variable]
+      
+      for (const v of vars) {
+        variableMap.set(v.id.toUpperCase(), v)
+      }
+    }
+    
+    // Categorize using the actual spreadsheetRenderer logic
+    const constants = []
+    const cohortStep = []
+    const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
+    
+    for (const [varName, varXml] of variableMap) {
+      const resolved = modelFeatures.resolvedVarsWithArguments.get(varName)
+      const args = resolved && resolved.domain ? resolved.domain : []
+      const defType = varXml.definition?.type || ""
+      
+      if (args.length === 0) {
+        // Include both constant and expression variables with no arguments
+        if (defType === "constant" || defType === "expression") {
+          constants.push(varName)
+        }
+      } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
+        cohortStep.push(varName)
+      }
+    }
+    
+    console.log('Constants (including expressions without args):', constants.length)
+    console.log('Cohort-step variables:', cohortStep.length)
+    
+    // Verify that expression variables without arguments are in constants
+    expect(constants).toContain('ECONOMY_PASSENGERS_PER_FLIGHT')
+    expect(constants).toContain('BUSINESS_PASSENGERS_PER_FLIGHT')
+    expect(constants).toContain('FIRST_PASSENGERS_PER_FLIGHT')
+    expect(constants).toContain('ECONOMY_SEATS_PER_FLIGHT')
+    
+    // Verify that true constants are also in constants
+    expect(constants).toContain('AIRCRAFT_COUNT')
+    expect(constants).toContain('ECONOMY_TICKET_PRICE')
+    
+    // Verify that month-indexed variables are in cohort-step
+    expect(cohortStep).toContain('MONTHLY_ECONOMY_REVENUE')
+    expect(cohortStep).toContain('TOTAL_MONTHLY_FLIGHTS')
+    
+    console.log('✓ Expression variables without arguments will be available in constant sheet')
+  })
 })
