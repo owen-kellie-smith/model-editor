@@ -1220,7 +1220,8 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       // Pattern 4: Handle bare variable name without arguments (least specific, applied last)
       // Example: rate -> constant!$B$1
       // Match variable name with optional empty parentheses (e.g., "rate" or "rate()")
-      const pattern2 = new RegExp(`\\b${escapedVarName}(?:\\(\\))?\\b`, 'gi')
+      // Note: No trailing \b after the optional parens, as \b would prevent matching "()"
+      const pattern2 = new RegExp(`\\b${escapedVarName}(?:\\(\\))?`, 'gi')
       formula = formula.replace(pattern2, `${colLetter}${currentRow}`)
     }
   }
@@ -1240,7 +1241,8 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       // Reference to constant sheet with the appropriate row number
       const escapedConstVar = escapeRegex(constVar)
       // Match variable name with optional empty parentheses (e.g., "rate" or "rate()")
-      const pattern = new RegExp(`\\b${escapedConstVar}(?:\\(\\))?\\b`, 'gi')
+      // Note: No trailing \b after the optional parens, as \b would prevent matching "()"
+      const pattern = new RegExp(`\\b${escapedConstVar}(?:\\(\\))?`, 'gi')
       const constRowNum = constantRowMap.get(constVar) || 1
       formula = formula.replace(pattern, `constant!$B$${constRowNum}`)
     }
@@ -1282,7 +1284,8 @@ function convertConstantExpressionToFormula(expression, currentRow, constantRowM
       const escapedConstVar = escapeRegex(constVarName)
       // Match variable name with optional empty parentheses (e.g., "B2" or "B2()")
       // The (?:\(\))? part matches () zero or one time (non-capturing group)
-      const pattern = new RegExp(`\\b${escapedConstVar}(?:\\(\\))?\\b`, 'gi')
+      // Note: No trailing \b after the optional parens, as \b would prevent matching "()"
+      const pattern = new RegExp(`\\b${escapedConstVar}(?:\\(\\))?`, 'gi')
       
       // Reference to constant sheet column B with absolute row reference
       formula = formula.replace(pattern, `$B$${constRowNum}`)
