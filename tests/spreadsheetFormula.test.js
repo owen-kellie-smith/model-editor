@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { validateModelCore } from '@/domain/model.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
+import { convertExpressionToFormula } from '@/domain/spreadsheetRenderer.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 import fs from 'fs'
@@ -169,5 +170,42 @@ describe('Spreadsheet Formula Conversion', () => {
     const discountedCashflowResolved = resolvedVarsWithArguments.get('DISCOUNTED_CASHFLOW')
     expect(discountedCashflowResolved).toBeTruthy()
     expect(discountedCashflowResolved.domain).toEqual(['cohort', 'step'])
+  })
+
+  it('should convert variable(month) to a cell reference, not leave it as a function call', () => {
+    // This tests the fix for the #NAME? error in restaurant/airline models.
+    // When a formula contains monthly_food_revenue(month), the renderer must replace
+    // it with a cell reference like B2, not leave it as monthly_food_revenue(month).
+
+    // Set up: monthly_food_revenue is in cohortStepVars, mapped to column index 2 (col B)
+    const colIndexMap = new Map([['MONTHLY_FOOD_REVENUE', 2]])
+    const cohortStepVars = ['MONTHLY_FOOD_REVENUE']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2
+
+    // Expression that references monthly_food_revenue with a month argument
+    const expression = 'monthly_food_revenue(month) * 0.3'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // Should replace monthly_food_revenue(month) with B2
+    expect(result).toBe('B2 * 0.3')
+    expect(result).not.toContain('monthly_food_revenue')
+  })
+
+  it('should convert variable(year) and variable(period) to cell references', () => {
+    // Additional temporal index argument names should also be handled
+    const colIndexMap = new Map([['ANNUAL_REVENUE', 2], ['TOTAL_COST', 3]])
+    const cohortStepVars = ['ANNUAL_REVENUE', 'TOTAL_COST']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3
+
+    const expression = 'annual_revenue(year) - total_cost(period)'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).toBe('B3 - C3')
+    expect(result).not.toContain('annual_revenue')
+    expect(result).not.toContain('total_cost')
   })
 })

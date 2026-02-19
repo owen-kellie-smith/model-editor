@@ -1217,6 +1217,12 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi')
       formula = formula.replace(patternCohortStep, `${colLetter}${currentRow}`)
       
+      // Pattern 3b: Handle single-argument variables with any named index argument
+      // Example: monthly_revenue(month) -> K2, total_flights(year) -> K2
+      // This covers temporal index names like month, year, period, etc. (not just "step")
+      const patternSingleNamedArg = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*\\)`, 'gi')
+      formula = formula.replace(patternSingleNamedArg, `${colLetter}${currentRow}`)
+      
       // Pattern 4: Handle bare variable name without arguments (least specific, applied last)
       // Example: rate -> constant!$B$1
       // Match variable name with optional empty parentheses (e.g., "rate" or "rate()")
@@ -1359,4 +1365,4 @@ function topologicalSort(incoming, variableNames) {
 }
 
 // Export formula generation functions for testing
-export { generateTableLookupFormula, generateTableLookupFormulaAdvanced }
+export { generateTableLookupFormula, generateTableLookupFormulaAdvanced, convertExpressionToFormula }
