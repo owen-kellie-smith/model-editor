@@ -65,7 +65,7 @@ describe('Restaurant Model Spreadsheet Rendering', () => {
     
     const resolvedVarsWithArguments = restaurantModel.features.resolvedVarsWithArguments
     
-    // Replicate categorization logic
+    // Replicate categorization logic with definition type check
     const constants = []
     const cohortOnly = []
     const cohortStep = []
@@ -76,9 +76,13 @@ describe('Restaurant Model Spreadsheet Rendering', () => {
     for (const [varName, varXml] of variableMap) {
       const resolved = resolvedVarsWithArguments.get(varName)
       const args = resolved && resolved.domain ? resolved.domain : []
+      const defType = varXml.definition?.type || ""
       
       if (args.length === 0) {
-        constants.push(varName)
+        // Only include variables with type="constant" in the constants sheet
+        if (defType === "constant") {
+          constants.push(varName)
+        }
       } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
         cohortOnly.push(varName)
       } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
@@ -106,7 +110,66 @@ describe('Restaurant Model Spreadsheet Rendering', () => {
     expect(cohortStep).toContain('MONTHLY_BEVERAGE_REVENUE')
     expect(cohortStep).toContain('MONTHLY_TOTAL_REVENUE')
     
+    // Verify that formula variables with no arguments are NOT in constants
+    expect(constants).not.toContain('BEVERAGE_REVENUE_PER_CUSTOMER')
+    expect(constants).not.toContain('FOOD_REVENUE_PER_CUSTOMER')
+    
     console.log('✓ All restaurant model variables correctly categorized')
     console.log('✓ Month-indexed calculated variables will be included in spreadsheet')
+  })
+
+  it('should not categorize formula variables as constants', () => {
+    // Get variable map
+    const variableMap = new Map()
+    if (restaurantModel.obj.model.variables && restaurantModel.obj.model.variables.variable) {
+      const vars = Array.isArray(restaurantModel.obj.model.variables.variable) 
+        ? restaurantModel.obj.model.variables.variable 
+        : [restaurantModel.obj.model.variables.variable]
+      
+      for (const v of vars) {
+        variableMap.set(v.id.toUpperCase(), v)
+      }
+    }
+    
+    const resolvedVarsWithArguments = restaurantModel.features.resolvedVarsWithArguments
+    
+    // Categorize variables using corrected logic
+    const constants = []
+    const calculated = []
+    const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
+    
+    for (const [varName, varXml] of variableMap) {
+      const resolved = resolvedVarsWithArguments.get(varName)
+      const args = resolved && resolved.domain ? resolved.domain : []
+      const defType = varXml.definition?.type || ""
+      
+      if (args.length === 0) {
+        // Only true constants (with type="constant") should be in constants
+        if (defType === "constant") {
+          constants.push(varName)
+        } else if (defType === "expression") {
+          calculated.push(varName)
+        }
+      }
+    }
+    
+    // beverage_revenue_per_customer has no arguments but has a formula (type="expression")
+    // It should NOT be in constants
+    expect(constants).not.toContain('BEVERAGE_REVENUE_PER_CUSTOMER')
+    
+    // It should be in calculated variables (formula with no arguments)
+    expect(calculated).toContain('BEVERAGE_REVENUE_PER_CUSTOMER')
+    
+    // food_revenue_per_customer also has formula, should not be constant
+    expect(constants).not.toContain('FOOD_REVENUE_PER_CUSTOMER')
+    expect(calculated).toContain('FOOD_REVENUE_PER_CUSTOMER')
+    
+    // But avg_beverage_price IS a true constant (type="constant")
+    expect(constants).toContain('AVG_BEVERAGE_PRICE')
+    expect(calculated).not.toContain('AVG_BEVERAGE_PRICE')
+    
+    console.log('✓ Formula variables correctly distinguished from constants')
+    console.log(`  True constants: ${constants.length}`)
+    console.log(`  Calculated (no args): ${calculated.length}`)
   })
 })
