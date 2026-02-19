@@ -257,4 +257,39 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).toContain('MONTH(A1)')
     expect(result).toContain('YEAR(A1)')
   })
+
+  it('should convert variable(month - 1) to the previous row cell reference', () => {
+    // Regression test for airline model outstanding_debt rendering bug.
+    // outstanding_debt(month - 1) was rendered as O3(A3 - 1) instead of O2
+    // because Pattern 3b matched bare variable name before the offset argument was resolved.
+    const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]]) // col O
+    const cohortStepVars = ['OUTSTANDING_DEBT']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3 // step=1, row 3
+
+    const expression = 'MAX(0, outstanding_debt(month - 1) - 100)'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // outstanding_debt(month - 1) at row 3 should become O2 (previous row)
+    expect(result).toContain('O2')
+    expect(result).not.toContain('O3(')
+    expect(result).not.toContain('outstanding_debt')
+  })
+
+  it('should clamp variable(month - N) to row 2 when offset exceeds current row', () => {
+    // When the offset would push the reference before the first data row (row 2), clamp to row 2
+    const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]])
+    const cohortStepVars = ['OUTSTANDING_DEBT']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2 // step=0, row 2
+
+    const expression = 'outstanding_debt(month - 1)'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // Row 2 - 1 = 1 which is the header row, so clamp to row 2
+    expect(result).toBe('O2')
+    expect(result).not.toContain('outstanding_debt')
+  })
 })

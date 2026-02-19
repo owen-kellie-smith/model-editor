@@ -1206,7 +1206,18 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
         }
         return `${colLetter}${targetRow}`
       })
-      
+
+      // Pattern 1b: Handle single temporal-arg variables with offset
+      // Example: outstanding_debt(month - 1) -> O2, variable(step - 2) -> K{row-2}
+      const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*(?:step|month|year|period|time|quarter|week|day)\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      formula = formula.replace(patternSingleArgWithOffset, (match, offset) => {
+        const targetRow = currentRow - parseInt(offset, 10)
+        if (targetRow < 2) {
+          return `${colLetter}2`
+        }
+        return `${colLetter}${targetRow}`
+      })
+
       // Pattern 2: Handle step-only variables
       // Example: discount_factor(step) -> K2
       const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
