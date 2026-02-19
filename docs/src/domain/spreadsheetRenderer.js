@@ -135,9 +135,16 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
   for (const [varName, varXml] of variableMap) {
     const resolved = resolvedVarsWithArguments.get(varName)
     const args = resolved && resolved.domain ? resolved.domain : []
+    const defType = getDefinitionType(varXml)
     
     if (args.length === 0) {
-      constants.push(varName)
+      // Only include variables with type="constant" in the constants sheet
+      // Variables with type="expression" and no arguments are calculated variables, not constants
+      if (defType === "constant") {
+        constants.push(varName)
+      }
+      // Note: Variables with type="expression" and no arguments are not categorized
+      // They could be intermediate calculations that don't need to be in spreadsheet
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
     } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
