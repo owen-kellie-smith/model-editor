@@ -888,7 +888,7 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
   sheet.addRow(headers)
   
   // Add a single cohort row (cohort references input_config sheet)
-  const row = [{ formula: '=input_config!B2' }]
+  const row = [{ formula: 'input_config!B2' }]
   
   for (const varName of cohortVars) {
     const varXml = variableMap.get(varName)
@@ -960,7 +960,7 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
   
   for (let step = 0; step < stepCount; step++) {
     const currentRow = step + 2 // +2 because row 1 is header
-    const stepValue = step === 0 ? 0 : { formula: `=A${currentRow-1}+1` }
+    const stepValue = step === 0 ? 0 : { formula: `A${currentRow-1}+1` }
     const row = [stepValue]
     
     for (const varName of cohortStepVars) {
