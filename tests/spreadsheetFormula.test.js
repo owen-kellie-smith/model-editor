@@ -208,4 +208,53 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).not.toContain('annual_revenue')
     expect(result).not.toContain('total_cost')
   })
+
+  it('should replace bare temporal index "month" in formula conditions with column A reference', () => {
+    // Regression test: when a formula uses `month` as a bare identifier (e.g. in a condition
+    // like `month = 0`), it must be replaced with A${currentRow} so the exported spreadsheet
+    // does not contain an unresolved name like `month`.
+    const colIndexMap = new Map()
+    const cohortStepVars = []
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2
+
+    const expression = 'month = 0'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).toBe('A2 = 0')
+    expect(result).not.toContain('month')
+  })
+
+  it('should replace bare temporal indices (year, period, quarter, week, day) with column A reference', () => {
+    // All standard temporal index names must be replaced, not just "step" and "month"
+    const colIndexMap = new Map()
+    const cohortStepVars = []
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3
+
+    const temporalNames = ['year', 'period', 'quarter', 'week', 'day']
+    for (const name of temporalNames) {
+      const result = convertExpressionToFormula(`${name} = 0`, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+      expect(result).toBe('A3 = 0')
+      expect(result).not.toContain(name)
+    }
+  })
+
+  it('should not replace MONTH() or YEAR() Excel function names when followed by parentheses', () => {
+    // The replacement must not break Excel built-in functions like MONTH(date) or YEAR(date)
+    const colIndexMap = new Map()
+    const cohortStepVars = []
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2
+
+    // MONTH() and YEAR() are valid Excel functions; they must not be replaced
+    const expression = 'MONTH(A1) + YEAR(A1)'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).toContain('MONTH(A1)')
+    expect(result).toContain('YEAR(A1)')
+  })
 })

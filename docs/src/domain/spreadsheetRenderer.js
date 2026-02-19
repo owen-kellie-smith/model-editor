@@ -1100,8 +1100,8 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
   const whenText = firstCase.when?.['#text'] || firstCase.when || ''
   const valueText = firstCase.value?.['#text'] || firstCase.value || ''
   
-  // Check if this is a step = 0 condition
-  if (whenText.includes('step') && whenText.includes('0')) {
+  // Check if this is a step = 0 condition (or other temporal index = 0, e.g. month = 0)
+  if (/\b(step|month|year|period|time|quarter|week|day)\b/i.test(whenText) && whenText.includes('0')) {
     // Handle "if step=0 then value else otherValue" pattern
     if (step === 0) {
       // Evaluate the value for step 0
@@ -1256,6 +1256,10 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
   
   // Handle "step" reference (column A in calc_cohort_step sheet)
   formula = formula.replace(/\bstep\b/gi, `A${currentRow}`)
+  
+  // Handle other temporal index references (month, year, period, etc.) that also map to column A
+  // Negative lookahead prevents replacing Excel built-in functions like MONTH(), YEAR(), DAY(), TIME()
+  formula = formula.replace(/\b(month|year|period|time|quarter|week|day)\b(?!\s*\()/gi, `A${currentRow}`)
   
   return formula || null
 }
