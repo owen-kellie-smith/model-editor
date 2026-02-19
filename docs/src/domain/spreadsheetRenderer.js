@@ -129,6 +129,9 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
   const cohortStep = []
   const other = []
   
+  // Common temporal/time-based argument names (step, month, year, period, time, etc.)
+  const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
+  
   for (const [varName, varXml] of variableMap) {
     const resolved = resolvedVarsWithArguments.get(varName)
     const args = resolved && resolved.domain ? resolved.domain : []
@@ -137,10 +140,11 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
       constants.push(varName)
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
-    } else if (args.length === 1 && args[0].toUpperCase() === 'STEP') {
-      // Step-only variables should be included in the cohort-step sheet
+    } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
+      // Single temporal argument variables should be included in the cohort-step sheet
       cohortStep.push(varName)
-    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && args[1].toUpperCase() === 'STEP') {
+    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && temporalArgs.includes(args[1].toUpperCase())) {
+      // Cohort + temporal argument variables
       cohortStep.push(varName)
     } else {
       other.push(varName)
@@ -349,9 +353,9 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId, va
 function addTableSheets(workbook, modelObj) {
   const tableDefs = extractTableDefinitions(modelObj)
   
-  // If no tables defined in model, use fallback with hardcoded tables
+  // If no tables defined in model, skip adding any table sheets
+  // (Only add tables that are explicitly defined in the model)
   if (tableDefs.size === 0) {
-    addTableSheetsFallback(workbook)
     return
   }
   
@@ -502,54 +506,6 @@ function determineSampleRowCount(tableDef) {
   
   // Fallback: For tables without min/max constraints, generate 5 sample rows
   return 5
-}
-
-/**
- * Add table sheets with sample data (fallback for models without table definitions)
- */
-function addTableSheetsFallback(workbook) {
-  // Add cohort_data table
-  const cohortSheet = workbook.addWorksheet('input_cohort_data')
-  cohortSheet.addRow(['id', 'annual_annuity_amount', 'annuity_start_age', 'current_age', 'mortality_table'])
-  cohortSheet.addRow(['dataType', 'real', 'real', 'real', 'string'])
-  cohortSheet.addRow(['unit', 'GBP per year', 'years', 'years'])
-  cohortSheet.addRow(['cohort'])
-  cohortSheet.addRow([1, 12.34, 61, 31.2, 'mortality_rate_column1'])
-  cohortSheet.addRow([2, 23.45, 62, 32.3, 'mortality_rate_column1'])
-  cohortSheet.addRow([3, 34.56, 63, 33.4, 'mortality_rate_column1'])
-  cohortSheet.addRow([4, 45.67, 64, 34.5, 'mortality_rate_column2'])
-  
-  // Add mortality_rate table with generic columns
-  const mortalitySheet = workbook.addWorksheet('input_mortality_rate')
-  mortalitySheet.addRow(['age', 'mortality_rate_column1', 'mortality_rate_column2'])
-  
-  // Generate 5 sample rows (used when model has no table definitions)
-  const minAge = 17
-  const maxAge = 104
-  const numSampleRows = 5
-  
-  for (let i = 0; i < numSampleRows; i++) {
-    const age = minAge + Math.round(i * (maxAge - minAge) / (numSampleRows - 1))
-    const ageRange = maxAge - minAge
-    const ageFactor = (age - minAge) / ageRange
-    const col1Value = 0.001 + ageFactor * 0.1
-    const col2Value = 0.0005 + ageFactor * 0.05
-    mortalitySheet.addRow([age, col1Value, col2Value])
-  }
-  
-  // Add spot_rate table
-  const spotSheet = workbook.addWorksheet('input_spot_rate')
-  spotSheet.addRow(['step', 'rate'])
-  
-  // Generate 5 sample rows (used when model has no table definitions)
-  const minStep = 0
-  const maxStep = 120
-  
-  for (let i = 0; i < numSampleRows; i++) {
-    const step = minStep + Math.round(i * (maxStep - minStep) / (numSampleRows - 1))
-    const rate = 0.02 + i * 0.01
-    spotSheet.addRow([step, rate])
-  }
 }
 
 /**
@@ -750,10 +706,8 @@ function addReadmeSheet(workbook, modelObj, modelFeatures) {
       sheet.addRow([`  - ${sheetName}: ${columnList}`])
     }
   } else {
-    // Fallback for models without table definitions
-    sheet.addRow(['  - input_cohort_data: annual_annuity_amount, annuity_start_age, current_age, mortality_table'])
-    sheet.addRow(['  - input_mortality_rate: age-based mortality rates'])
-    sheet.addRow(['  - input_spot_rate: step-based discount rates'])
+    // No tables defined in model
+    sheet.addRow(['  - No input tables defined in this model'])
   }
   
   sheet.addRow([])
