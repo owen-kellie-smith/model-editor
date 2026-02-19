@@ -129,6 +129,9 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
   const cohortStep = []
   const other = []
   
+  // Common temporal/time-based argument names (step, month, year, period, time, etc.)
+  const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
+  
   for (const [varName, varXml] of variableMap) {
     const resolved = resolvedVarsWithArguments.get(varName)
     const args = resolved && resolved.domain ? resolved.domain : []
@@ -137,10 +140,11 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
       constants.push(varName)
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
-    } else if (args.length === 1 && args[0].toUpperCase() === 'STEP') {
-      // Step-only variables should be included in the cohort-step sheet
+    } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
+      // Single temporal argument variables should be included in the cohort-step sheet
       cohortStep.push(varName)
-    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && args[1].toUpperCase() === 'STEP') {
+    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && temporalArgs.includes(args[1].toUpperCase())) {
+      // Cohort + temporal argument variables
       cohortStep.push(varName)
     } else {
       other.push(varName)
@@ -349,9 +353,9 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId, va
 function addTableSheets(workbook, modelObj) {
   const tableDefs = extractTableDefinitions(modelObj)
   
-  // If no tables defined in model, use fallback with hardcoded tables
+  // If no tables defined in model, skip adding any table sheets
+  // (Only add tables that are explicitly defined in the model)
   if (tableDefs.size === 0) {
-    addTableSheetsFallback(workbook)
     return
   }
   
