@@ -161,4 +161,86 @@ describe('Airline Model Spreadsheet Rendering', () => {
     
     console.log('✓ Expression variables without arguments will be available in constant sheet')
   })
+
+  it('should render test airline model correctly with expression variables in formulas', async () => {
+    // Create a minimal test model that replicates the issue
+    const testModelXml = `<?xml version="1.0" encoding="UTF-8"?>
+<model id="test-airline">
+  <indexSets>
+    <indexSet id="month">
+      <description>Projection month</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+  <variables>
+    <variable id="aircraft_count">
+      <dataType>integer</dataType>
+      <definition type="constant">10</definition>
+    </variable>
+    <variable id="flights_per_aircraft_per_month">
+      <dataType>integer</dataType>
+      <definition type="constant">120</definition>
+    </variable>
+    <variable id="economy_seats_percent">
+      <dataType>real</dataType>
+      <definition type="constant">0.80</definition>
+    </variable>
+    <variable id="seats_per_aircraft">
+      <dataType>integer</dataType>
+      <definition type="constant">180</definition>
+    </variable>
+    <variable id="economy_load_factor">
+      <dataType>real</dataType>
+      <definition type="constant">0.85</definition>
+    </variable>
+    <variable id="economy_ticket_price">
+      <dataType>real</dataType>
+      <definition type="constant">250</definition>
+    </variable>
+    <variable id="economy_seats_per_flight">
+      <dataType>real</dataType>
+      <definition type="expression">
+        seats_per_aircraft * economy_seats_percent
+      </definition>
+    </variable>
+    <variable id="economy_passengers_per_flight">
+      <dataType>real</dataType>
+      <definition type="expression">
+        economy_seats_per_flight * economy_load_factor
+      </definition>
+    </variable>
+    <variable id="total_monthly_flights">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>integer</dataType>
+      <definition type="expression">
+        aircraft_count * flights_per_aircraft_per_month
+      </definition>
+    </variable>
+    <variable id="monthly_economy_revenue">
+      <arguments>
+        <arg indexSet="month"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        economy_passengers_per_flight * economy_ticket_price * total_monthly_flights(month)
+      </definition>
+    </variable>
+  </variables>
+</model>`
+
+    const testModel = validateModelCore(testModelXml, 'test-airline-model.xml', lang)
+    
+    expect(testModel).toBeTruthy()
+    expect(testModel.obj).toBeTruthy()
+    expect(testModel.features).toBeTruthy()
+    
+    // Try to render the spreadsheet
+    const blob = await renderModelAsExcel(testModel.obj, testModel.features)
+    
+    expect(blob).toBeTruthy()
+    console.log('✓ Test airline model rendered successfully')
+    console.log(`  Blob size: ${blob.size} bytes`)
+  })
 })
