@@ -888,7 +888,7 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
   sheet.addRow(headers)
   
   // Add a single cohort row (cohort references input_config sheet)
-  const row = [{ formula: '=input_config!B2' }]
+  const row = [{ formula: 'input_config!B2' }]
   
   for (const varName of cohortVars) {
     const varXml = variableMap.get(varName)
