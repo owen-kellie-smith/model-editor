@@ -18,9 +18,7 @@ export async function refreshExampleVisibility(){
 
   const availableLanguage = languageFiles.filter((_, i) => availLangFlags[i]);
   const availableModel = modelFiles.filter((_, i) => availModelFlags[i]);
-  const availableLanguage = languageFiles.filter((_, i) => availLangFlags[i]);
-  const availableModel = modelFiles.filter((_, i) => availModelFlags[i]);
-
+  
   if (availableLanguage.length > 0) {
     ui.languageExample.style.visibility = "visible";
   }
