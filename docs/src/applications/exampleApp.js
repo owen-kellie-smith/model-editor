@@ -1,6 +1,6 @@
 import { exampleFiles } from "../exampleFiles.js";
 import { ui } from "../ui.js";
-import { commitOrRejectLanguage } from "./languageApp.js";
+import { commitOrRejectLanguage, getLanguageEnv } from "./languageApp.js";
 import { loadModelFromText } from "./modelApp.js";
 
 function toFetchPath(path) {
@@ -31,7 +31,7 @@ export async function wireExampleHandlers() {
   if (availableLanguage.length > 0) {
     ui.languageExample.style.visibility = "visible";
   }
-  if (availableModel.length > 0) {
+  if (getLanguageEnv() && availableModel.length > 0) {
     ui.modelExample.style.visibility = "visible";
   }
 
