@@ -7,16 +7,7 @@ function toFetchPath(path) {
   return path.replace(/^docs\//, "");
 }
 
-async function isAvailable(path) {
-  try {
-    const res = await fetch(toFetchPath(path), { method: "HEAD" });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-export async function wireExampleHandlers() {
+export function refreshExampleVisibility(){
   const languageFiles = exampleFiles.filter(f => f.category === "language");
   const modelFiles = exampleFiles.filter(f => f.category === "model");
 
@@ -27,14 +18,31 @@ export async function wireExampleHandlers() {
 
   const availableLanguage = languageFiles.filter((_, i) => availLangFlags[i]);
   const availableModel = modelFiles.filter((_, i) => availModelFlags[i]);
+  const availableLanguage = languageFiles.filter((_, i) => availLangFlags[i]);
+  const availableModel = modelFiles.filter((_, i) => availModelFlags[i]);
 
   if (availableLanguage.length > 0) {
     ui.languageExample.style.visibility = "visible";
   }
   if (getLanguageEnv() && availableModel.length > 0) {
     ui.modelExample.style.visibility = "visible";
+  } else {
+    ui.modelExample.style.visibilitu = "hidden";
   }
 
+}
+
+async function isAvailable(path) {
+  try {
+    const res = await fetch(toFetchPath(path), { method: "HEAD" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function wireExampleHandlers() {
+  refreshExampleVisibility();
   let languageIndex = -1;
   let modelIndex = -1;
 
