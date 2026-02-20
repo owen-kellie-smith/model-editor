@@ -1,6 +1,6 @@
 # Annuity Model Example
 
-This directory contains 2 equivalent examples of a **small, fully declarative annuity cashflow model**.
+This directory contains examples of a declarative annuity cashflow model.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ The model exists to:
 - Exercise the model editor and its structural constraints
 - Provide a realistic but brief example
 - Demonstrate proper model structure and variable relationships
-- Remain engine-agnostic and disposable
+
 
 ## Model Description
 
@@ -21,7 +21,6 @@ Discounting is derived from spot rates.
 
 ### Model Definition Files
 - `vendor-format-model.xml` - Model in recommended format
-- `legacy-format-model.xml` - Model in legacy format
 
 ## Usage
 
@@ -33,9 +32,8 @@ To use this example in the model editor:
    - Verify the language loads without errors
 
 2. **Load the model:**
-   - Choose either format:
-     - `vendor-format-model.xml` (recommended)
-     - `legacy-format-model.xml` (legacy format)
+   - Choose:
+     - `vendor-format-model.xml` 
    - Load via file input or paste the XML content
    - Review validation output and dependency information
 
