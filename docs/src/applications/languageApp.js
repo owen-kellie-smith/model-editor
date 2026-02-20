@@ -4,7 +4,7 @@ import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../format
 import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
 import { serializeLanguage } from "../domain/serialize.js";
-
+import { refreshExampleVisibility } from "./exampleApp.js";
 let languageEnv = null;
 let languageObj = null;
 let validationTimeout = null;
@@ -65,6 +65,7 @@ function commitLanguage(lang, obj) {
   enableControls(true);
   ui.downloadLanguage.disabled = false;   // ✅
   resetModelInputs();
+  refreshExampleVisibility();
   updateLanguageStatus("✓ Valid", "success");
   updateLoadedInfo();
   updateDirtyIndicator();
@@ -77,10 +78,11 @@ function rejectLanguage(er) {
   enableControls(false);
   ui.downloadLanguage.disabled = true;    // ❌
   resetModelInputs();
+  refreshExampleVisibility();
   updateLanguageStatus(er.message, "error");
 }
 
-function commitOrRejectLanguage(text, label) {
+export function commitOrRejectLanguage(text, label) {
   if (!text) return;
   try {
     const xml = parseXmlOrThrow(text, label);
