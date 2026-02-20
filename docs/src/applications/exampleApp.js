@@ -25,7 +25,7 @@ export async function refreshExampleVisibility(){
   if (getLanguageEnv() && availableModel.length > 0) {
     ui.modelExample.style.visibility = "visible";
   } else {
-    ui.modelExample.style.visibilitu = "hidden";
+    ui.modelExample.style.visibility = "hidden";
   }
 
 }
