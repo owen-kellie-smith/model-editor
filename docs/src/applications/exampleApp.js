@@ -7,7 +7,7 @@ function toFetchPath(path) {
   return path.replace(/^docs\//, "");
 }
 
-export function refreshExampleVisibility(){
+export async function refreshExampleVisibility(){
   const languageFiles = exampleFiles.filter(f => f.category === "language");
   const modelFiles = exampleFiles.filter(f => f.category === "model");
 
