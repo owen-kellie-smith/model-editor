@@ -70,6 +70,18 @@ body {
   cursor: pointer;
 }
 
+.example-link {
+  cursor: pointer;
+  color: #0066cc;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.example-link:hover {
+  color: #004499;
+}
+
 .editor textarea {
   flex: 0 1 auto; 
   padding: 0.5rem;

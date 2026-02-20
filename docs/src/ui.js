@@ -1,11 +1,13 @@
 export const ui = {
   loadLanguageFile: document.getElementById("loadLanguageFile"),
+  languageExample: document.getElementById("languageExample"),
   loadLanguageText: document.getElementById("loadLanguageText"),
   languageLoaded: document.getElementById("languageLoaded"),
   languageDirty: document.getElementById("languageDirty"),
   languageText: document.getElementById("languageText"),
   languageStatus: document.getElementById("languageStatus"),
   loadModelFile: document.getElementById("loadModelFile"),
+  modelExample: document.getElementById("modelExample"),
   loadModelText: document.getElementById("loadModelText"),
   modelLoaded: document.getElementById("modelLoaded"),
   modelDirty: document.getElementById("modelDirty"),

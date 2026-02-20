@@ -80,7 +80,7 @@ function rejectLanguage(er) {
   updateLanguageStatus(er.message, "error");
 }
 
-function commitOrRejectLanguage(text, label) {
+export function commitOrRejectLanguage(text, label) {
   if (!text) return;
   try {
     const xml = parseXmlOrThrow(text, label);

@@ -164,6 +164,12 @@ export function updateModelTextareaAndDate() {
   }
 }
 
+export function loadModelFromText(text, filename) {
+  if (!languageEnvIsSet()) return;
+  ui.modelText.value = text;
+  validateModel(text, filename, getLanguageEnv());
+}
+
 export function wireModelHandlers() {
   // Add input event listener with debouncing
   ui.modelText.addEventListener("input", (e) => {
