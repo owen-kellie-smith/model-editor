@@ -1206,7 +1206,18 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
         }
         return `${colLetter}${targetRow}`
       })
-      
+
+      // Pattern 1b: Handle single temporal-arg variables with offset
+      // Example: outstanding_debt(month - 1) -> O2, variable(step - 2) -> K{row-2}
+      const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*(?:step|month|year|period|time|quarter|week|day)\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      formula = formula.replace(patternSingleArgWithOffset, (match, offset) => {
+        const targetRow = currentRow - parseInt(offset, 10)
+        if (targetRow < 2) {
+          return `${colLetter}2`
+        }
+        return `${colLetter}${targetRow}`
+      })
+
       // Pattern 2: Handle step-only variables
       // Example: discount_factor(step) -> K2
       const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
@@ -1226,8 +1237,10 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       // Pattern 4: Handle bare variable name without arguments (least specific, applied last)
       // Example: rate -> constant!$B$1
       // Match variable name with optional empty parentheses (e.g., "rate" or "rate()")
+      // The trailing \b prevents matching a variable name that is a prefix of a longer name
+      // (e.g., monthly_net_profit must not match inside monthly_net_profit_after_interest)
       // Note: No trailing \b after the optional parens, as \b would prevent matching "()"
-      const pattern2 = new RegExp(`\\b${escapedVarName}(?:\\(\\))?`, 'gi')
+      const pattern2 = new RegExp(`\\b${escapedVarName}\\b(?:\\(\\))?`, 'gi')
       formula = formula.replace(pattern2, `${colLetter}${currentRow}`)
     }
   }
@@ -1247,8 +1260,9 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       // Reference to constant sheet with the appropriate row number
       const escapedConstVar = escapeRegex(constVar)
       // Match variable name with optional empty parentheses (e.g., "rate" or "rate()")
+      // The trailing \b prevents matching a variable name that is a prefix of a longer name
       // Note: No trailing \b after the optional parens, as \b would prevent matching "()"
-      const pattern = new RegExp(`\\b${escapedConstVar}(?:\\(\\))?`, 'gi')
+      const pattern = new RegExp(`\\b${escapedConstVar}\\b(?:\\(\\))?`, 'gi')
       const constRowNum = constantRowMap.get(constVar) || 1
       formula = formula.replace(pattern, `constant!$B$${constRowNum}`)
     }
@@ -1294,8 +1308,9 @@ function convertConstantExpressionToFormula(expression, currentRow, constantRowM
       const escapedConstVar = escapeRegex(constVarName)
       // Match variable name with optional empty parentheses (e.g., "B2" or "B2()")
       // The (?:\(\))? part matches () zero or one time (non-capturing group)
+      // The trailing \b prevents matching a variable name that is a prefix of a longer name
       // Note: No trailing \b after the optional parens, as \b would prevent matching "()"
-      const pattern = new RegExp(`\\b${escapedConstVar}(?:\\(\\))?`, 'gi')
+      const pattern = new RegExp(`\\b${escapedConstVar}\\b(?:\\(\\))?`, 'gi')
       
       // Reference to constant sheet column B with absolute row reference
       formula = formula.replace(pattern, `$B$${constRowNum}`)

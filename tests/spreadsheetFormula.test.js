@@ -257,4 +257,65 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).toContain('MONTH(A1)')
     expect(result).toContain('YEAR(A1)')
   })
+
+  it('should convert variable(month - 1) to the previous row cell reference', () => {
+    // Regression test for airline model outstanding_debt rendering bug.
+    // outstanding_debt(month - 1) was rendered as O3(A3 - 1) instead of O2
+    // because Pattern 3b matched bare variable name before the offset argument was resolved.
+    const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]]) // col O
+    const cohortStepVars = ['OUTSTANDING_DEBT']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3 // step=1, row 3
+
+    const expression = 'MAX(0, outstanding_debt(month - 1) - 100)'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // outstanding_debt(month - 1) at row 3 should become O2 (previous row)
+    expect(result).toContain('O2')
+    expect(result).not.toContain('O3(')
+    expect(result).not.toContain('outstanding_debt')
+  })
+
+  it('should not replace a variable name that is a prefix of another variable name', () => {
+    // Regression test for airline model outstanding_debt rendering bug.
+    // monthly_net_profit_after_interest(month - 1) was incorrectly rendered as
+    // M3_after_interest(A3 - 1) because monthly_net_profit (col M) was matched as
+    // a prefix of monthly_net_profit_after_interest before the full name could be matched.
+    // col M = 13 for monthly_net_profit, col Q = 17 for monthly_net_profit_after_interest
+    const colIndexMap = new Map([
+      ['OUTSTANDING_DEBT', 15],            // col O
+      ['MONTHLY_NET_PROFIT', 13],          // col M
+      ['MONTHLY_NET_PROFIT_AFTER_INTEREST', 17], // col Q
+    ])
+    const cohortStepVars = ['OUTSTANDING_DEBT', 'MONTHLY_NET_PROFIT', 'MONTHLY_NET_PROFIT_AFTER_INTEREST']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3 // step=1, row 3
+
+    const expression = 'MAX(0, outstanding_debt(month - 1) - monthly_net_profit_after_interest(month - 1))'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // outstanding_debt(month - 1) at row 3 -> O2, monthly_net_profit_after_interest(month - 1) -> Q2
+    expect(result).toBe('MAX(0, O2 - Q2)')
+    expect(result).not.toContain('monthly_net_profit')
+    expect(result).not.toContain('outstanding_debt')
+    // monthly_net_profit (col M) must NOT have replaced the prefix of monthly_net_profit_after_interest
+    expect(result).not.toContain('M3')
+  })
+
+  it('should clamp variable(month - N) to row 2 when offset exceeds current row', () => {
+    const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]])
+    const cohortStepVars = ['OUTSTANDING_DEBT']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2 // step=0, row 2
+
+    const expression = 'outstanding_debt(month - 1)'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // Row 2 - 1 = 1 which is the header row, so clamp to row 2
+    expect(result).toBe('O2')
+    expect(result).not.toContain('outstanding_debt')
+  })
 })
