@@ -6,6 +6,8 @@ import { loadModelFromText } from "./modelApp.js";
 function toFetchPath(path) {
   return path.replace(/^docs\//, "");
 }
+let availableLanguage;
+let availableModel;
 
 export async function refreshExampleVisibility(){
   const languageFiles = exampleFiles.filter(f => f.category === "language");
@@ -16,8 +18,8 @@ export async function refreshExampleVisibility(){
     Promise.all(modelFiles.map(f => isAvailable(f.path))),
   ]);
 
-  const availableLanguage = languageFiles.filter((_, i) => availLangFlags[i]);
-  const availableModel = modelFiles.filter((_, i) => availModelFlags[i]);
+  availableLanguage = languageFiles.filter((_, i) => availLangFlags[i]);
+  availableModel = modelFiles.filter((_, i) => availModelFlags[i]);
   
   if (availableLanguage.length > 0) {
     ui.languageExample.style.visibility = "visible";
