@@ -277,8 +277,34 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).not.toContain('outstanding_debt')
   })
 
+  it('should not replace a variable name that is a prefix of another variable name', () => {
+    // Regression test for airline model outstanding_debt rendering bug.
+    // monthly_net_profit_after_interest(month - 1) was incorrectly rendered as
+    // M3_after_interest(A3 - 1) because monthly_net_profit (col M) was matched as
+    // a prefix of monthly_net_profit_after_interest before the full name could be matched.
+    // col M = 13 for monthly_net_profit, col Q = 17 for monthly_net_profit_after_interest
+    const colIndexMap = new Map([
+      ['OUTSTANDING_DEBT', 15],            // col O
+      ['MONTHLY_NET_PROFIT', 13],          // col M
+      ['MONTHLY_NET_PROFIT_AFTER_INTEREST', 17], // col Q
+    ])
+    const cohortStepVars = ['OUTSTANDING_DEBT', 'MONTHLY_NET_PROFIT', 'MONTHLY_NET_PROFIT_AFTER_INTEREST']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3 // step=1, row 3
+
+    const expression = 'MAX(0, outstanding_debt(month - 1) - monthly_net_profit_after_interest(month - 1))'
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // outstanding_debt(month - 1) at row 3 -> O2, monthly_net_profit_after_interest(month - 1) -> Q2
+    expect(result).toBe('MAX(0, O2 - Q2)')
+    expect(result).not.toContain('monthly_net_profit')
+    expect(result).not.toContain('outstanding_debt')
+    // monthly_net_profit (col M) must NOT have replaced the prefix of monthly_net_profit_after_interest
+    expect(result).not.toContain('M3')
+  })
+
   it('should clamp variable(month - N) to row 2 when offset exceeds current row', () => {
-    // When the offset would push the reference before the first data row (row 2), clamp to row 2
     const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]])
     const cohortStepVars = ['OUTSTANDING_DEBT']
     const constantVars = []
