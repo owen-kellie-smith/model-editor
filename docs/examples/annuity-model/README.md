@@ -1,6 +1,6 @@
 # Annuity Model Example
 
-This directory contains examples of a declarative annuity cashflow model.
+This directory contains a declarative annuity cashflow model.
 
 ## Purpose
 
