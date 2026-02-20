@@ -4,7 +4,7 @@ import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../format
 import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
 import { serializeLanguage } from "../domain/serialize.js";
-import { refreshExampleVisibility } from "exampleApp.js";
+import { refreshExampleVisibility } from "./exampleApp.js";
 let languageEnv = null;
 let languageObj = null;
 let validationTimeout = null;
