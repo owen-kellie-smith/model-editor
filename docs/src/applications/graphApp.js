@@ -111,6 +111,20 @@ function hideDownloadLinks() {
 }
 
 /**
+ * Show the DOT source copy link
+ */
+function showDotCopyLink() {
+  ui.graphDotCopy.style.visibility = 'visible';
+}
+
+/**
+ * Hide the DOT source copy link
+ */
+function hideDotCopyLink() {
+  ui.graphDotCopy.style.visibility = 'hidden';
+}
+
+/**
  * Sanitize a string to make it safe for use as a filename
  */
 function sanitizeFilename(name) {
@@ -236,6 +250,7 @@ async function generateGraph() {
     ui.graphDot.textContent = 'No model loaded';
     ui.graphSvg.innerHTML = '';
     hideDownloadLinks();
+    hideDotCopyLink();
     return;
   }
   
@@ -244,6 +259,7 @@ async function generateGraph() {
     ui.graphDot.textContent = 'Please select a variable';
     ui.graphSvg.innerHTML = '';
     hideDownloadLinks();
+    hideDotCopyLink();
     return;
   }
   
@@ -256,6 +272,7 @@ async function generateGraph() {
     // Generate DOT format
     const dotSource = generateDot(graph, variable);
     ui.graphDot.textContent = dotSource;
+    showDotCopyLink();
     
     // Try to render SVG
     try {
@@ -273,6 +290,7 @@ async function generateGraph() {
     ui.graphDot.textContent = `Error: ${error.message}`;
     ui.graphSvg.innerHTML = '';
     hideDownloadLinks();
+    hideDotCopyLink();
   }
 }
 
@@ -308,6 +326,17 @@ export function wireGraphHandlers() {
   ui.downloadSvg.addEventListener('click', downloadSvg);
   ui.downloadPng.addEventListener('click', downloadPng);
   
+  // Add event listener for DOT source copy link
+  ui.graphDotCopy.addEventListener('click', () => {
+    if (!navigator.clipboard) {
+      console.error('Clipboard API not available');
+      return;
+    }
+    navigator.clipboard.writeText(ui.graphDot.textContent).catch(err => {
+      console.error('Failed to copy DOT source:', err);
+    });
+  });
+  
   // Listen for model load events to populate variables
   // We'll use a custom event or call this directly from modelApp
   window.addEventListener('modelLoaded', () => {
@@ -315,5 +344,6 @@ export function wireGraphHandlers() {
     ui.graphDot.textContent = '';
     ui.graphSvg.innerHTML = '';
     hideDownloadLinks();
+    hideDotCopyLink();
   });
 }
