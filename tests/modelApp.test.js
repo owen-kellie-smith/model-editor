@@ -27,6 +27,7 @@ describe('modelApp', () => {
         downloadSvg: { style: {} },
         downloadPng: { style: {} },
         graphDot: { textContent: '' },
+        graphDotCopy: { style: {} },
         graphSvg: { innerHTML: '', classList: { add: vi.fn(), remove: vi.fn() } },
         variableDropdown: { innerHTML: '', disabled: false, addEventListener: vi.fn(), value: '' },
         sortVariablesAlpha: { checked: false, addEventListener: vi.fn() },
