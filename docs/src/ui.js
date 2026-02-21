@@ -25,6 +25,7 @@ export const ui = {
   downloadPng: document.getElementById("downloadPng"),
   graphSvg: document.getElementById("graphSvg"),
   graphDot: document.getElementById("graphDot"),
+  graphDotCopy: document.getElementById("graphDotCopy"),
   variableDropdown: document.getElementById("variableDropdown"),
   variableDetails: document.getElementById("variableDetails"),
   selectedVariableName: document.getElementById("selectedVariableName"),
