@@ -7,21 +7,22 @@
     <!-- numeric -->
     <function name="floor" arity="1"/>
     <function name="ceil" arity="1"/>
-    <function name="round" arity="1"/>
+    <function name="round" arity="2"/>
+    <function name="int" arity="1"/>
     
     <function name="log" arity="1"/>
     <function name="exp" arity="1"/>
+    <function name="sin" arity="1"/>
+    <function name="cos" arity="1"/>
 
     <function name="min" arity="2"/>
     <function name="max" arity="2"/>
     
     <function name="pow" arity="2"/>
-    <function name="int" arity="1"/>
-    <function name="if" arity="3"/>
-
+    <function name="abs" arity="1"/>
 
     <!-- logical / conditional helpers -->
-    <function name="abs" arity="1"/>
+    <function name="if" arity="3"/>
 
   </functions>
 
