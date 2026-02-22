@@ -304,6 +304,37 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).not.toContain('M3')
   })
 
+  it('should convert variable(0) with literal integer index to the correct row reference', () => {
+    // Regression test: cumulative_net_income piecewise value for month=0 is net_income(0).
+    // This was rendered as L2(0) instead of L2 because Pattern 3b only matches named
+    // identifiers, leaving the literal (0) behind after Pattern 4 replaced the variable name.
+    const colIndexMap = new Map([['NET_INCOME', 12]]) // col L
+    const cohortStepVars = ['NET_INCOME']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2
+
+    const result = convertExpressionToFormula('net_income(0)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // net_income(0) means index=0 which is row 2
+    expect(result).toBe('L2')
+    expect(result).not.toContain('net_income')
+    expect(result).not.toContain('(0)')
+  })
+
+  it('should convert variable(N) with literal integer to row N+2', () => {
+    const colIndexMap = new Map([['NET_INCOME', 12]]) // col L
+    const cohortStepVars = ['NET_INCOME']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 5
+
+    // net_income(2) means index=2 which is row 4
+    const result = convertExpressionToFormula('net_income(2)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    expect(result).toBe('L4')
+    expect(result).not.toContain('net_income')
+  })
+
   it('should clamp variable(month - N) to row 2 when offset exceeds current row', () => {
     const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]])
     const cohortStepVars = ['OUTSTANDING_DEBT']
