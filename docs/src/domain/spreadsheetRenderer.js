@@ -1123,7 +1123,13 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
   const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
   
   if (condition && thenValue) {
-    return `IF(${condition},${thenValue},0)`
+    let elseFormula = '0'
+    if (cases.length > 1) {
+      const elseCase = cases[1]
+      const elseValueText = elseCase.value?.['#text'] || elseCase.value || ''
+      elseFormula = convertExpressionToFormula(elseValueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap) || '0'
+    }
+    return `IF(${condition},${thenValue},${elseFormula})`
   }
   
   return null
@@ -1393,4 +1399,4 @@ function topologicalSort(incoming, variableNames) {
 }
 
 // Export formula generation functions for testing
-export { generateTableLookupFormula, generateTableLookupFormulaAdvanced, convertExpressionToFormula }
+export { generateTableLookupFormula, generateTableLookupFormulaAdvanced, convertExpressionToFormula, generatePiecewiseFormula }
