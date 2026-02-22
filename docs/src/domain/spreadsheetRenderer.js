@@ -1218,6 +1218,15 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
         return `${colLetter}${targetRow}`
       })
 
+      // Pattern 1c: Handle variable with literal integer argument
+      // Example: net_income(0) -> L2, net_income(1) -> L3
+      // row 2 = index 0, row 3 = index 1, etc.
+      const patternIntegerArg = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*(\\d+)\\s*\\)`, 'gi')
+      formula = formula.replace(patternIntegerArg, (match, intArg) => {
+        const targetRow = 2 + parseInt(intArg, 10)
+        return `${colLetter}${targetRow}`
+      })
+
       // Pattern 2: Handle step-only variables
       // Example: discount_factor(step) -> K2
       const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
