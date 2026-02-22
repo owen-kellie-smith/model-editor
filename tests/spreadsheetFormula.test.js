@@ -335,6 +335,83 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).not.toContain('net_income')
   })
 
+  it('should render cumulative_net_income(month=0) formula correctly using actual Dividends.xml', () => {
+    // Integration regression test: load the actual Dividends.xml airline model and verify
+    // that the piecewise month=0 case "net_income(0)" converts to a plain cell ref, not "L2(0)".
+    const dividendsModelPath = path.join(process.cwd(), 'docs', 'examples', 'airline-model', 'Dividends.xml')
+    const langPath = path.join(process.cwd(), 'docs', 'examples', 'language.xml')
+    if (!fs.existsSync(dividendsModelPath) || !fs.existsSync(langPath)) {
+      console.warn('Skipping test: Dividends.xml or language.xml not found')
+      return
+    }
+
+    // Load the full language.xml (includes sin/cos used by Dividends.xml)
+    const langXml = loadXml(langPath)
+    const dividendsLang = getFunctionsFromLanguage(langXml, 'test')
+
+    const dividendsXml = fs.readFileSync(dividendsModelPath, 'utf-8')
+    const model = validateModelCore(dividendsXml, 'Dividends.xml', dividendsLang)
+    expect(model).toBeTruthy()
+
+    // Build variable map from model XML
+    const variableMap = new Map()
+    const vars = Array.isArray(model.obj.model.variables.variable)
+      ? model.obj.model.variables.variable
+      : [model.obj.model.variables.variable]
+    for (const v of vars) {
+      variableMap.set(v.id.toUpperCase(), v)
+    }
+
+    // Replicate the categorization the renderer uses
+    const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
+    const constantVars = []
+    const cohortStepVars = []
+    for (const [varName, varXml] of variableMap) {
+      const resolved = model.features.resolvedVarsWithArguments.get(varName)
+      const args = resolved && resolved.domain ? resolved.domain : []
+      const defType = varXml.definition?.type || ''
+      if (args.length === 0 && (defType === 'constant' || defType === 'expression')) {
+        constantVars.push(varName)
+      } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
+        cohortStepVars.push(varName)
+      }
+    }
+
+    // Build colIndexMap exactly as addCohortStepSheet does: column A is step, vars start at B (index 2)
+    const colIndexMap = new Map()
+    let colIdx = 1
+    for (const varName of cohortStepVars) {
+      colIndexMap.set(varName, colIdx + 1)
+      colIdx++
+    }
+
+    // Verify net_income is in the cohort-step sheet and has a column assigned
+    expect(cohortStepVars).toContain('NET_INCOME')
+    const netIncomeCol = colIndexMap.get('NET_INCOME')
+    expect(netIncomeCol).toBeDefined()
+
+    // Extract the month=0 piecewise value from cumulative_net_income - it should be "net_income(0)"
+    const cniVar = variableMap.get('CUMULATIVE_NET_INCOME')
+    expect(cniVar).toBeDefined()
+    expect(cniVar.definition.type).toBe('piecewise')
+    const cases = Array.isArray(cniVar.definition.case) ? cniVar.definition.case : [cniVar.definition.case]
+    const month0Case = cases.find(c => {
+      const when = c.when?.['#text'] || c.when || ''
+      return /month\s*=\s*0/.test(when)
+    })
+    expect(month0Case).toBeDefined()
+    const month0Value = month0Case.value?.['#text'] || month0Case.value || ''
+    expect(month0Value.trim()).toContain('net_income(0)')
+
+    // This is the regression: net_income(0) at step=0 (row 2) must convert to a bare cell ref
+    const result = convertExpressionToFormula(month0Value.trim(), 2, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).not.toContain('(0)')
+    expect(result).not.toContain('net_income')
+    // Should be a plain cell reference like "B2" or "C2" etc. (column letter + row 2)
+    expect(result).toMatch(/^[A-Z]+2$/)
+  })
+
   it('should clamp variable(month - N) to row 2 when offset exceeds current row', () => {
     const colIndexMap = new Map([['OUTSTANDING_DEBT', 15]])
     const cohortStepVars = ['OUTSTANDING_DEBT']
