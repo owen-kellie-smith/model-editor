@@ -1400,3 +1400,251 @@ function topologicalSort(incoming, variableNames) {
 
 // Export formula generation functions for testing
 export { generateTableLookupFormula, generateTableLookupFormulaAdvanced, convertExpressionToFormula, generatePiecewiseFormula }
+
+/**
+ * Evaluates a simple arithmetic/numeric expression safely in JavaScript.
+ * Only allows digits, operators, parentheses, and dots. Returns null on failure.
+ */
+function tryEvalArithmetic(expr) {
+  if (!expr || typeof expr !== 'string') return null
+  const trimmed = expr.trim()
+  if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(trimmed)) {
+    try {
+      const result = Function('"use strict"; return (' + trimmed + ')')()
+      if (typeof result === 'number' && isFinite(result)) return result
+    } catch (e) { /* fall through */ }
+  }
+  return null
+}
+
+/**
+ * Evaluate all constant variables to numeric values.
+ * Two-pass: first literal constants, then expression-based constants.
+ */
+function buildConstValues(constantVarNames, variableMap) {
+  const constValues = new Map()
+
+  // First pass: literal constants
+  for (const varName of constantVarNames) {
+    const varXml = variableMap.get(varName)
+    if (!varXml) continue
+    if (getDefinitionType(varXml) === 'constant') {
+      const val = tryEvalArithmetic(getDefinitionText(varXml))
+      if (val !== null) constValues.set(varName, val)
+    }
+  }
+
+  // Second pass: expression-type constants (may reference other constants)
+  for (const varName of constantVarNames) {
+    const varXml = variableMap.get(varName)
+    if (!varXml || constValues.has(varName)) continue
+    if (getDefinitionType(varXml) === 'expression') {
+      const val = evaluateExprForPreview(
+        getDefinitionText(varXml), 0, constValues, [], new Map(), [], 'step'
+      )
+      if (val !== null) constValues.set(varName, val)
+    }
+  }
+
+  return constValues
+}
+
+/**
+ * Map a model function name to its Math.* equivalent for safe JS evaluation.
+ */
+function applyMathFunctionMappings(expr) {
+  return expr
+    .replace(/\bfloor\s*\(/gi, 'Math.floor(')
+    .replace(/\bceil(ing)?\s*\(/gi, 'Math.ceil(')
+    .replace(/\bsin\s*\(/gi, 'Math.sin(')
+    .replace(/\bcos\s*\(/gi, 'Math.cos(')
+    .replace(/\bexp\s*\(/gi, 'Math.exp(')
+    .replace(/\blog\s*\(/gi, 'Math.log(')
+    .replace(/\babs\s*\(/gi, 'Math.abs(')
+    .replace(/\bround\s*\(/gi, 'Math.round(')
+    .replace(/\bmax\s*\(/gi, 'Math.max(')
+    .replace(/\bmin\s*\(/gi, 'Math.min(')
+    .replace(/\bpow\s*\(/gi, 'Math.pow(')
+    .replace(/\bint\s*\(/gi, 'Math.trunc(')
+    .replace(/\bif\s*\(/gi, '_if(')
+}
+
+/**
+ * Evaluate a model expression for a specific step, using already-computed values.
+ *
+ * @param {string}  expression     - Raw model expression text
+ * @param {number}  step           - Current step/month index
+ * @param {Map}     constValues    - varName(upper) → numeric constant value
+ * @param {Array}   previousRows   - Array of Maps (one per completed step)
+ * @param {Map}     currentRow     - varName(upper) → value for variables already computed in current step
+ * @param {Array}   cohortStepVars - Uppercase variable names in the step sheet
+ * @param {string}  temporalArgName - The index set name (e.g. 'month', 'step')
+ * @returns {number|null}
+ */
+function evaluateExprForPreview(expression, step, constValues, previousRows, currentRow, cohortStepVars, temporalArgName) {
+  if (!expression || typeof expression !== 'string') return null
+
+  let expr = expression.trim()
+
+  const tempArg = escapeRegex(temporalArgName)
+
+  // Replace cohort-step variable references (from most specific to least specific)
+  for (const varName of cohortStepVars) {
+    const esc = escapeRegex(varName)
+
+    // Pattern: varName(cohort, temporalArg - N) or varName(temporalArg - N)
+    const offsetPat = new RegExp(
+      `\\b${esc}\\s*\\(\\s*(?:[a-zA-Z_][a-zA-Z0-9_]*\\s*,\\s*)?${tempArg}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'
+    )
+    expr = expr.replace(offsetPat, (_, offset) => {
+      const targetStep = step - parseInt(offset, 10)
+      if (targetStep < 0 || targetStep >= previousRows.length) return '0'
+      const val = previousRows[targetStep].get(varName)
+      return (val !== null && val !== undefined) ? String(val) : '0'
+    })
+
+    // Pattern: varName(integer literal) e.g. varName(0)
+    const intArgPat = new RegExp(`\\b${esc}\\s*\\(\\s*(\\d+)\\s*\\)`, 'gi')
+    expr = expr.replace(intArgPat, (_, intArg) => {
+      const targetStep = parseInt(intArg, 10)
+      if (targetStep >= previousRows.length) return '0'
+      const val = previousRows[targetStep].get(varName)
+      return (val !== null && val !== undefined) ? String(val) : '0'
+    })
+
+    // Pattern: varName(cohort, temporalArg) or varName(temporalArg) or varName(anyArg)
+    const currArgPat = new RegExp(
+      `\\b${esc}\\s*\\(\\s*(?:[a-zA-Z_][a-zA-Z0-9_]*\\s*,\\s*)?[a-zA-Z_][a-zA-Z0-9_]*\\s*\\)`, 'gi'
+    )
+    expr = expr.replace(currArgPat, () => {
+      const val = currentRow.get(varName)
+      return (val !== null && val !== undefined) ? String(val) : '0'
+    })
+  }
+
+  // Replace constant variable references
+  for (const [varName, value] of constValues) {
+    const esc = escapeRegex(varName)
+    const pat = new RegExp(`\\b${esc}\\b(?:\\(\\))?`, 'gi')
+    expr = expr.replace(pat, String(value))
+  }
+
+  // Replace the temporal argument name with the step number
+  expr = expr.replace(new RegExp(`\\b${tempArg}\\b`, 'gi'), String(step))
+
+  // Map model math functions to JS Math.*
+  expr = applyMathFunctionMappings(expr)
+
+  // Handle != → !== and lone = → === (comparison)
+  expr = expr.replace(/!=/g, '!==')
+  expr = expr.replace(/(?<![!<>=])=(?![>=])/g, '===')
+
+  try {
+    // Provide _if helper for if(cond, a, b) usage
+    const result = Function(
+      '"use strict";' +
+      'var _if = function(c,a,b){ return c ? a : b; };' +
+      'return (' + expr + ')'
+    )()
+    if (typeof result === 'number' && isFinite(result)) return result
+    if (typeof result === 'boolean') return result ? 1 : 0
+  } catch (e) { /* ignore evaluation errors */ }
+
+  return null
+}
+
+/**
+ * Evaluate a piecewise variable for a specific step.
+ */
+function evaluatePiecewiseForPreview(varXml, step, constValues, previousRows, currentRow, cohortStepVars, temporalArgName) {
+  const cases = asArray(varXml.definition?.case)
+  if (cases.length === 0) return null
+
+  for (const c of cases) {
+    const whenText = c.when?.['#text'] || c.when || ''
+    const valueText = c.value?.['#text'] || c.value || ''
+
+    if (!whenText) {
+      // else / default case
+      return evaluateExprForPreview(valueText, step, constValues, previousRows, currentRow, cohortStepVars, temporalArgName)
+    }
+
+    const condResult = evaluateExprForPreview(whenText, step, constValues, previousRows, currentRow, cohortStepVars, temporalArgName)
+    if (condResult) {
+      return evaluateExprForPreview(valueText, step, constValues, previousRows, currentRow, cohortStepVars, temporalArgName)
+    }
+  }
+
+  return null
+}
+
+/**
+ * Compute preview data for the calc_cohort_step sheet.
+ *
+ * Returns an object:
+ *   { varNames: string[], variableMap: Map, rows: Array<Map<string,number|null>>, temporalArgName: string }
+ * or null if there are no step variables.
+ *
+ * @param {Object} modelObj      - From validateModelCore
+ * @param {Object} modelFeatures - From validateModelCore
+ * @param {number} [stepCount=12]
+ */
+export function getSpreadsheetPreviewData(modelObj, modelFeatures, stepCount = 12) {
+  if (!modelObj?.model || !modelFeatures?.resolvedVarsWithArguments) return null
+
+  const { resolvedVarsWithArguments } = modelFeatures
+
+  // Build variable map
+  const variableMap = new Map()
+  for (const v of asArray(modelObj.model.variables?.variable)) {
+    variableMap.set(v.id.toUpperCase(), v)
+  }
+
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
+  if (categorized.cohortStep.length === 0) return null
+
+  // Determine the temporal argument name from the first step variable
+  const firstResolved = resolvedVarsWithArguments.get(categorized.cohortStep[0])
+  const domain = firstResolved?.domain ?? []
+  const temporalArgName = (domain[domain.length - 1] ?? 'step').toLowerCase()
+
+  // Evaluate constant values
+  const constValues = buildConstValues(categorized.constants, variableMap)
+
+  // Evaluate step rows
+  const previousRows = []
+  for (let step = 0; step < stepCount; step++) {
+    const currentRow = new Map()
+
+    for (const varName of categorized.cohortStep) {
+      const varXml = variableMap.get(varName)
+      if (!varXml) continue
+
+      const defType = getDefinitionType(varXml)
+      let value = null
+
+      if (defType === 'expression') {
+        value = evaluateExprForPreview(
+          getDefinitionText(varXml), step, constValues, previousRows, currentRow, categorized.cohortStep, temporalArgName
+        )
+      } else if (defType === 'piecewise') {
+        value = evaluatePiecewiseForPreview(
+          varXml, step, constValues, previousRows, currentRow, categorized.cohortStep, temporalArgName
+        )
+      } else if (defType === 'constant') {
+        value = tryEvalArithmetic(getDefinitionText(varXml))
+      }
+
+      currentRow.set(varName, value)
+    }
+
+    previousRows.push(currentRow)
+  }
+
+  return {
+    varNames: categorized.cohortStep,
+    variableMap,
+    rows: previousRows,
+    temporalArgName,
+  }
+}

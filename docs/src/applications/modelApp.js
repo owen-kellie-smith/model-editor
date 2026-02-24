@@ -4,7 +4,7 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
-import { renderModelAsExcel } from "../domain/spreadsheetRenderer.js";
+import { renderModelAsExcel, getSpreadsheetPreviewData } from "../domain/spreadsheetRenderer.js";
 import { setElementContent } from "../utils/helpers.js";
 
 
@@ -75,6 +75,7 @@ function validateModel(text, filename, lang) {
     updateModelStatus("✓ Valid", "success");
     updateLoadedInfo();
     updateDirtyIndicator();
+    updateSpreadsheetPreview(result);
     
     // Dispatch event for graph UI
     window.dispatchEvent(new CustomEvent('modelLoaded'));
@@ -85,7 +86,59 @@ function validateModel(text, filename, lang) {
     ui.downloadSpreadsheet.disabled = true;  // ❌ disable spreadsheet download
     updateModelStatus(formatErrorNoStack(er), "error");
     updateDirtyIndicator();  // ✅ ADD THIS - also update on error
+    updateSpreadsheetPreview(null);
   }
+}
+
+function updateSpreadsheetPreview(modelResult) {
+  if (!ui.spreadsheetPreview) return
+  if (!modelResult) {
+    ui.spreadsheetPreview.innerHTML = ''
+    return
+  }
+  const data = getSpreadsheetPreviewData(modelResult.obj, modelResult.features)
+  if (!data || data.varNames.length === 0) {
+    ui.spreadsheetPreview.innerHTML = '<p>No step variables to preview.</p>'
+    return
+  }
+  setElementContent(ui.spreadsheetPreview, buildPreviewTable(data))
+}
+
+function buildPreviewTable(data) {
+  const { varNames, variableMap, rows, temporalArgName } = data
+
+  const table = document.createElement('table')
+  table.className = 'spreadsheet-preview-table'
+
+  // Header row
+  const thead = table.createTHead()
+  const headerRow = thead.insertRow()
+  const stepTh = document.createElement('th')
+  stepTh.textContent = temporalArgName
+  headerRow.appendChild(stepTh)
+  for (const varName of varNames) {
+    const varXml = variableMap.get(varName)
+    const th = document.createElement('th')
+    th.textContent = varXml ? varXml.id : varName.toLowerCase()
+    headerRow.appendChild(th)
+  }
+
+  // Data rows
+  const tbody = table.createTBody()
+  rows.forEach((rowValues, step) => {
+    const tr = tbody.insertRow()
+    const stepTd = tr.insertCell()
+    stepTd.textContent = step
+    for (const varName of varNames) {
+      const td = tr.insertCell()
+      const val = rowValues.get(varName)
+      td.textContent = (val !== null && val !== undefined)
+        ? (Number.isInteger(val) ? val : val.toFixed(2))
+        : ''
+    }
+  })
+
+  return table
 }
 function validateModelContent(text, lang) {
   if (!text.trim()) {

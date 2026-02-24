@@ -444,3 +444,30 @@ hr {
   margin-top: 0.25rem;
 }
 
+
+.spreadsheet-preview-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
+}
+
+.spreadsheet-preview-table th,
+.spreadsheet-preview-table td {
+  border: 1px solid #ccc;
+  padding: 0.2rem 0.5rem;
+  text-align: right;
+}
+
+.spreadsheet-preview-table th {
+  background: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+}
+
+.spreadsheet-preview-table td:first-child {
+  background: #f8f8f8;
+  font-weight: bold;
+  text-align: center;
+}
