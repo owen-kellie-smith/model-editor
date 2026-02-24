@@ -23,6 +23,25 @@ function getDefinitionType(varXml) {
 }
 
 /**
+ * Extracts the step range from the 'step' indexSet in the model XML.
+ * Reads min/max attributes (e.g. <indexSet id="step" min="0" max="11">).
+ * Defaults to { min: 0, max: 11 } (12 steps) when not specified.
+ * @param {Object} modelObj
+ * @returns {{ min: number, max: number }}
+ */
+function getStepRange(modelObj) {
+  const indexSets = asArray(modelObj?.model?.indexSets?.indexSet)
+  for (const is of indexSets) {
+    if (is.id?.toLowerCase() === 'step') {
+      const min = parseInt(is.min, 10)
+      const max = parseInt(is.max, 10)
+      if (!isNaN(min) && !isNaN(max)) return { min, max }
+    }
+  }
+  return { min: 0, max: 11 }
+}
+
+/**
  * Builds a case-insensitive Map of variable ID → variable XML object from the model.
  * Shared by both the Excel renderer and the HTML preview renderer.
  * @param {Object} modelObj
@@ -156,7 +175,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Add calculation sheet for cohort-step variables (single cohort, multiple steps)
   if (categorized.cohortStep.length > 0) {
-    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly)
+    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj)
   }
   
   // Generate Excel file
@@ -908,7 +927,7 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
 /**
  * Add cohort-step calculation sheet
  */
-function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars) {
+function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars, modelObj) {
   const sheet = workbook.addWorksheet('calc_cohort_step')
   
   // Build header row
@@ -934,15 +953,18 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
     cohortColIdx++
   }
   
+  // Determine step range from model (falls back to 0..11 = 12 steps)
+  const { min: stepMin, max: stepMax } = getStepRange(modelObj)
+  const stepCount = stepMax - stepMin + 1
+
   // Add rows for steps
-  // First row (step=0): Hardcoded value 0
-  // Subsequent rows (step>0): Formula referencing previous row (e.g., =A2+1, =A3+1)
+  // First row: hardcoded stepMin value
+  // Subsequent rows: formula referencing previous row (e.g., =A2+1)
   // This makes the sheet copyable - users can copy rows down and step values auto-increment
-  const stepCount = 12  // Default to 12 steps for monthly projection
-  
-  for (let step = 0; step < stepCount; step++) {
-    const currentRow = step + 2 // +2 because row 1 is header
-    const stepValue = step === 0 ? 0 : { formula: `A${currentRow-1}+1` }
+  for (let i = 0; i < stepCount; i++) {
+    const step = stepMin + i
+    const currentRow = i + 2 // +2 because row 1 is header
+    const stepValue = i === 0 ? stepMin : { formula: `A${currentRow-1}+1` }
     const row = [stepValue]
     
     for (const varName of cohortStepVars) {
@@ -952,8 +974,6 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
         continue
       }
       
-      const defType = getDefinitionType(varXml)
-      const expression = getDefinitionText(varXml)
       const colLetter = getColumnLetter(colIndexMap.get(varName))
       
       // Generate appropriate formula based on variable type
@@ -1396,6 +1416,288 @@ function topologicalSort(incoming, variableNames) {
 // ─── HTML preview ──────────────────────────────────────────────────────────
 
 /**
+ * Evaluates model variables numerically for cohort 1 over the configured step
+ * range, using the same sample data that the spreadsheet renderer generates.
+ * Returns rows ready for renderSheetAsHtml.
+ *
+ * @param {Object} modelObj
+ * @param {Object} modelFeatures
+ * @returns {{ cohortHeaders, cohortRows, stepHeaders, stepRows }}
+ */
+function evaluateModelForPreview(modelObj, modelFeatures) {
+  // Build lookup: tableId → { headers: string[], rows: any[][] }
+  const tableData = {}
+  for (const { name, headers, dataRows } of buildTableSheetsData(modelObj)) {
+    tableData[name.replace(/^input_/, '')] = { headers, rows: dataRows }
+  }
+
+  const variableMap = buildVariableMap(modelObj)
+  const { resolvedVarsWithArguments } = modelFeatures
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
+  const { min: stepMin, max: stepMax } = getStepRange(modelObj)
+  const cohortId = 1  // matches input_config cohort value
+
+  // Variable ids sorted longest-first to prevent shorter names from
+  // partially substituting inside longer ones (e.g. "attained_age" inside
+  // "attained_age_years_floor").
+  const allVarIds = Array.from(variableMap.values())
+    .map(v => v.id)
+    .sort((a, b) => b.length - a.length)
+
+  // Memoisation: key = "varId:cohort:step"
+  const cache = new Map()
+
+  function evalVar(varId, cohort, step) {
+    const key = `${varId}:${cohort ?? '_'}:${step ?? '_'}`
+    if (cache.has(key)) return cache.get(key)
+    cache.set(key, null) // sentinel to break cycles
+    const varXml = variableMap.get(varId.toUpperCase())
+    if (!varXml) return null
+    const result = evalVarImpl(varXml, cohort, step)
+    cache.set(key, result)
+    return result
+  }
+
+  function evalVarImpl(varXml, cohort, step) {
+    switch (getDefinitionType(varXml)) {
+      case 'constant':    return evalArith(getDefinitionText(varXml))
+      case 'expression':  return evalExpr(getDefinitionText(varXml), cohort, step)
+      case 'table':       return evalTableDef(varXml, cohort, step)
+      case 'tableLookup': return evalTableLookupDef(varXml, cohort, step)
+      case 'piecewise':   return evalPiecewiseDef(varXml, cohort, step)
+      default:            return null
+    }
+  }
+
+  /** Evaluate a purely-arithmetic constant expression (no variable refs). */
+  function evalArith(expr) {
+    if (!expr) return null
+    const e = String(expr).trim()
+    if (!e) return null
+    // Only evaluate expressions that contain digits and basic arithmetic operators.
+    // Expressions come from the user's own model XML so the risk is self-contained,
+    // but we restrict the character set here as a first-line guard.
+    try {
+      if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(e))
+        return Function('"use strict"; return (' + e + ')')()
+    } catch (_) {}
+    return null
+  }
+
+  /**
+   * Substitute all known variable references in expr with their evaluated
+   * numeric values, then evaluate the resulting arithmetic expression.
+   *
+   * Security note: expressions originate from the user's own model XML, so
+   * evaluation with `new Function` (strict mode, no closure access) is
+   * equivalent to a trusted-source script.  The broad try/catch ensures any
+   * malformed input is silently discarded and returns null.
+   */
+  function evalExpr(expr, cohort, step) {
+    if (!expr || typeof expr !== 'string') return null
+    let e = expr.trim()
+
+    // Replace variable calls, longest-first to avoid partial-name clobbering
+    for (const varId of allVarIds) {
+      const esc = escapeRegex(varId)
+      // varname(cohort, step - N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) - +n))
+      )
+      // varname(cohort, step + N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) + +n))
+      )
+      // varname(cohort, step)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi'),
+        () => numStr(evalVar(varId, cohort, step))
+      )
+      // varname(cohort)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*\\)`, 'gi'),
+        () => numStr(evalVar(varId, cohort, null))
+      )
+      // varname(step - N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, null, (step ?? 0) - +n))
+      )
+      // varname(step)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*step\\s*\\)`, 'gi'),
+        () => numStr(evalVar(varId, null, step))
+      )
+      // bare varname — constant, no arguments
+      e = e.replace(
+        new RegExp(`\\b${esc}\\b(?:\\(\\))?`, 'gi'),
+        () => numStr(evalVar(varId, null, null))
+      )
+    }
+
+    // Substitute the step index itself (after all variable names are gone)
+    if (step !== null && step !== undefined)
+      e = e.replace(/\bstep\b/gi, String(step))
+
+    // Map model-language functions → JS Math equivalents
+    e = e
+      .replace(/\bfloor\s*\(/gi,   'Math.floor(')
+      .replace(/\bceiling\s*\(/gi, 'Math.ceil(')
+      .replace(/\bceil\s*\(/gi,    'Math.ceil(')
+      .replace(/\bround\s*\(/gi,   'Math.round(')
+      .replace(/\bexp\s*\(/gi,     'Math.exp(')
+      .replace(/\blog\s*\(/gi,     'Math.log(')
+      .replace(/\bsin\s*\(/gi,     'Math.sin(')
+      .replace(/\bcos\s*\(/gi,     'Math.cos(')
+      .replace(/\bpow\s*\(/gi,     'Math.pow(')
+      .replace(/\babs\s*\(/gi,     'Math.abs(')
+      .replace(/\bmin\s*\(/gi,     'Math.min(')
+      .replace(/\bmax\s*\(/gi,     'Math.max(')
+      .replace(/\bint\s*\(/gi,     'Math.trunc(')
+
+    // Power operator: ^ → **
+    e = e.replace(/\^/g, '**')
+
+    // Single = (equality test in model language) → === for JavaScript.
+    // Uses negative lookbehind so that >=, <=, != and === are left untouched.
+    e = e.replace(/(?<![!<>=])=(?!=)/g, '===')
+
+    try {
+      const val = new Function('"use strict"; return (' + e + ')')()
+      if (typeof val === 'number' && isFinite(val)) return val
+      if (typeof val === 'boolean') return val ? 1 : 0
+    } catch (_) {}
+    return null
+  }
+
+  /** Lookup a table-definition variable (type="table"). */
+  function evalTableDef(varXml, cohort, step) {
+    const def = varXml.definition
+    const tableRef  = def?.table?.ref  || def?.table?.['#text']  || ''
+    const columnRef = def?.column?.ref || def?.column?.['#text'] || ''
+    if (!tableRef || !columnRef) return null
+
+    const tbl = tableData[tableRef]
+    if (!tbl) return null
+
+    const colIdx = tbl.headers.indexOf(columnRef)
+    if (colIdx === -1) return null
+
+    const args = resolvedVarsWithArguments.get(varXml.id.toUpperCase())?.domain ?? []
+    const hasCohort   = args.some(a => a.toLowerCase() === 'cohort')
+    const hasTemporal = args.some(a => a.toLowerCase() !== 'cohort')
+
+    if (hasCohort && !hasTemporal) {
+      // Exact match on the row-index column (cohort)
+      const row = tbl.rows.find(r => r[0] === cohort)
+      return row ? row[colIdx] : null
+    }
+    if (hasTemporal && !hasCohort) {
+      // Approximate match: largest row-index value ≤ step
+      let match = null
+      for (const row of tbl.rows) {
+        if (row[0] <= step) match = row
+        else break
+      }
+      return match ? match[colIdx] : null
+    }
+    return null
+  }
+
+  /** Lookup a tableLookup-definition variable (type="tableLookup"). */
+  function evalTableLookupDef(varXml, cohort, step) {
+    const def = varXml.definition
+    const tableRef  = def?.table?.ref          || def?.table?.['#text']          || ''
+    const rowRef    = def?.row?.ref            || def?.row?.['#text']            || ''
+    const colSelRef = def?.columnSelector?.ref || def?.columnSelector?.['#text'] || ''
+    if (!tableRef) return null
+
+    const tbl = tableData[tableRef]
+    if (!tbl) return null
+
+    // Evaluate row key (approximate: largest ≤ rowKey)
+    const rowKey = rowRef ? evalVar(rowRef, cohort, step) : step
+    if (rowKey === null) return null
+
+    let match = null
+    for (const row of tbl.rows) {
+      if (row[0] <= rowKey) match = row
+      else break
+    }
+    if (!match) return null
+
+    if (colSelRef) {
+      const colName = evalVar(colSelRef, cohort, null)
+      if (colName === null) return null
+      const colIdx = tbl.headers.indexOf(String(colName))
+      return colIdx !== -1 ? match[colIdx] : null
+    }
+    return match.length > 1 ? match[1] : null
+  }
+
+  /** Evaluate a piecewise-definition variable. */
+  function evalPiecewiseDef(varXml, cohort, step) {
+    for (const c of asArray(varXml.definition?.case)) {
+      const whenText  = c.when?.['#text']  ?? String(c.when  ?? '')
+      const valueText = c.value?.['#text'] ?? String(c.value ?? '')
+      if (evalExpr(whenText, cohort, step)) {
+        return evalExpr(valueText, cohort, step)
+      }
+    }
+    return null
+  }
+
+  /** Format a computed value for display.  Numerics are rounded to 6 decimal
+   *  places (1e6) to avoid long floating-point noise while preserving enough
+   *  precision for actuarial values like survival rates (e.g. 0.997034). */
+  function fmt(v) {
+    if (v === null || v === undefined) return ''
+    if (typeof v === 'number') {
+      if (!isFinite(v)) return ''
+      if (Number.isInteger(v)) return String(v)
+      return String(Math.round(v * 1e6) / 1e6)
+    }
+    return String(v)
+  }
+
+  /** Return '0' for null/undefined, String(v) otherwise. */
+  function numStr(v) {
+    return (v !== null && v !== undefined) ? String(v) : '0'
+  }
+
+  // ── Build calc_cohort data ─────────────────────────────────────────────────
+  const cohortHeaders = [
+    'cohort',
+    ...categorized.cohortOnly.map(n => variableMap.get(n)?.id ?? n)
+  ]
+  const cohortRow = [String(cohortId)]
+  for (const varName of categorized.cohortOnly) {
+    const varXml = variableMap.get(varName)
+    cohortRow.push(varXml ? fmt(evalVar(varXml.id, cohortId, null)) : '')
+  }
+
+  // ── Build calc_cohort_step data ────────────────────────────────────────────
+  const stepHeaders = [
+    'step',
+    ...categorized.cohortStep.map(n => variableMap.get(n)?.id ?? n)
+  ]
+  const stepRows = []
+  for (let s = stepMin; s <= stepMax; s++) {
+    const row = [String(s)]
+    for (const varName of categorized.cohortStep) {
+      const varXml = variableMap.get(varName)
+      row.push(varXml ? fmt(evalVar(varXml.id, cohortId, s)) : '')
+    }
+    stepRows.push(row)
+  }
+
+  return { cohortHeaders, cohortRows: [cohortRow], stepHeaders, stepRows }
+}
+
+
+/**
  * Escapes HTML special characters to prevent XSS.
  */
 function escapeHtml(str) {
@@ -1465,19 +1767,15 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
     parts.push(renderSheetAsHtml(name, headers, [...metadataRows, ...dataRows]))
   }
 
-  // calc_cohort sheet
-  if (categorized.cohortOnly.length > 0) {
-    const headers = ['cohort', ...categorized.cohortOnly.map(v => variableMap.get(v)?.id ?? v)]
-    const row = ['1', ...categorized.cohortOnly.map(v => getDefinitionText(variableMap.get(v)) || getDefinitionType(variableMap.get(v)))]
-    parts.push(renderSheetAsHtml('calc_cohort', headers, [row]))
-  }
+  // calc_cohort and calc_cohort_step sheets — evaluated values
+  const { cohortHeaders, cohortRows, stepHeaders, stepRows } =
+    evaluateModelForPreview(modelObj, modelFeatures)
 
-  // calc_cohort_step sheet
-  if (categorized.cohortStep.length > 0) {
-    const headers = ['step', ...categorized.cohortStep.map(v => variableMap.get(v)?.id ?? v)]
-    const row = ['(expression)', ...categorized.cohortStep.map(v => getDefinitionText(variableMap.get(v)) || getDefinitionType(variableMap.get(v)))]
-    parts.push(renderSheetAsHtml('calc_cohort_step', headers, [row]))
-  }
+  if (cohortRows.length > 0)
+    parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows))
+
+  if (stepRows.length > 0)
+    parts.push(renderSheetAsHtml('calc_cohort_step', stepHeaders, stepRows))
 
   return `<div class="spreadsheet-preview">${parts.join('\n')}</div>`
 }
