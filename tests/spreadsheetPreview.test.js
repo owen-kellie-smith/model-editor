@@ -11,6 +11,7 @@ describe('renderModelAsHTMLPreview', () => {
   let lang
   let restaurantModel
   let airlineModel
+  let annuityModel
 
   beforeAll(() => {
     const languageXml = loadXml(getFixture('language.xml'))
@@ -25,6 +26,11 @@ describe('renderModelAsHTMLPreview', () => {
       path.join(process.cwd(), 'docs', 'examples', 'airline-model', 'model.xml'), 'utf-8'
     )
     airlineModel = validateModelCore(airlineXml, 'airline-model.xml', lang)
+
+    const annuityXml = fs.readFileSync(
+      path.join(process.cwd(), 'docs', 'examples', 'annuity-model', 'vendor-format-model.xml'), 'utf-8'
+    )
+    annuityModel = validateModelCore(annuityXml, 'vendor-format-model.xml', lang)
   })
 
   it('returns a non-empty HTML string', () => {
@@ -78,5 +84,38 @@ describe('renderModelAsHTMLPreview', () => {
   it('throws on invalid modelFeatures', () => {
     expect(() => renderModelAsHTMLPreview(restaurantModel.obj, null)).toThrow()
     expect(() => renderModelAsHTMLPreview(restaurantModel.obj, {})).toThrow()
+  })
+
+  // ── Annuity model: evaluated preview ──────────────────────────────────────
+
+  it('annuity calc_cohort_step has 12 rows when step indexSet has max=11', () => {
+    const html = renderModelAsHTMLPreview(annuityModel.obj, annuityModel.features)
+    const m = html.match(/calc_cohort_step[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)
+    expect(m).toBeTruthy()
+    expect((m[1].match(/<tr>/g) || []).length).toBe(12)
+  })
+
+  it('annuity calc_cohort_step attained_age_years_floor at step 0 equals 46', () => {
+    const html = renderModelAsHTMLPreview(annuityModel.obj, annuityModel.features)
+    const headerM = html.match(/calc_cohort_step[\s\S]*?<thead>([\s\S]*?)<\/thead>/)
+    const headers = headerM[1].replace(/<[^>]+>/g, '|').split('|').filter(Boolean)
+    const colIdx = headers.indexOf('attained_age_years_floor')
+    expect(colIdx).toBeGreaterThan(-1)
+
+    const bodyM = html.match(/calc_cohort_step[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)
+    const firstRow = bodyM[1].match(/<tr>([\s\S]*?)<\/tr>/)?.[1] || ''
+    const cells = firstRow.replace(/<[^>]+>/g, '|').split('|').filter(Boolean)
+    expect(cells[colIdx]).toBe('46')
+  })
+
+  it('annuity calc_cohort shows numeric values, not definition type names', () => {
+    const html = renderModelAsHTMLPreview(annuityModel.obj, annuityModel.features)
+    const m = html.match(/summary[^>]*>calc_cohort<\/summary>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)
+    expect(m).toBeTruthy()
+    // Cells must not contain raw definition type strings
+    expect(m[1]).not.toContain('>table<')
+    expect(m[1]).not.toContain('>expression<')
+    // Must contain at least one numeric cell
+    expect(m[1]).toMatch(/>\d+/)
   })
 })
