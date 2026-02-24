@@ -23,6 +23,37 @@ function getDefinitionType(varXml) {
 }
 
 /**
+ * Builds a case-insensitive Map of variable ID → variable XML object from the model.
+ * Shared by both the Excel renderer and the HTML preview renderer.
+ * @param {Object} modelObj
+ * @returns {Map<string, Object>}
+ */
+function buildVariableMap(modelObj) {
+  const variableMap = new Map()
+  if (modelObj.model.variables?.variable) {
+    const vars = Array.isArray(modelObj.model.variables.variable)
+      ? modelObj.model.variables.variable
+      : [modelObj.model.variables.variable]
+    for (const v of vars) {
+      variableMap.set(v.id.toUpperCase(), v)
+    }
+  }
+  return variableMap
+}
+
+/**
+ * Returns the static data for the input_config sheet.
+ * Shared by both the Excel renderer and the HTML preview renderer.
+ * @returns {{ headers: string[], rows: Array[] }}
+ */
+function buildInputConfigData() {
+  return {
+    headers: ['parameter', 'value', 'description'],
+    rows: [['cohort', 1, 'Cohort identifier for calculations']]
+  }
+}
+
+/**
  * Renders a model as an Excel workbook using ExcelJS
  * @param {Object} modelObj - The model object (from getObjectFromXML)
  * @param {Object} modelFeatures - The model features (from getModelFeatures)
@@ -51,16 +82,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   const { variables, resolvedVarsWithArguments } = modelFeatures
   
   // Get variable details from model
-  const variableMap = new Map()
-  if (modelObj.model.variables && modelObj.model.variables.variable) {
-    const vars = Array.isArray(modelObj.model.variables.variable) 
-      ? modelObj.model.variables.variable 
-      : [modelObj.model.variables.variable]
-    
-    for (const v of vars) {
-      variableMap.set(v.id.toUpperCase(), v)
-    }
-  }
+  const variableMap = buildVariableMap(modelObj)
   
   // Categorize variables by their argument structure
   const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
@@ -381,138 +403,114 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId, va
 }
 
 /**
- * Add table sheets with sample data (extracted from model definitions)
+ * Builds the row/column data for every input table sheet.
+ * Returns an array of plain data objects — no ExcelJS dependency.
+ * Used by both the Excel renderer (addTableSheets) and the HTML preview renderer.
+ * @param {Object} modelObj
+ * @returns {Array<{name: string, headers: Array, metadataRows: Array[], dataRows: Array[]}>}
  */
-function addTableSheets(workbook, modelObj) {
+function buildTableSheetsData(modelObj) {
   const tableDefs = extractTableDefinitions(modelObj)
-  
-  // If no tables defined in model, skip adding any table sheets
-  // (Only add tables that are explicitly defined in the model)
-  if (tableDefs.size === 0) {
-    return
-  }
-  
-  // Extract column constraints from variables
+  if (tableDefs.size === 0) return []
+
   const columnConstraints = extractColumnConstraints(modelObj)
-  
-  // Generate sheets for each table in the model
+  const sheets = []
+
   for (const [tableId, tableDef] of tableDefs) {
-    const sheetName = `input_${tableId}`
-    const sheet = workbook.addWorksheet(sheetName)
-    
     // Build header row: row index column + data columns
     const headers = [tableDef.rowIndex]
-    
+
     if (tableDef.columns.length > 0) {
-      // Use defined columns
-      for (const col of tableDef.columns) {
-        headers.push(col.id)
-      }
+      for (const col of tableDef.columns) headers.push(col.id)
     } else {
-      // For unconstrained tables, generate column names based on context
-      // Check if any other table references this table in a columnOf constraint
       const referencedColumns = resolveColumnOfConstraint(tableId, tableDefs)
       if (referencedColumns.length > 0) {
-        // Use the resolved column names
         headers.push(...referencedColumns)
       } else {
-        // Generate generic column names
-        // Use pattern: {tableId}_column1, {tableId}_column2, etc.
         headers.push(`${tableId}_column1`, `${tableId}_column2`)
       }
     }
-    
-    sheet.addRow(headers)
-    
-    // Add metadata rows if columns are defined
+
+    // Build metadata rows (dataType / unit / domain) when columns are defined
+    const metadataRows = []
     if (tableDef.columns.length > 0) {
       const dataTypes = ['dataType']
       const units = ['unit']
       const domains = [tableDef.rowIndex]
-      
       for (const col of tableDef.columns) {
         dataTypes.push(col.dataType || '')
         units.push(col.unit || '')
         domains.push('')
       }
-      
-      sheet.addRow(dataTypes)
-      sheet.addRow(units)
-      sheet.addRow(domains)
+      metadataRows.push(dataTypes, units, domains)
     }
-    
+
     // Generate sample data rows
     const numSampleRows = determineSampleRowCount(tableDef)
-    
+    const dataRows = []
+
     for (let i = 0; i < numSampleRows; i++) {
       const row = []
-      
-      // Generate row index value
+
+      // Row index value
       if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
-        // Use model-specified range for row index
         const range = tableDef.rowIndexMax - tableDef.rowIndexMin
         let rowIndexValue
-        
         if (numSampleRows <= 1) {
-          // Single row: use minimum value
           rowIndexValue = tableDef.rowIndexMin
         } else if (range < numSampleRows) {
-          // If range is smaller than sample count, generate sequential values
           rowIndexValue = tableDef.rowIndexMin + i
         } else {
-          // Generate evenly-spaced values across the range
-          // This ensures we cover the full range including both min and max
           const step = range / (numSampleRows - 1)
           rowIndexValue = Math.round(tableDef.rowIndexMin + i * step)
         }
-        
         row.push(rowIndexValue)
       } else {
-        // Fallback: use simple sequential integers
         row.push(generateSampleValue(tableDef.rowIndex, 'integer', i))
       }
-      
-      // Add values for each column
+
+      // Column values
       if (tableDef.columns.length > 0) {
         for (const col of tableDef.columns) {
-          // Check if this column has a columnOf constraint
           const constraintKey = `${tableId}.${col.id}`
           const constraint = columnConstraints.get(constraintKey)
-          let validValues = null
-          
-          if (constraint && constraint.columnOfTable) {
-            // Resolve the constraint to get actual column names
-            validValues = resolveColumnOfConstraint(constraint.columnOfTable, tableDefs)
-          }
-          
+          const validValues = constraint?.columnOfTable
+            ? resolveColumnOfConstraint(constraint.columnOfTable, tableDefs)
+            : null
           row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max, tableId, validValues))
         }
       } else {
-        // Generate generic values for unconstrained columns
-        // Determine how many columns we need based on headers
-        // Headers has rowIndex + N data columns
         const numDataColumns = headers.length - 1
-        
-        // Get the row index value that was added to the row
         const rowIndexValue = row[0]
-        
-        // Constants for generic column value generation
-        const BASE_VALUE = 0.001           // Starting value for first column
-        const COLUMN_SCALE_FACTOR = 0.5    // Multiplier to differentiate columns
-        const RANGE_SCALE_FACTOR = 0.1     // Proportion of range to use for variation
-        
-        // Generate values for each column
+        const BASE_VALUE = 0.001
+        const COLUMN_SCALE_FACTOR = 0.5
+        const RANGE_SCALE_FACTOR = 0.1
         for (let colIdx = 0; colIdx < numDataColumns; colIdx++) {
-          // Use different scaling for each column to create variety
           const colValue = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
             ? BASE_VALUE * (1 + colIdx * COLUMN_SCALE_FACTOR) + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * RANGE_SCALE_FACTOR
             : BASE_VALUE * (1 + i + colIdx * COLUMN_SCALE_FACTOR)
           row.push(colValue)
         }
       }
-      
-      sheet.addRow(row)
+
+      dataRows.push(row)
     }
+
+    sheets.push({ name: `input_${tableId}`, headers, metadataRows, dataRows })
+  }
+
+  return sheets
+}
+
+/**
+ * Add table sheets with sample data (extracted from model definitions)
+ */
+function addTableSheets(workbook, modelObj) {
+  for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
+    const sheet = workbook.addWorksheet(name)
+    sheet.addRow(headers)
+    for (const row of metadataRows) sheet.addRow(row)
+    for (const row of dataRows) sheet.addRow(row)
   }
 }
 
@@ -546,12 +544,9 @@ function determineSampleRowCount(tableDef) {
  */
 function addInputConfigSheet(workbook) {
   const sheet = workbook.addWorksheet('input_config')
-  
-  // Add headers
-  sheet.addRow(['parameter', 'value', 'description'])
-  
-  // Add cohort value
-  sheet.addRow(['cohort', 1, 'Cohort identifier for calculations'])
+  const { headers, rows } = buildInputConfigData()
+  sheet.addRow(headers)
+  for (const row of rows) sheet.addRow(row)
 }
 
 /**
@@ -1396,6 +1391,95 @@ function topologicalSort(incoming, variableNames) {
   }
 
   return sorted
+}
+
+// ─── HTML preview ──────────────────────────────────────────────────────────
+
+/**
+ * Escapes HTML special characters to prevent XSS.
+ */
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * Renders a single sheet as an HTML <details>/<table> block.
+ */
+function renderSheetAsHtml(name, headers, rows) {
+  const headerHtml = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')
+  const rowsHtml = rows.map(row =>
+    `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`
+  ).join('')
+  return `<details class="preview-sheet" open>
+  <summary class="preview-sheet-name">${escapeHtml(name)}</summary>
+  <div class="preview-table-wrapper">
+    <table class="preview-table">
+      <thead><tr>${headerHtml}</tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  </div>
+</details>`
+}
+
+/**
+ * Renders a model as HTML tables for in-browser preview.
+ * Reuses the same data-building functions as the Excel renderer
+ * (buildVariableMap, buildInputConfigData, buildTableSheetsData)
+ * so the two renderers stay in sync without duplicating logic.
+ *
+ * @param {Object} modelObj      - The model object (from getObjectFromXML)
+ * @param {Object} modelFeatures - The model features (from validateModelCore)
+ * @returns {string} HTML string containing all preview tables
+ */
+export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
+  if (!modelObj?.model) throw new Error("Invalid model object")
+  if (!modelFeatures?.variables) throw new Error("Invalid model features")
+
+  const { resolvedVarsWithArguments } = modelFeatures
+  const variableMap = buildVariableMap(modelObj)
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
+
+  const parts = []
+
+  // constant sheet
+  if (categorized.constants.length > 0) {
+    const rows = categorized.constants
+      .filter(varName => variableMap.has(varName))
+      .map(varName => {
+        const varXml = variableMap.get(varName)
+        return [varXml.id, getDefinitionText(varXml)]
+      })
+    parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows))
+  }
+
+  // input_config sheet — reuse buildInputConfigData
+  const cfg = buildInputConfigData()
+  parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows))
+
+  // input_{tableId} sheets — reuse buildTableSheetsData
+  for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
+    parts.push(renderSheetAsHtml(name, headers, [...metadataRows, ...dataRows]))
+  }
+
+  // calc_cohort sheet
+  if (categorized.cohortOnly.length > 0) {
+    const headers = ['cohort', ...categorized.cohortOnly.map(v => variableMap.get(v)?.id ?? v)]
+    const row = ['1', ...categorized.cohortOnly.map(v => getDefinitionText(variableMap.get(v)) || getDefinitionType(variableMap.get(v)))]
+    parts.push(renderSheetAsHtml('calc_cohort', headers, [row]))
+  }
+
+  // calc_cohort_step sheet
+  if (categorized.cohortStep.length > 0) {
+    const headers = ['step', ...categorized.cohortStep.map(v => variableMap.get(v)?.id ?? v)]
+    const row = ['(expression)', ...categorized.cohortStep.map(v => getDefinitionText(variableMap.get(v)) || getDefinitionType(variableMap.get(v)))]
+    parts.push(renderSheetAsHtml('calc_cohort_step', headers, [row]))
+  }
+
+  return `<div class="spreadsheet-preview">${parts.join('\n')}</div>`
 }
 
 // Export formula generation functions for testing
