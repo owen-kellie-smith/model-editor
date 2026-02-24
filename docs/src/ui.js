@@ -45,5 +45,7 @@ export const ui = {
   cancelEditBtn: document.getElementById("cancelEditBtn"),
   sortVariablesAlpha: document.getElementById("sortVariablesAlpha"),
   sortGraphVariablesAlpha: document.getElementById("sortGraphVariablesAlpha"),
+  spreadsheetPreview: document.getElementById("spreadsheetPreview"),
+  spreadsheetPreviewDetails: document.getElementById("spreadsheetPreviewDetails"),
 };
 
