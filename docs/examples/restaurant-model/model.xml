@@ -8,7 +8,7 @@
 
   <indexSets>
 
-    <indexSet id="month">
+    <indexSet id="month" role="temporal" min="0" max="12">
       <description>Projection month</description>
       <dataType>integer</dataType>
     </indexSet>

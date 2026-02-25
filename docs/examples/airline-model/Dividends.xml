@@ -3,7 +3,7 @@
 <model id="airline-annual-dividends-floor">
 
   <indexSets>
-    <indexSet id="month">
+    <indexSet id="month" role="temporal" min="0" max="25">
       <dataType>integer</dataType>
     </indexSet>
   </indexSets>

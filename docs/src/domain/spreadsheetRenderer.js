@@ -1539,19 +1539,19 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
     // Replace variable calls, longest-first to avoid partial-name clobbering
     for (const varId of allVarIds) {
       const esc = escapeRegex(varId)
-      // varname(cohort, step - N)
+      // varname(cohort, <temporal> - N)
       e = e.replace(
-        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*${idxPat}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
         (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) - +n))
       )
-      // varname(cohort, step + N)
+      // varname(cohort, <temporal> + N)
       e = e.replace(
-        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi'),
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*${idxPat}\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi'),
         (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) + +n))
       )
-      // varname(cohort, step)
+      // varname(cohort, <temporal>)
       e = e.replace(
-        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi'),
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*${idxPat}\\s*\\)`, 'gi'),
         () => numStr(evalVar(varId, cohort, step))
       )
       // varname(cohort)
@@ -1559,14 +1559,14 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
         new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*\\)`, 'gi'),
         () => numStr(evalVar(varId, cohort, null))
       )
-      // varname(step - N)
+      // varname(<temporal> - N)
       e = e.replace(
-        new RegExp(`\\b${esc}\\s*\\(\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
+        new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
         (_, n) => numStr(evalVar(varId, null, (step ?? 0) - +n))
       )
-      // varname(step)
+      // varname(<temporal>)
       e = e.replace(
-        new RegExp(`\\b${esc}\\s*\\(\\s*step\\s*\\)`, 'gi'),
+        new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*\\)`, 'gi'),
         () => numStr(evalVar(varId, null, step))
       )
       // bare varname — constant, no arguments
