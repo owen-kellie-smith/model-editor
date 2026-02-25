@@ -23,22 +23,43 @@ function getDefinitionType(varXml) {
 }
 
 /**
- * Extracts the step range from the 'step' indexSet in the model XML.
- * Reads min/max attributes (e.g. <indexSet id="step" min="0" max="11">).
- * Defaults to { min: 0, max: 11 } (12 steps) when not specified.
- * @param {Object} modelObj
- * @returns {{ min: number, max: number }}
+ * Returns the temporal indexSet id for the model.
+ * Prefers <indexSet role="temporal"> (case-insensitive). Falls back to legacy id="step".
+ * If still not found, picks the first integer indexSet.
  */
-function getStepRange(modelObj) {
+function getTemporalIndexSetId(modelObj) {
   const indexSets = asArray(modelObj?.model?.indexSets?.indexSet)
-  for (const is of indexSets) {
-    if (is.id?.toLowerCase() === 'step') {
+  const temporal = indexSets.find(is => String(is?.role ?? "").toLowerCase() === "temporal")
+  if (temporal?.id) return temporal.id
+  const legacy = indexSets.find(is => String(is?.id ?? "").toLowerCase() === "step")
+  if (legacy?.id) return legacy.id
+  const firstInt = indexSets.find(is => String(is?.dataType ?? "").toLowerCase() === "integer")
+  return firstInt?.id || null
+}
+
+/**
+ * Extracts the min/max range for the provided temporal index set.
+ * Defaults to { min: 0, max: 11 } when unspecified.
+ */
+function getTemporalRange(modelObj, temporalIndexSetId) {
+  const id = temporalIndexSetId ? String(temporalIndexSetId).toLowerCase() : null
+  const indexSets = asArray(modelObj?.model?.indexSets?.indexSet)
+  if (id) {
+    const is = indexSets.find(x => String(x?.id ?? "").toLowerCase() === id)
+    if (is) {
       const min = parseInt(is.min, 10)
       const max = parseInt(is.max, 10)
       if (!isNaN(min) && !isNaN(max)) return { min, max }
     }
   }
   return { min: 0, max: 11 }
+}
+
+/**
+ * Backward-compatible wrapper: use the model's temporal indexSet range.
+ */
+function getStepRange(modelObj, temporalIndexSetId) {
+  return getTemporalRange(modelObj, temporalIndexSetId ?? getTemporalIndexSetId(modelObj))
 }
 
 /**
@@ -103,8 +124,11 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   // Get variable details from model
   const variableMap = buildVariableMap(modelObj)
   
+  // Determine temporal index set (role="temporal" preferred; falls back to legacy "step")
+  const temporalIndexSetId = getTemporalIndexSetId(modelObj)
+
   // Categorize variables by their argument structure
-  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalIndexSetId)
   
   // Create workbook
   const workbook = new ExcelJS.Workbook()
@@ -175,7 +199,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Add calculation sheet for cohort-step variables (single cohort, multiple steps)
   if (categorized.cohortStep.length > 0) {
-    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj)
+    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj, temporalIndexSetId)
   }
   
   // Generate Excel file
@@ -190,15 +214,13 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
 /**
  * Categorize variables by their argument structure
  */
-function categorizeVariables(variableMap, resolvedVarsWithArguments) {
+function categorizeVariables(variableMap, resolvedVarsWithArguments, temporalIndexSetId) {
   const constants = []
   const cohortOnly = []
   const cohortStep = []
   const other = []
-  
-  // Common temporal/time-based argument names (step, month, year, period, time, etc.)
-  const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
-  
+  // Temporal argument name comes from the model (indexSet role="temporal"), not hard-coded lists
+  const temporalArg = String(temporalIndexSetId ?? 'step').toUpperCase()
   for (const [varName, varXml] of variableMap) {
     const resolved = resolvedVarsWithArguments.get(varName)
     const args = resolved && resolved.domain ? resolved.domain : []
@@ -214,10 +236,10 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
       // Note: Variables with no arguments and no definition type are not categorized
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
-    } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
+    } else if (args.length === 1 && args[0].toUpperCase() === temporalArg) {
       // Single temporal argument variables should be included in the cohort-step sheet
       cohortStep.push(varName)
-    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && temporalArgs.includes(args[1].toUpperCase())) {
+    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && args[1].toUpperCase() === temporalArg) {
       // Cohort + temporal argument variables
       cohortStep.push(varName)
     } else {
@@ -927,19 +949,20 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
 /**
  * Add cohort-step calculation sheet
  */
-function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars, modelObj) {
+function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars, modelObj, temporalIndexSetId) {
   const sheet = workbook.addWorksheet('calc_cohort_step')
   
   // Build header row
-  const headers = ['step']
+  const temporalId = temporalIndexSetId ?? 'step'
+  const headers = [temporalId]
   const colIndexMap = new Map() // Map variable name to column index
   
-  let colIdx = 1 // Start at column B (A is step)
+  let colIdx = 1 // Start at column B (A is temporal index)
   for (const varName of cohortStepVars) {
     const varXml = variableMap.get(varName)
     const varId = varXml ? varXml.id : varName
     headers.push(varId)
-    colIndexMap.set(varName, colIdx + 1) // +1 because A is step
+    colIndexMap.set(varName, colIdx + 1) // +1 because A is temporal index
     colIdx++
   }
   sheet.addRow(headers)
@@ -954,7 +977,7 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
   }
   
   // Determine step range from model (falls back to 0..11 = 12 steps)
-  const { min: stepMin, max: stepMax } = getStepRange(modelObj)
+  const { min: stepMin, max: stepMax } = getStepRange(modelObj, temporalId)
   const stepCount = stepMax - stepMin + 1
 
   // Add rows for steps
@@ -977,7 +1000,7 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
       const colLetter = getColumnLetter(colIndexMap.get(varName))
       
       // Generate appropriate formula based on variable type
-      let formula = generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap)
+      let formula = generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId)
       
       if (formula) {
         row.push({ formula })
@@ -993,19 +1016,19 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
 /**
  * Generate Excel formula for a variable based on its definition
  */
-function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap) {
+function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId) {
   const defType = getDefinitionType(varXml)
   const expression = getDefinitionText(varXml)
   
   // Handle based on definition type, reading from actual model
   if (defType === 'expression') {
-    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
   } else if (defType === 'table') {
     return generateTableLookupFormula(varXml, currentRow)
   } else if (defType === 'tableLookup') {
     return generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, cohortStepVars)
   } else if (defType === 'piecewise') {
-    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap)
+    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId)
   } else if (defType === 'constant') {
     // Constants should be in their own sheet, referenced by name
     const constantSheetName = 'constant'
@@ -1096,7 +1119,7 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
 /**
  * Generate Excel formula for piecewise conditional logic
  */
-function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap) {
+function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId) {
   const definition = varXml.definition
   if (!definition || !definition.case) {
     return null
@@ -1116,33 +1139,34 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
   const valueText = firstCase.value?.['#text'] || firstCase.value || ''
   
   // Check if this is a step = 0 condition (or other temporal index = 0, e.g. month = 0)
-  if (/\b(step|month|year|period|time|quarter|week|day)\b/i.test(whenText) && whenText.includes('0')) {
+  const tId = String(temporalId ?? 'step')
+  if (new RegExp(`\\b${escapeRegex(tId)}\\b`, 'i').test(whenText) && whenText.includes('0')) {
     // Handle "if step=0 then value else otherValue" pattern
     if (step === 0) {
       // Evaluate the value for step 0
-      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
       return evaluatedValue || valueText
     } else {
       // Use the else case or second case
       if (cases.length > 1) {
         const secondCase = cases[1]
         const elseValue = secondCase.value?.['#text'] || secondCase.value || ''
-        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
       }
       return null
     }
   }
   
   // General IF formula generation
-  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
-  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
+  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
   
   if (condition && thenValue) {
     let elseFormula = '0'
     if (cases.length > 1) {
       const elseCase = cases[1]
       const elseValueText = elseCase.value?.['#text'] || elseCase.value || ''
-      elseFormula = convertExpressionToFormula(elseValueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap) || '0'
+      elseFormula = convertExpressionToFormula(elseValueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId) || '0'
     }
     return `IF(${condition},${thenValue},${elseFormula})`
   }
@@ -1153,12 +1177,15 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
 /**
  * Convert a model expression to an Excel formula
  */
-function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap) {
+function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId) {
   if (!expression || typeof expression !== 'string') {
     return null
   }
   
   let formula = expression.trim()
+  const tId = String(temporalId ?? 'step')
+  const tEsc = escapeRegex(tId)
+    const idxPat = (tId.toLowerCase() === 'step') ? tEsc : `(?:${tEsc}|step)`
   
   // Replace variable references with cell references
   // We need to identify variable names and replace them with appropriate cell references
@@ -1215,7 +1242,7 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       
       // Pattern 1: Handle function calls with step parameter shifts
       // Example: variable(cohort, step - 1) or variable(cohort, step-2)
-      const patternWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      const patternWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*${tEsc}\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
       formula = formula.replace(patternWithOffset, (match, offset) => {
         // offset is the number after "step - "
         const targetRow = currentRow - parseInt(offset, 10)
@@ -1230,7 +1257,7 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
 
       // Pattern 1b: Handle single temporal-arg variables with offset
       // Example: outstanding_debt(month - 1) -> O2, variable(step - 2) -> K{row-2}
-      const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*(?:step|month|year|period|time|quarter|week|day)\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
       formula = formula.replace(patternSingleArgWithOffset, (match, offset) => {
         const targetRow = currentRow - parseInt(offset, 10)
         if (targetRow < 2) {
@@ -1250,12 +1277,12 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
 
       // Pattern 2: Handle step-only variables
       // Example: discount_factor(step) -> K2
-      const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
+      const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*\\)`, 'gi')
       formula = formula.replace(patternStepOnly, `${colLetter}${currentRow}`)
       
       // Pattern 3: Handle cohort-step variables
       // Example: cashflow(cohort, step) -> I2
-      const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi')
+      const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*${tEsc}\\s*\\)`, 'gi')
       formula = formula.replace(patternCohortStep, `${colLetter}${currentRow}`)
       
       // Pattern 3b: Handle single-argument variables with any named index argument
@@ -1298,12 +1325,14 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
     }
   }
   
-  // Handle "step" reference (column A in calc_cohort_step sheet)
-  formula = formula.replace(/\bstep\b/gi, `A${currentRow}`)
-  
-  // Handle other temporal index references (month, year, period, etc.) that also map to column A
+  // Handle temporal index reference (column A in calc_cohort_step sheet)
   // Negative lookahead prevents replacing Excel built-in functions like MONTH(), YEAR(), DAY(), TIME()
-  formula = formula.replace(/\b(month|year|period|time|quarter|week|day)\b(?!\s*\()/gi, `A${currentRow}`)
+  formula = formula.replace(new RegExp(`\\b${tEsc}\\b(?!\\s*\\()`, 'gi'), `A${currentRow}`)
+
+  // Backward-compat: if the model's temporal index isn't named "step" but formulas still contain step
+  if (tId.toLowerCase() !== 'step') {
+    formula = formula.replace(/\bstep\b(?!\s*\()/gi, `A${currentRow}`)
+  }
   
   return formula || null
 }
@@ -1318,6 +1347,9 @@ function convertConstantExpressionToFormula(expression, currentRow, constantRowM
   }
   
   let formula = expression.trim()
+  const tId = String(temporalId ?? 'step')
+  const tEsc = escapeRegex(tId)
+    const idxPat = (tId.toLowerCase() === 'step') ? tEsc : `(?:${tEsc}|step)`
   
   // Handle function calls like floor(), max(), min()
   formula = formula.replace(/\bfloor\s*\(/gi, 'INT(')
@@ -1425,6 +1457,10 @@ function topologicalSort(incoming, variableNames) {
  * @returns {{ cohortHeaders, cohortRows, stepHeaders, stepRows }}
  */
 function evaluateModelForPreview(modelObj, modelFeatures) {
+  // Determine which indexSet acts as the temporal axis for preview.
+  // Prefer an explicit role=\"temporal\" marker, then fall back to legacy \"step\".
+  const temporalId = getTemporalIndexSetId(modelObj) ?? 'step'
+
   // Build lookup: tableId → { headers: string[], rows: any[][] }
   const tableData = {}
   for (const { name, headers, dataRows } of buildTableSheetsData(modelObj)) {
@@ -1433,8 +1469,8 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
 
   const variableMap = buildVariableMap(modelObj)
   const { resolvedVarsWithArguments } = modelFeatures
-  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
-  const { min: stepMin, max: stepMax } = getStepRange(modelObj)
+    const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
+  const { min: stepMin, max: stepMax } = getStepRange(modelObj, temporalId)
   const cohortId = 1  // matches input_config cohort value
 
   // Variable ids sorted longest-first to prevent shorter names from
@@ -1494,6 +1530,9 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
    * malformed input is silently discarded and returns null.
    */
   function evalExpr(expr, cohort, step) {
+    const tId = String(temporalId ?? 'step')
+    const tEsc = escapeRegex(tId)
+    const idxPat = (tId.toLowerCase() === 'step') ? tEsc : `(?:${tEsc}|step)`
     if (!expr || typeof expr !== 'string') return null
     let e = expr.trim()
 
@@ -1539,7 +1578,12 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
 
     // Substitute the step index itself (after all variable names are gone)
     if (step !== null && step !== undefined)
+      e = e.replace(new RegExp(`\\b${tEsc}\\b`, 'gi'), String(step))
+
+    // Backward-compat: if formulas still contain "step"
+    if (tId.toLowerCase() !== 'step') {
       e = e.replace(/\bstep\b/gi, String(step))
+    }
 
     // Map model-language functions → JS Math equivalents
     e = e
@@ -1680,7 +1724,7 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
 
   // ── Build calc_cohort_step data ────────────────────────────────────────────
   const stepHeaders = [
-    'step',
+    temporalId,
     ...categorized.cohortStep.map(n => variableMap.get(n)?.id ?? n)
   ]
   const stepRows = []
@@ -1741,9 +1785,13 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
   if (!modelObj?.model) throw new Error("Invalid model object")
   if (!modelFeatures?.variables) throw new Error("Invalid model features")
 
+  // Determine which indexSet acts as the temporal axis for preview.
+  // Prefer an explicit role="temporal" marker, then fall back to legacy "step".
+  const temporalId = getTemporalIndexSetId(modelObj) ?? 'step'
+
   const { resolvedVarsWithArguments } = modelFeatures
   const variableMap = buildVariableMap(modelObj)
-  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
 
   const parts = []
 
