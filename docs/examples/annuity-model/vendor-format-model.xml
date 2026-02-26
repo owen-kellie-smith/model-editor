@@ -48,7 +48,7 @@
     <table id="cohort_data">
       <rowIndex ref="cohort"/>
       <columns>
-        <column id="annual_annuity_amount" dataType="real" unit="GBP_per_year" min="10000" max="50000"/>
+        <column id="annual_annuity_amount" dataType="currency" unit="GBP_per_year" min="10000" max="50000"/>
         <column id="annuity_start_age" dataType="real" unit="years" min="55" max="75"/>
         <column id="current_age" dataType="real" unit="years" min="30" max="80"/>
         <column id="mortality_table" dataType="string"/>
@@ -88,7 +88,7 @@
       <arguments>
         <arg indexSet="cohort"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>GBP_per_year</unit>
       <definition type="table">
         <table ref="cohort_data"/>
@@ -225,7 +225,7 @@
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>integer</dataType>
     
       <definition type="expression">
         payable_at_start_of_step(cohort, step) ? 1 : 0
@@ -237,7 +237,7 @@
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>GBP</unit>
       <definition type="expression">
         annual_annuity_amount(cohort) 

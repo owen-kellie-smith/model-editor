@@ -62,7 +62,7 @@
     </variable>
 
     <variable id="avg_meal_price">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         45
@@ -70,7 +70,7 @@
     </variable>
 
     <variable id="avg_beverage_price">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         12
@@ -157,7 +157,7 @@
     </variable>
 
     <variable id="food_revenue_per_customer">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="expression">
         avg_meal_price
@@ -165,7 +165,7 @@
     </variable>
 
     <variable id="beverage_revenue_per_customer">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="expression">
         avg_beverage_price * beverage_attach_rate
@@ -173,7 +173,7 @@
     </variable>
 
     <variable id="total_revenue_per_customer">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="expression">
         food_revenue_per_customer + beverage_revenue_per_customer
@@ -184,7 +184,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         (customers_weekday * weekdays_per_month + customers_weekend * weekend_days_per_month) * food_revenue_per_customer
@@ -195,7 +195,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         (customers_weekday * weekdays_per_month + customers_weekend * weekend_days_per_month) * beverage_revenue_per_customer
@@ -206,7 +206,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_food_revenue(month) + monthly_beverage_revenue(month)
@@ -232,7 +232,7 @@
     </variable>
 
     <variable id="monthly_labor_cost">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         35000
@@ -240,7 +240,7 @@
     </variable>
 
     <variable id="monthly_rent">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         12000
@@ -248,7 +248,7 @@
     </variable>
 
     <variable id="monthly_utilities">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         3500
@@ -256,7 +256,7 @@
     </variable>
 
     <variable id="monthly_marketing">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         2000
@@ -264,7 +264,7 @@
     </variable>
 
     <variable id="monthly_insurance">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         1500
@@ -275,7 +275,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_food_revenue(month) * food_cost_percent
@@ -286,7 +286,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_beverage_revenue(month) * beverage_cost_percent
@@ -294,7 +294,7 @@
     </variable>
 
     <variable id="monthly_fixed_costs">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_labor_cost + monthly_rent + monthly_utilities + monthly_marketing + monthly_insurance
@@ -305,7 +305,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_food_cost(month) + monthly_beverage_cost(month) + monthly_fixed_costs
@@ -318,7 +318,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_total_revenue(month) - monthly_food_cost(month) - monthly_beverage_cost(month)
@@ -329,7 +329,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_total_revenue(month) - monthly_total_costs(month)

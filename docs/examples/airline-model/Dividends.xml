@@ -55,6 +55,7 @@
 
     <variable id="total_monthly_flights">
       <arguments><arg indexSet="month"/></arguments>
+      <dataType>real</dataType>
       <definition type="expression">
         aircraft_count * flights_per_aircraft_per_month * seasonality_index(month)
       </definition>
@@ -62,6 +63,7 @@
 
     <variable id="monthly_revenue">
       <arguments><arg indexSet="month"/></arguments>
+      <dataType>currency</dataType>
       <definition type="expression">
         total_monthly_flights(month)
         * seats_per_aircraft
@@ -71,18 +73,22 @@
     </variable>
 
     <variable id="fuel_cost_per_flight">
+      <dataType>currency</dataType>
       <definition type="constant">7500</definition>
     </variable>
 
     <variable id="crew_cost_per_flight">
+      <dataType>currency</dataType>
       <definition type="constant">2200</definition>
     </variable>
 
     <variable id="maintenance_cost_per_flight">
+      <dataType>currency</dataType>
       <definition type="constant">1700</definition>
     </variable>
 
     <variable id="variable_costs">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         total_monthly_flights(month)
@@ -91,14 +97,17 @@
     </variable>
 
     <variable id="lease_cost_per_aircraft">
+      <dataType>currency</dataType>
       <definition type="constant">420000</definition>
     </variable>
 
     <variable id="corporate_overhead">
+      <dataType>currency</dataType>
       <definition type="constant">900000</definition>
     </variable>
 
     <variable id="fixed_costs">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         aircraft_count * lease_cost_per_aircraft + corporate_overhead
@@ -106,6 +115,7 @@
     </variable>
 
     <variable id="operating_profit">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         monthly_revenue(month)
@@ -119,14 +129,17 @@
     <!-- ========================= -->
 
     <variable id="initial_cash">
+      <dataType>currency</dataType>
       <definition type="constant">8000000</definition>
     </variable>
 
     <variable id="initial_debt">
+      <dataType>currency</dataType>
       <definition type="constant">15000000</definition>
     </variable>
 
     <variable id="min_cash_reserve">
+      <dataType>currency</dataType>
       <definition type="constant">5000000</definition>
     </variable>
 
@@ -151,6 +164,7 @@
     </variable>
 
     <variable id="cash_bom">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="piecewise">
         <case><when>month = 0</when><value>initial_cash</value></case>
@@ -159,6 +173,7 @@
     </variable>
 
     <variable id="debt_bom">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="piecewise">
         <case><when>month = 0</when><value>initial_debt</value></case>
@@ -167,6 +182,7 @@
     </variable>
 
     <variable id="interest_expense">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         debt_bom(month) * monthly_debt_rate
@@ -174,6 +190,7 @@
     </variable>
 
     <variable id="interest_income">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         cash_bom(month) * monthly_cash_rate
@@ -181,6 +198,7 @@
     </variable>
 
     <variable id="net_income">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         operating_profit(month)
@@ -214,6 +232,7 @@
 
     <!-- Cumulative income -->
     <variable id="cumulative_net_income">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="piecewise">
         <case>
@@ -229,6 +248,7 @@
 
     <!-- Safe trailing 12m income -->
     <variable id="trailing_12m_income">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="piecewise">
         <case>
@@ -243,6 +263,7 @@
     </variable>
 
     <variable id="annual_dividend_pre_cap">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         isDividendMonth(month)
@@ -252,6 +273,7 @@
 
     <!-- Cash flow -->
     <variable id="cash_before_dividends">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         cash_bom(month) + net_income(month)
@@ -259,6 +281,7 @@
     </variable>
 
     <variable id="annual_dividend">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         min(
@@ -269,6 +292,7 @@
     </variable>
 
     <variable id="cash_pre_financing">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         cash_before_dividends(month) - annual_dividend(month)
@@ -276,6 +300,7 @@
     </variable>
 
     <variable id="new_borrowing">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         max(0, min_cash_reserve - cash_pre_financing(month))
@@ -283,14 +308,16 @@
     </variable>
 
     <variable id="cash_after_borrowing">
-      <arguments><arg indexSet="month"/></arguments>
+       <dataType>currency</dataType>
+     <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         cash_pre_financing(month) + new_borrowing(month)
       </definition>
     </variable>
 
     <variable id="debt_repayment">
-      <arguments><arg indexSet="month"/></arguments>
+       <dataType>currency</dataType>
+     <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         min(
           max(0, cash_after_borrowing(month) - min_cash_reserve),
@@ -300,13 +327,15 @@
     </variable>
 
     <variable id="debt_eom">
-      <arguments><arg indexSet="month"/></arguments>
+       <dataType>currency</dataType>
+     <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         debt_bom(month) + new_borrowing(month) - debt_repayment(month)
       </definition>
     </variable>
 
     <variable id="cash_eom">
+      <dataType>currency</dataType>
       <arguments><arg indexSet="month"/></arguments>
       <definition type="expression">
         cash_after_borrowing(month) - debt_repayment(month)

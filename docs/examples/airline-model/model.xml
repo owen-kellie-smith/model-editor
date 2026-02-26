@@ -137,7 +137,7 @@
     </variable>
 
     <variable id="economy_ticket_price">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         250
@@ -145,7 +145,7 @@
     </variable>
 
     <variable id="business_ticket_price">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         800
@@ -153,7 +153,7 @@
     </variable>
 
     <variable id="first_ticket_price">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         1500
@@ -237,7 +237,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         economy_passengers_per_flight * economy_ticket_price * total_monthly_flights(month)
@@ -248,7 +248,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         business_passengers_per_flight * business_ticket_price * total_monthly_flights(month)
@@ -259,7 +259,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         first_passengers_per_flight * first_ticket_price * total_monthly_flights(month)
@@ -270,7 +270,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_economy_revenue(month) + monthly_business_revenue(month) + monthly_first_revenue(month)
@@ -280,7 +280,7 @@
     <!-- Operating Costs -->
 
     <variable id="fuel_cost_per_mile">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         2.5
@@ -288,7 +288,7 @@
     </variable>
 
     <variable id="crew_cost_per_flight">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         1200
@@ -296,7 +296,7 @@
     </variable>
 
     <variable id="maintenance_cost_per_flight">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         800
@@ -304,7 +304,7 @@
     </variable>
 
     <variable id="landing_fees_per_flight">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         500
@@ -312,7 +312,7 @@
     </variable>
 
     <variable id="monthly_lease_cost">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         400000
@@ -320,7 +320,7 @@
     </variable>
 
     <variable id="monthly_admin_cost">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         150000
@@ -328,7 +328,7 @@
     </variable>
 
     <variable id="monthly_marketing_cost">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="constant">
         50000
@@ -346,7 +346,7 @@
     </variable>
 
     <variable id="initial_debt">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="constant">
         5000000
@@ -357,7 +357,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         fuel_cost_per_mile * avg_flight_distance * total_monthly_flights(month)
@@ -368,7 +368,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         crew_cost_per_flight * total_monthly_flights(month)
@@ -379,7 +379,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         maintenance_cost_per_flight * total_monthly_flights(month)
@@ -390,7 +390,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         landing_fees_per_flight * total_monthly_flights(month)
@@ -401,7 +401,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_fuel_cost(month) + monthly_crew_cost(month) + monthly_maintenance_cost(month) + monthly_landing_fees(month)
@@ -409,7 +409,7 @@
     </variable>
 
     <variable id="monthly_fixed_costs">
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_lease_cost + monthly_admin_cost + monthly_marketing_cost
@@ -420,7 +420,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_variable_costs(month) + monthly_fixed_costs
@@ -433,7 +433,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_total_revenue(month) - monthly_total_costs(month)
@@ -465,7 +465,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD</unit>
       <definition type="piecewise">
         <case>
@@ -483,7 +483,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         outstanding_debt(month) * monthly_interest_rate
@@ -494,7 +494,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
         monthly_net_profit(month) - monthly_interest_cost(month)
@@ -505,7 +505,7 @@
       <arguments>
         <arg indexSet="month"/>
       </arguments>
-      <dataType>real</dataType>
+      <dataType>currency</dataType>
       <unit>percent</unit>
       <definition type="expression">
         monthly_net_profit_after_interest(month) / monthly_total_revenue(month)
