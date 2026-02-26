@@ -103,7 +103,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   if (!modelObj || !modelObj.model) {
     throw new Error("Invalid model object")
   }
-  
+
   if (!modelFeatures || !modelFeatures.variables) {
     throw new Error("Invalid model features")
   }
@@ -126,9 +126,10 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Determine temporal index set (role="temporal" preferred; falls back to legacy "step")
   const temporalIndexSetId = getTemporalIndexSetId(modelObj)
+  const temporalId = temporalIndexSetId ?? 'step';
 
   // Categorize variables by their argument structure
-  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalIndexSetId)
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
   
   // Create workbook
   const workbook = new ExcelJS.Workbook()
@@ -171,7 +172,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
         } else if (defType === "expression") {
           // For expression variables, convert to Excel formula
           const currentRow = constantRowMap.get(varName)
-          const formula = convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap)
+          const formula = convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap, temporalId)
           if (formula) {
             sheet.addRow([varXml.id, { formula }])
           } else {
@@ -199,7 +200,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Add calculation sheet for cohort-step variables (single cohort, multiple steps)
   if (categorized.cohortStep.length > 0) {
-    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj, temporalIndexSetId)
+    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj, temporalId)
   }
   
   // Generate Excel file
@@ -1341,7 +1342,7 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
  * Convert a constant expression to an Excel formula for the constant sheet
  * This handles expressions that reference other constant variables
  */
-function convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap) {
+function convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap, temporalId) {
   if (!expression || typeof expression !== 'string') {
     return null
   }
