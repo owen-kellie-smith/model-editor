@@ -4,4 +4,5 @@ export const exampleFiles = [
   { category: "model", path: "docs/examples/airline-model/model.xml" },
   { category: "model", path: "docs/examples/airline-model/Dividends.xml" },
   { category: "model", path: "docs/examples/restaurant-model/model.xml" },
+  { category: "model", path: "docs/examples/restaurant-model/seasonal.xml" },
 ];
