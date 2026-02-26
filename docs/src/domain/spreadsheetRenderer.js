@@ -81,6 +81,47 @@ function buildVariableMap(modelObj) {
   return variableMap
 }
 
+function buildDataTypeMap(variableMap) {
+  const m = new Map()
+  if (!variableMap) return m
+
+  for (const [id, varXml] of variableMap.entries()) {
+    let dt = ''
+
+    const raw = varXml?.dataType ?? varXml?.datatype
+
+    if (typeof raw === 'string') {
+      dt = raw
+    } else if (raw && typeof raw === 'object') {
+      // <-- THIS is what your DOM parser produces
+      dt = raw['#text'] ?? ''
+    }
+
+    dt = String(dt).trim().toLowerCase()
+
+    if (dt) {
+      m.set(id, dt)
+    }
+  }
+
+  return m
+}
+
+/**
+ * Convert a model XML dataType into a display "kind" used by the renderer.
+ */
+function kindFromDataType(dataType) {
+  const dt = (dataType ?? '').toString().trim().toLowerCase()
+  if (!dt) return 'text'
+  if (dt === 'bool' || dt === 'boolean') return 'bool'
+  if (dt === 'int' || dt === 'integer' || dt === 'long' || dt === 'short') return 'int'
+  if (dt === 'money' || dt === 'currency') return 'money'
+  // default numeric type
+  if (dt === 'real' || dt === 'double' || dt === 'float' || dt === 'decimal' || dt === 'number') return 'dec4'
+  return 'text'
+}
+
+
 /**
  * Returns the static data for the input_config sheet.
  * Shared by both the Excel renderer and the HTML preview renderer.
@@ -123,6 +164,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Get variable details from model
   const variableMap = buildVariableMap(modelObj)
+  const dataTypeById = buildDataTypeMap(variableMap)
   
   // Determine temporal index set (role="temporal" preferred; falls back to legacy "step")
   const temporalIndexSetId = getTemporalIndexSetId(modelObj)
@@ -188,19 +230,19 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   }
   
   // Add input_config sheet for cohort configuration
-  addInputConfigSheet(workbook)
+  addInputConfigSheet(workbook, dataTypeById)
   
   // Add table sheets with sample data
-  addTableSheets(workbook, modelObj)
+  addTableSheets(workbook, modelObj, dataTypeById)
   
   // Add calculation sheet for cohort variables (single cohort, no steps)
   if (categorized.cohortOnly.length > 0) {
-    addCohortSheet(workbook, categorized.cohortOnly, variableMap)
+    addCohortSheet(workbook, categorized.cohortOnly, variableMap, dataTypeById)
   }
   
   // Add calculation sheet for cohort-step variables (single cohort, multiple steps)
   if (categorized.cohortStep.length > 0) {
-    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj, temporalId)
+    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj, temporalId, dataTypeById)
   }
   
   // Generate Excel file
@@ -547,12 +589,14 @@ function buildTableSheetsData(modelObj) {
 /**
  * Add table sheets with sample data (extracted from model definitions)
  */
-function addTableSheets(workbook, modelObj) {
+function addTableSheets(workbook, modelObj, dataTypeById) {
   for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
     const sheet = workbook.addWorksheet(name)
     sheet.addRow(headers)
+    applyExcelColumnFormats(sheet, headers, dataTypeById)
     for (const row of metadataRows) sheet.addRow(row)
     for (const row of dataRows) sheet.addRow(row)
+    autoFitColumns(sheet);
   }
 }
 
@@ -581,14 +625,62 @@ function determineSampleRowCount(tableDef) {
   return 5
 }
 
+
+/**
+ * Apply consistent display formatting to Excel sheets.
+ * - Money columns: currency with 2dp
+ * - Integer columns: 0dp
+ * - Decimal/ratio columns: 4dp
+ * - Boolean-ish columns: show Yes/No for 0/1
+ */
+function applyExcelColumnFormats(sheet, headers, dataTypeById, { currencySymbol = '£' } = {}) {
+  if (!sheet || !headers || headers.length === 0) return
+
+  headers.forEach((h, i) => {
+    const key = String(h ?? '')
+    const keyU = key.toUpperCase()
+    const dt = dataTypeById?.get?.(keyU) ?? dataTypeById?.[keyU] ?? dataTypeById?.get?.(key) ?? dataTypeById?.[key]
+    const kind = kindFromDataType(dt)
+
+    const col = sheet.getColumn(i + 1)
+
+    if (kind === 'money') {
+      col.numFmt = `${currencySymbol}#,##0.00`
+      col.alignment = { horizontal: 'right' }
+      return
+    }
+
+    if (kind === 'int') {
+      col.numFmt = '#,##0'
+      col.alignment = { horizontal: 'right' }
+      return
+    }
+
+    if (kind === 'dec4') {
+      col.numFmt = '#,##0.0000'      
+      col.alignment = { horizontal: 'right' }
+      return
+    }
+
+    if (kind === 'bool') {
+      // 0 -> No, 1 -> Yes, other -> blank
+      col.numFmt = '[=1]"Yes";[=0]"No";""'
+      col.alignment = { horizontal: 'center' }
+      return
+    }
+  })
+}
+
 /**
  * Add input_config sheet for cohort configuration
  */
-function addInputConfigSheet(workbook) {
+function addInputConfigSheet(workbook, dataTypeById) {
   const sheet = workbook.addWorksheet('input_config')
   const { headers, rows } = buildInputConfigData()
   sheet.addRow(headers)
+  applyExcelColumnFormats(sheet, headers, dataTypeById)
   for (const row of rows) sheet.addRow(row)
+  autoFitColumns(sheet)
 }
 
 /**
@@ -894,7 +986,7 @@ function addReadmeSheet(workbook, modelObj, modelFeatures) {
 /**
  * Add cohort calculation sheet
  */
-function addCohortSheet(workbook, cohortVars, variableMap) {
+function addCohortSheet(workbook, cohortVars, variableMap, dataTypeById) {
   const sheet = workbook.addWorksheet('calc_cohort')
   
   // Build header row
@@ -910,7 +1002,8 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
     colIdx++
   }
   sheet.addRow(headers)
-  
+    applyExcelColumnFormats(sheet, headers, dataTypeById)
+
   // Add a single cohort row (cohort references input_config sheet)
   const row = [{ formula: 'input_config!B2' }]
   
@@ -945,12 +1038,13 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
   }
   
   sheet.addRow(row)
+  autoFitColumns(sheet);
 }
 
 /**
  * Add cohort-step calculation sheet
  */
-function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars, modelObj, temporalIndexSetId) {
+function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars, modelObj, temporalIndexSetId, dataTypeById) {
   const sheet = workbook.addWorksheet('calc_cohort_step')
   
   // Build header row
@@ -967,7 +1061,8 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
     colIdx++
   }
   sheet.addRow(headers)
-  
+    applyExcelColumnFormats(sheet, headers, dataTypeById)
+
   // Build a map of cohort-only variables to their column letters in calc_cohort sheet
   // Column A contains cohort ID, so cohort-only variables start at column B
   const cohortVarColMap = new Map()
@@ -1012,6 +1107,7 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
     
     sheet.addRow(row)
   }
+  autoFitColumns(sheet);
 }
 
 /**
@@ -1469,6 +1565,7 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
   }
 
   const variableMap = buildVariableMap(modelObj)
+  const dataTypeById = buildDataTypeMap(variableMap)
   const { resolvedVarsWithArguments } = modelFeatures
     const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
   const { min: stepMin, max: stepMax } = getStepRange(modelObj, temporalId)
@@ -1756,11 +1853,90 @@ function escapeHtml(str) {
 /**
  * Renders a single sheet as an HTML <details>/<table> block.
  */
-function renderSheetAsHtml(name, headers, rows) {
+function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'step' } = {}) {
+  // --- Display-layer formatting (keep model precision; format only in preview) ---
+  const locale = 'en-GB'
+  const currency = 'GBP'
+
+  const nfInt = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })
+  const nfDec4 = new Intl.NumberFormat(locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+  const nfMoney0 = new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  const nfMoney2 = new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  const isNumericString = (v) => typeof v === 'string' && /^-?\d+(?:\.\d+)?$/.test(v.trim())
+  const toNumberIfSafe = (v) => (typeof v === 'number' ? v : (isNumericString(v) ? Number(v) : null))
+
+  const headerKey = (h) => String(h ?? '').toLowerCase()
+
+  const getColKind = (h) => {
+    const key = String(h ?? '')
+    const k = headerKey(h)
+    if (!k) return 'text'
+
+    // Prefer explicit XML dataType where possible
+    const keyU = key.toUpperCase()
+    const dt = dataTypeById?.get?.(keyU) ?? dataTypeById?.[keyU] ?? dataTypeById?.get?.(key) ?? dataTypeById?.[key]
+    const kind = kindFromDataType(dt)
+    if (kind !== 'text') return kind
+
+    // Non-variable columns (index-set axes) may not exist in the variable map.
+    // Keep a tiny, structural fallback (NOT heuristic on ids like "revenue"/"cost").
+    if (k === temporalId || k === 'step' || k === 'month') return 'int'
+
+    return 'text'
+  }
+
+  const formatCell = (value, kind) => {
+    if (value == null) return ''
+    if (value === '') return ''
+
+    // Preserve rich objects (ExcelJS formulas sometimes get serialized as objects elsewhere)
+    if (typeof value === 'object') return JSON.stringify(value)
+
+    const n = toNumberIfSafe(value)
+    if (n == null || Number.isNaN(n)) {
+      // booleans sometimes come through as true/false
+      if (kind === 'bool' && typeof value === 'boolean') return value ? 'Yes' : 'No'
+      return String(value)
+    }
+
+    if (kind === 'bool') {
+      // treat 0/1 as No/Yes
+      return n ? 'Yes' : 'No'
+    }
+
+    if (kind === 'int') return nfInt.format(n)
+
+    if (kind === 'money') {
+      // If it looks like it has cents, keep 2dp; otherwise 0dp.
+      const hasCents = Math.abs(n % 1) > 1e-9
+      return (hasCents ? nfMoney2 : nfMoney0).format(n)
+    }
+
+    // decimals: show 4dp (including ratios)
+    // For ratio/decimal columns we *always* show 4dp, even for values like 0, 1, 2.
+    return nfDec4.format(n)
+  }
+
+  const kindByCol = headers.map(getColKind)
+
   const headerHtml = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')
-  const rowsHtml = rows.map(row =>
-    `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`
-  ).join('')
+  const rowsHtml = rows.map(row => {
+    return `<tr>${row.map((cell, i) => {
+      const kind = kindByCol[i] ?? 'text'
+      const formatted = formatCell(cell, kind)
+
+      const alignClass =
+        kind === 'money' || kind === 'int' || kind === 'dec4' ? ' right'
+        : kind === 'bool' ? ' center'
+        : ''
+
+      // keep raw numeric for future sorting/debugging
+      const raw = cell == null ? '' : String(cell)
+      return `<td class="cell${alignClass}" data-raw="${escapeHtml(raw)}">${escapeHtml(formatted)}</td>`
+    }).join('')}</tr>`
+  }).join('')
+
   return `<details class="preview-sheet" open>
   <summary class="preview-sheet-name">${escapeHtml(name)}</summary>
   <div class="preview-table-wrapper">
@@ -1792,6 +1968,7 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
 
   const { resolvedVarsWithArguments } = modelFeatures
   const variableMap = buildVariableMap(modelObj)
+  const dataTypeById = buildDataTypeMap(variableMap)
   const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
 
   const parts = []
@@ -1804,12 +1981,12 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
         const varXml = variableMap.get(varName)
         return [varXml.id, getDefinitionText(varXml)]
       })
-    parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows))
+    parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows, dataTypeById, { temporalId }))
   }
 
   // input_config sheet — reuse buildInputConfigData
   const cfg = buildInputConfigData()
-  parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows))
+  parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows, dataTypeById, { temporalId }))
 
   // input_{tableId} sheets — reuse buildTableSheetsData
   for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
@@ -1821,12 +1998,49 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
     evaluateModelForPreview(modelObj, modelFeatures)
 
   if (cohortRows.length > 0)
-    parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows))
+    parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows, dataTypeById, { temporalId }))
 
   if (stepRows.length > 0)
-    parts.push(renderSheetAsHtml('calc_cohort_step', stepHeaders, stepRows))
+    parts.push(renderSheetAsHtml('calc_cohort_step', stepHeaders, stepRows, dataTypeById, { temporalId }))
 
-  return `<div class="spreadsheet-preview">${parts.join('\n')}</div>`
+  const style = `
+<style>
+  .spreadsheet-preview { font-variant-numeric: tabular-nums; }
+  .preview-sheet { margin: 10px 0; }
+  .preview-sheet-name { cursor: pointer; font-weight: 600; }
+  .preview-table-wrapper { overflow: auto; max-height: 520px; border: 1px solid #e5e7eb; border-radius: 8px; }
+  .preview-table { border-collapse: collapse; width: 100%; }
+  .preview-table th, .preview-table td { border-bottom: 1px solid #eef2f7; padding: 6px 8px; white-space: nowrap; }
+  .preview-table thead th { position: sticky; top: 0; background: #f9fafb; z-index: 1; text-align: left; }
+  .preview-table td.cell.right { text-align: right; }
+  .preview-table td.cell.center { text-align: center; }
+</style>`
+
+return `<div class="spreadsheet-preview">
+${style}
+${parts.join('\n')}
+</div>`
+}
+
+function autoFitColumns(sheet, { minWidth = 8, maxWidth = 60 } = {}) {
+  sheet.columns.forEach(column => {
+    let maxLength = 0
+
+    column.eachCell({ includeEmpty: true }, cell => {
+      const value = cell.value
+      if (value == null) return
+
+      const text =
+        typeof value === 'object' && value.richText
+          ? value.richText.map(t => t.text).join('')
+          : String(value)
+
+      maxLength = Math.max(maxLength, text.length)
+    })
+
+    const adjusted = Math.min(Math.max(maxLength + 2, minWidth), maxWidth)
+    column.width = adjusted
+  })
 }
 
 // Export formula generation functions for testing

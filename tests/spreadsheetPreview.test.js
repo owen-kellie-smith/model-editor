@@ -105,7 +105,8 @@ describe('renderModelAsHTMLPreview', () => {
     const bodyM = html.match(/calc_cohort_step[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)
     const firstRow = bodyM[1].match(/<tr>([\s\S]*?)<\/tr>/)?.[1] || ''
     const cells = firstRow.replace(/<[^>]+>/g, '|').split('|').filter(Boolean)
-    expect(cells[colIdx]).toBe('46')
+    const value = parseFloat(cells[colIdx].replace(/,/g, ''))
+    expect(value).toBeCloseTo(46, 4)
   })
 
   it('annuity calc_cohort shows numeric values, not definition type names', () => {
