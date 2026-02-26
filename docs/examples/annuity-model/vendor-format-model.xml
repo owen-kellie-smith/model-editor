@@ -18,7 +18,7 @@
       <dataType>integer</dataType>
     </indexSet>
 
-    <indexSet id="step" min="0" max="1201" role="temporal">
+    <indexSet id="step" min="0" max="11" role="temporal">
       <description>Projection steps</description>
       <dataType>integer</dataType>
     </indexSet>
