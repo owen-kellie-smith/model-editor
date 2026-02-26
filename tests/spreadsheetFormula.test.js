@@ -426,6 +426,145 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).toBe('O2')
     expect(result).not.toContain('outstanding_debt')
   })
-
-
 })
+
+describe('generatePiecewiseFormula', () => {
+  it('renders piecewise as nested IFs across all cases', () => {
+    const varXml = {
+      id: 'monthly_marketing',
+      definition: {
+        type: 'piecewise',
+        case: [
+          { when: { '#text': 'month = 1' }, value: { '#text': '2000' } },
+          { when: { '#text': 'month = 2' }, value: { '#text': '2200' } },
+          { when: { '#text': 'month = 3' }, value: { '#text': '2600' } },
+          { when: { '#text': 'month = 4' }, value: { '#text': '3000' } },
+          { when: { '#text': 'month = 5' }, value: { '#text': '3200' } },
+          { when: { '#text': 'month = 6' }, value: { '#text': '3000' } },
+          { when: { '#text': 'month >= 7' }, value: { '#text': '2400' } },
+        ],
+      },
+    }
+
+    const currentRow = 36 // makes month map to A36 (matching your screenshot)
+    const temporalId = 'month'
+
+    const formula = generatePiecewiseFormula(
+      varXml,
+      0,
+      currentRow,
+      new Map(),
+      [],
+      [],
+      new Map(),
+      undefined,
+      temporalId
+    )
+
+    expect(formula).toBe(
+      'IF(A36 = 1,2000,' +
+        'IF(A36 = 2,2200,' +
+          'IF(A36 = 3,2600,' +
+            'IF(A36 = 4,3000,' +
+              'IF(A36 = 5,3200,' +
+                'IF(A36 = 6,3000,' +
+                  'IF(A36 >= 7,2400,0)' +
+                ')' +
+              ')' +
+            ')' +
+          ')' +
+        ')' +
+      ')'
+    )
+  })
+
+  it('uses explicit ELSE (blank when) instead of default 0', () => {
+    const varXml = {
+      id: 'pw_else',
+      definition: {
+        type: 'piecewise',
+        case: [
+          { when: { '#text': 'month = 1' }, value: { '#text': '10' } },
+          { when: { '#text': '' }, value: { '#text': '99' } }, // ELSE
+        ],
+      },
+    }
+
+    const formula = generatePiecewiseFormula(
+      varXml,
+      0,
+      2,
+      new Map(),
+      [],
+      [],
+      new Map(),
+      undefined,
+      'month'
+    )
+
+    expect(formula).toBe('IF(A2 = 1,10,99)')
+  })
+
+  it('throws when more than 20 conditional cases', () => {
+    const tooMany = Array.from({ length: 21 }, (_, i) => ({
+      when: { '#text': `month = ${i + 1}` },
+      value: { '#text': `${i + 1}` },
+    }))
+
+    const varXml = {
+      id: 'too_many_cases',
+      definition: { type: 'piecewise', case: tooMany },
+    }
+
+    expect(() =>
+      generatePiecewiseFormula(
+        varXml,
+        0,
+        2,
+        new Map(),
+        [],
+        [],
+        new Map(),
+        undefined,
+        'month'
+      )
+    ).toThrow(
+      /Piecewise definition for variable "too_many_cases" has 21 cases\. Maximum supported for spreadsheet export is 20\./
+    )
+  })
+
+  it('does not count ELSE case toward the 20-case limit', () => {
+    const twenty = Array.from({ length: 20 }, (_, i) => ({
+      when: { '#text': `month = ${i + 1}` },
+      value: { '#text': `${i + 1}` },
+    }))
+
+    const varXml = {
+      id: 'twenty_plus_else',
+      definition: {
+        type: 'piecewise',
+        case: [
+          ...twenty,
+          { when: { '#text': '' }, value: { '#text': '999' } }, // ELSE
+        ],
+      },
+    }
+
+    const formula = generatePiecewiseFormula(
+      varXml,
+      0,
+      2,
+      new Map(),
+      [],
+      [],
+      new Map(),
+      undefined,
+      'month'
+    )
+
+    // If ELSE worked, the final fallback should be 999, not 0
+    expect(formula).toContain(',999)')
+  })
+})
+
+

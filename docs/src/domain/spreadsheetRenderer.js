@@ -1216,61 +1216,96 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
 /**
  * Generate Excel formula for piecewise conditional logic
  */
-function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId) {
-  const definition = varXml.definition
-  if (!definition || !definition.case) {
-    return null
-  }
-  
-  // Get the cases (could be single or array)
-  const cases = Array.isArray(definition.case) ? definition.case : [definition.case]
-  
-  if (cases.length === 0) {
-    return null
-  }
-  
-  // Special handling for step-dependent piecewise (e.g., survival calculations)
-  // If the first case condition references "step" and checks for 0
-  const firstCase = cases[0]
-  const whenText = firstCase.when?.['#text'] || firstCase.when || ''
-  const valueText = firstCase.value?.['#text'] || firstCase.value || ''
-  
-  // Check if this is a step = 0 condition (or other temporal index = 0, e.g. month = 0)
-  const tId = String(temporalId ?? 'step')
-  if (new RegExp(`\\b${escapeRegex(tId)}\\b`, 'i').test(whenText) && whenText.includes('0')) {
-    // Handle "if step=0 then value else otherValue" pattern
-    if (step === 0) {
-      // Evaluate the value for step 0
-      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
-      return evaluatedValue || valueText
-    } else {
-      // Use the else case or second case
-      if (cases.length > 1) {
-        const secondCase = cases[1]
-        const elseValue = secondCase.value?.['#text'] || secondCase.value || ''
-        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
-      }
-      return null
-    }
-  }
-  
-  // General IF formula generation
-  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
-  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
-  
-  if (condition && thenValue) {
-    let elseFormula = '0'
-    if (cases.length > 1) {
-      const elseCase = cases[1]
-      const elseValueText = elseCase.value?.['#text'] || elseCase.value || ''
-      elseFormula = convertExpressionToFormula(elseValueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId) || '0'
-    }
-    return `IF(${condition},${thenValue},${elseFormula})`
-  }
-  
-  return null
-}
+function generatePiecewiseFormula(
+  varXml,
+  step,
+  currentRow,
+  colIndexMap,
+  cohortStepVars,
+  constantVars,
+  variableMap,
+  cohortVarColMap,
+  temporalId
+) {
+  const MAX_NEST = 20
 
+  const definition = varXml.definition
+  if (!definition || !definition.case) return null
+
+  const cases = Array.isArray(definition.case)
+    ? definition.case
+    : [definition.case]
+
+  if (cases.length === 0) return null
+
+  const pairs = []
+  let elseExpr = '0'
+
+  for (const c of cases) {
+    const whenRaw =
+      c.when?.['#text'] ?? (typeof c.when === 'string' ? c.when : '')
+    const valueRaw =
+      c.value?.['#text'] ?? (typeof c.value === 'string' ? c.value : '')
+
+    const whenText = String(whenRaw).trim()
+    const valueText = String(valueRaw).trim()
+
+    const valueFormula =
+      convertExpressionToFormula(
+        valueText,
+        currentRow,
+        colIndexMap,
+        cohortStepVars,
+        constantVars,
+        variableMap,
+        step,
+        cohortVarColMap,
+        temporalId
+      ) ?? valueText
+
+    // If no WHEN → treat as ELSE
+    if (!whenText) {
+      elseExpr = valueFormula || elseExpr
+      continue
+    }
+
+    const condFormula =
+      convertExpressionToFormula(
+        whenText,
+        currentRow,
+        colIndexMap,
+        cohortStepVars,
+        constantVars,
+        variableMap,
+        step,
+        cohortVarColMap,
+        temporalId
+      )
+
+    if (condFormula) {
+      pairs.push([condFormula, valueFormula])
+    }
+  }
+
+  if (pairs.length === 0) return elseExpr || null
+
+  if (pairs.length > MAX_NEST) {
+    throw new Error(
+      `Piecewise definition for variable "${varXml.id}" has ${pairs.length} cases. ` +
+      `Maximum supported for spreadsheet export is ${MAX_NEST}.`
+    )
+  }
+
+  // Build nested IFs from bottom up
+  let formula = elseExpr || '0'
+
+  for (let i = pairs.length - 1; i >= 0; i--) {
+    const [cond, val] = pairs[i]
+    formula = `IF(${cond},${val},${formula})`
+  }
+
+  return formula
+}
 /**
  * Convert a model expression to an Excel formula
  */
@@ -1364,14 +1399,26 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       })
 
       // Pattern 1c: Handle variable with literal integer argument
-      // Example: net_income(0) -> L2, net_income(1) -> L3
-      // row 2 = index 0, row 3 = index 1, etc.
+      // Uses inferred temporalMin so it works for both 0-based and 1-based index sets.
       const patternIntegerArg = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*(\\d+)\\s*\\)`, 'gi')
       formula = formula.replace(patternIntegerArg, (match, intArg) => {
-        const targetRow = 2 + parseInt(intArg, 10)
+        const n = parseInt(intArg, 10)
+
+        // Infer temporal min from the current (step,currentRow) mapping:
+        // currentRow = 2 + (step - min)  =>  min = step - (currentRow - 2)
+        const inferredMin =
+          (typeof step === 'number' && !Number.isNaN(step))
+            ? (step - (currentRow - 2))
+            : 0
+
+        const targetRow = 2 + (n - inferredMin)
+
+        // Clamp to first data row if out of range
+        if (targetRow < 2) return `${colLetter}2`
         return `${colLetter}${targetRow}`
       })
-
+      
+      
       // Pattern 2: Handle step-only variables
       // Example: discount_factor(step) -> K2
       const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*\\)`, 'gi')
@@ -1657,15 +1704,22 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
         new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*\\)`, 'gi'),
         () => numStr(evalVar(varId, cohort, null))
       )
-      // varname(<temporal> - N)
+      // varname(123)  ← add this (numeric literal argument)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, cohort, +n))
+      )
+
+      // varname(<temporal> - N)  ← change cohort null -> cohort
       e = e.replace(
         new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
-        (_, n) => numStr(evalVar(varId, null, (step ?? 0) - +n))
+        (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) - +n))
       )
-      // varname(<temporal>)
+
+      // varname(<temporal>)  ← change cohort null -> cohort
       e = e.replace(
         new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*\\)`, 'gi'),
-        () => numStr(evalVar(varId, null, step))
+        () => numStr(evalVar(varId, cohort, step))
       )
       // bare varname — constant, no arguments
       e = e.replace(
