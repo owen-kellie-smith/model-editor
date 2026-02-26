@@ -224,7 +224,7 @@
           <value>1</value>
         </case>
         <case>
-          <when>month - FLOOR(month / 12) * 12 != 11</when>
+          <when>month - FLOOR(month / 12) * 12 &lt;&gt; 11</when>
           <value>0</value>
         </case>
       </definition>
