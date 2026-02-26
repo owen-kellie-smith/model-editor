@@ -62,7 +62,7 @@ function updateDirtyIndicator() {
   }
 }
 
-function validateModel(text, filename, lang) {
+export function validateModel(text, filename, lang) {
   try {
     text = text.trim();
     const result = validateModelCore(text, filename, lang);

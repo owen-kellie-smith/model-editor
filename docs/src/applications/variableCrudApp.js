@@ -1,5 +1,5 @@
 import { ui } from "../ui.js";
-import { getModelEnv, setModelEnv } from "./modelApp.js";
+import { getModelEnv, validateModel } from "./modelApp.js";
 import { getLanguageEnv } from "./languageApp.js";
 import { setElementContent, escapeHtml } from "../utils/helpers.js";
 import { 
@@ -320,7 +320,6 @@ function showCopyVariableForm() {
     // Populate the form with source variable data
     ui.editVarId.value = variable.id + "_copy";
     ui.editVarId.disabled = false; // Can change ID for copy
-    
     // Serialize the full definition as XML
     if (variable.definition) {
       const definitionXml = serializeDefinition(variable.definition);
@@ -396,13 +395,11 @@ function handleDeleteVariable() {
   
   try {
     const result = deleteVariable(modelEnv.obj, deletedVariableId, lang);
-    
-    // Update the model environment (this also updates the last loaded date)
-    setModelEnv(result);
-    
+      
     // Update the copy model in textarea
     const xml = serializeModel(result.obj);
     ui.modelText.value = xml.trim();
+    validateModel(ui.modelText.value, "After delete", lang);
     
     // Refresh the variable dropdown
     renderVariableDropdown();
@@ -512,13 +509,11 @@ function handleSaveVariable() {
         return;
       }
     }
-    
-    // Update the model environment (this also updates the last loaded date)
-    setModelEnv(result);
-    
+        
     // Update the copy model in textarea
     const xml = serializeModel(result.obj);
     ui.modelText.value = xml.trim();
+    validateModel(ui.modelText.value, "After updated variable",lang);
     
     // Refresh the variable dropdown
     renderVariableDropdown();
