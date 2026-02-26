@@ -220,7 +220,7 @@ describe('Spreadsheet Formula Conversion', () => {
     const currentRow = 2
 
     const expression = 'month = 0'
-    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, undefined, undefined, 'month')
 
     expect(result).toBe('A2 = 0')
     expect(result).not.toContain('month')
@@ -236,7 +236,7 @@ describe('Spreadsheet Formula Conversion', () => {
 
     const temporalNames = ['year', 'period', 'quarter', 'week', 'day']
     for (const name of temporalNames) {
-      const result = convertExpressionToFormula(`${name} = 0`, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+      const result = convertExpressionToFormula(`${name} = 0`, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, undefined, undefined, name)
       expect(result).toBe('A3 = 0')
       expect(result).not.toContain(name)
     }
@@ -269,7 +269,7 @@ describe('Spreadsheet Formula Conversion', () => {
     const currentRow = 3 // step=1, row 3
 
     const expression = 'MAX(0, outstanding_debt(month - 1) - 100)'
-    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, undefined, undefined, 'month')
 
     // outstanding_debt(month - 1) at row 3 should become O2 (previous row)
     expect(result).toContain('O2')
@@ -294,7 +294,7 @@ describe('Spreadsheet Formula Conversion', () => {
     const currentRow = 3 // step=1, row 3
 
     const expression = 'MAX(0, outstanding_debt(month - 1) - monthly_net_profit_after_interest(month - 1))'
-    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, undefined, undefined, 'month')
 
     // outstanding_debt(month - 1) at row 3 -> O2, monthly_net_profit_after_interest(month - 1) -> Q2
     expect(result).toBe('MAX(0, O2 - Q2)')
@@ -314,7 +314,7 @@ describe('Spreadsheet Formula Conversion', () => {
     const variableMap = new Map()
     const currentRow = 2
 
-    const result = convertExpressionToFormula('net_income(0)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    const result = convertExpressionToFormula('net_income(0)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, undefined, undefined, 'month')
 
     // net_income(0) means index=0 which is row 2
     expect(result).toBe('L2')
@@ -420,7 +420,7 @@ describe('Spreadsheet Formula Conversion', () => {
     const currentRow = 2 // step=0, row 2
 
     const expression = 'outstanding_debt(month - 1)'
-    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+    const result = convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, undefined,undefined,'month')
 
     // Row 2 - 1 = 1 which is the header row, so clamp to row 2
     expect(result).toBe('O2')
