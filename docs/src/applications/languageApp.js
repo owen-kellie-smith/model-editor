@@ -47,7 +47,7 @@ function updateDirtyIndicator() {
   const isDirty = lastCommittedText !== null && currentText !== lastCommittedText;
   
   if (isDirty) {
-    ui.languageDirty.textContent = "✖ Unsaved changes";
+    ui.languageDirty.textContent = "✖ Unapplied changes";
     ui.languageDirty.style.display = "inline";
   } else {
     ui.languageDirty.textContent = "";
