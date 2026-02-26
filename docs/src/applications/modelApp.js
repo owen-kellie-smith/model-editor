@@ -211,7 +211,7 @@ export function wireModelHandlers() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      alert("Error rendering spreadsheet: " + error.message);
+      alert("Error rendering spreadsheet: " + error.message + ". See console for stack trace.");
       console.error("Spreadsheet rendering error:", error);
     }
   });
