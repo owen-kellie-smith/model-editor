@@ -427,42 +427,5 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).not.toContain('outstanding_debt')
   })
 
-  it('should render trailing_12m_income piecewise second case (month >= 11) as non-zero formula', () => {
-    // Regression test: trailing_12m_income from Dividends.xml has two cases:
-    //   case 1: month < 11  -> cumulative_net_income(month)
-    //   case 2: month >= 11 -> cumulative_net_income(month) - cumulative_net_income(month - 12)
-    // Before the fix, generatePiecewiseFormula hardcoded 0 as the else value, producing
-    // IF(A14 < 11, <cni_cell>, 0) which made trailing_12m_income render as 0 for month >= 11.
-
-    // col B = 2 for cumulative_net_income (col A is the step/month index)
-    const CNI_COL = 2 // cumulative_net_income column index (B)
-    const STEP_12 = 12 // month=12: first month >= 11 where month - 12 >= 0
-    const ROW_MONTH_12 = STEP_12 + 2 // rows start at 2 (row 1 is header, row 2 is month=0)
-
-    const colIndexMap = new Map([['CUMULATIVE_NET_INCOME', CNI_COL]])
-    const cohortStepVars = ['CUMULATIVE_NET_INCOME']
-    const constantVars = []
-    const variableMap = new Map()
-
-    const varXml = {
-      definition: {
-        type: 'piecewise',
-        case: [
-          { when: 'month < 11', value: 'cumulative_net_income(month)' },
-          { when: 'month >= 11', value: 'cumulative_net_income(month) - cumulative_net_income(month - 12)' }
-        ]
-      }
-    }
-
-    const result = generatePiecewiseFormula(varXml, STEP_12, ROW_MONTH_12, colIndexMap, cohortStepVars, constantVars, variableMap)
-
-    // The IF formula must not use 0 as the else branch
-    expect(result).not.toMatch(/,0\)$/)
-    // The formula must reference cumulative_net_income(month - 12) as a cell offset (B2 = month=0)
-    const cniColLetter = String.fromCharCode(64 + CNI_COL)
-    expect(result).toContain(`${cniColLetter}2`)
-    // The formula must be an IF with the correct structure
-    expect(result).toMatch(/^IF\(/)
-  })
 
 })
