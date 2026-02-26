@@ -1,5 +1,7 @@
 import { parseXmlOrThrow } from "../utils/helpers.js";
 
+
+
 /**
  * Escapes special XML characters in text content and attribute values
  * @param {string} text - The text to escape
@@ -143,3 +145,100 @@ function buildDefinitionObject(node) {
   return result;
 }
 
+/**
+ * Serializes a full <variable> object to indented XML string
+ * @param {Object} variable - The variable object to serialize
+ * @returns {string}
+ */
+export function serializeVariable(variable) {
+  if (!variable) return "";
+  // IMPORTANT: no <variables> wrapper, no regex extraction
+  return buildNode(variable, "variable", 0).trim();
+}
+
+/**
+ * Parses an XML string to extract a variable object
+ * @param {string} xmlString - The XML string to parse (should be a <variable> element)
+ * @returns {Object|string} - The variable object
+ * @throws {Error}
+ */
+export function parseVariableXml(xmlString) {
+  if (!xmlString || !xmlString.trim()) {
+    throw new Error("Variable XML cannot be empty");
+  }
+
+  const xml = parseXmlOrThrow(xmlString, "variable");
+  const rootElement = xml.documentElement;
+
+  if (rootElement.nodeName !== "variable") {
+    throw new Error(`Expected <variable> element, got <${rootElement.nodeName}>`);
+  }
+
+  const obj = buildElementObject(rootElement);
+
+  // We expect a variable object (not a string)
+  if (typeof obj !== "object" || obj == null) {
+    throw new Error("Parsed variable XML did not produce an object");
+  }
+
+  return obj;
+}
+
+/**
+ * Generic XML element -> JS object builder.
+ * - Attributes become properties (e.g. id="x" -> { id: "x" })
+ * - Child elements become properties (repeated tags become arrays)
+ * - Pure text-only elements become strings (e.g. <unit>GBP</unit> -> "GBP")
+ * - Mixed content uses { "#text": "..." } alongside other properties
+ */
+function buildElementObject(node) {
+  const hasAttrs = node.attributes && node.attributes.length > 0;
+
+  // Collect child element nodes
+  const elementChildren = Array.from(node.childNodes).filter(
+    (n) => n.nodeType === Node.ELEMENT_NODE
+  );
+
+  // Collect trimmed text content directly under this node
+  const textParts = Array.from(node.childNodes)
+    .filter((n) => n.nodeType === Node.TEXT_NODE)
+    .map((n) => (n.nodeValue ?? "").trim())
+    .filter(Boolean);
+
+  const text = textParts.join(" ").trim();
+
+  // If it's a simple text-only element with no attrs and no element children, return string
+  if (!hasAttrs && elementChildren.length === 0) {
+    return text || "";
+  }
+
+  const result = {};
+
+  // Attributes
+  if (hasAttrs) {
+    for (const attr of Array.from(node.attributes)) {
+      result[attr.name] = attr.value;
+    }
+  }
+
+  // Text (only keep #text when we also have attrs/children)
+  if (text) {
+    result["#text"] = text;
+  }
+
+  // Children
+  for (const child of elementChildren) {
+    const childName = child.nodeName;
+    const childObj = buildElementObject(child);
+
+    if (!(childName in result)) {
+      result[childName] = childObj;
+    } else if (Array.isArray(result[childName])) {
+      result[childName].push(childObj);
+    } else {
+      result[childName] = [result[childName], childObj];
+    }
+  }
+
+  return result;
+}

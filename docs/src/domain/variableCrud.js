@@ -2,6 +2,7 @@ import { validateModelCore } from "./model.js";
 import { throwModelError, asArray } from "../utils/helpers.js";
 import { serializeModel } from "./serialize.js";
 
+
 /**
  * Creates a new variable in the model.
  * 
