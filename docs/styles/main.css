@@ -444,3 +444,71 @@ hr {
   margin-top: 0.25rem;
 }
 
+
+/* ── Spreadsheet preview ───────────────────────────────── */
+
+.spreadsheet-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-sheet {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview-sheet-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.6rem;
+  background: #e8f0fe;
+  cursor: pointer;
+  user-select: none;
+}
+
+.preview-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.preview-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: monospace;
+  white-space: nowrap;
+  min-width: 100%;
+}
+
+.preview-table th,
+.preview-table td {
+  border: 1px solid #ddd;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-table thead tr {
+  background: #f0f0f0;
+  position: sticky;
+  top: 0;
+}
+
+.preview-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+@media (max-width: 768px) {
+  .preview-table {
+    font-size: 0.75rem;
+  }
+
+  .preview-table th,
+  .preview-table td {
+    padding: 0.25rem 0.4rem;
+    max-width: 12rem;
+  }
+}

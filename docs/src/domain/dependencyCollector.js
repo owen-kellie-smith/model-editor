@@ -1,7 +1,6 @@
 import { removeStringLiterals, asArray, throwModelError } from "../utils/helpers.js";
 import { getIdentifierTokens } from "./model.js";
 import { runtimeIdentifiers } from "./language.js";
-import { log } from "../utils/logger.js"
 
 /*
 PARAMETERS:
@@ -9,7 +8,7 @@ PARAMETERS:
   text – the full input string  e.g. "foo(step + 3)"
   keyword (optional) – the shift keyword - defaults to "step"
 */
-function computeShift(ref, text, keyword = "step") {
+function computeShift(ref, text, keyword) {
 
   const re = new RegExp(ref + "\\s*\\(([^)]*)\\)", "i");
   const m = re.exec(text);
@@ -28,6 +27,19 @@ function computeShift(ref, text, keyword = "step") {
 }
 
 
+/**
+ * Computes a shift for any of the provided index keywords.
+ * Priority order is the order of `keywords`.
+ */
+function computeShiftAny(ref, text, keywords) {
+  for (const kw of keywords) {
+    if (!kw) continue
+    const shift = computeShift(ref, text, kw)
+    if (shift !== 0) return shift
+  }
+  return 0
+}
+
 export function makeDependencyCollector(symbols, lang, ownerName, deps) {
 
   // --------------------------------------------------
@@ -45,18 +57,12 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
         ...extra
       });
     }
-
-    const shiftStd = computeShift(ref, extra.text);
-    log("debug","ref:" + ref);
-    log("debug","shiftStd:" + shiftStd);
-    const shift_t = computeShift(ref, extra.text, "t");
-    log("debug","shift_t:" + shift_t);
-    const shift_month = computeShift(ref, extra.text, "month");
-    log("debug","shift_month:" + shift_month);
-    let shift = shiftStd;
-    if (shift === 0) shift = shift_t;
-    if (shift === 0) shift = shift_month;
-    log("debug","shift:" + shift);
+    // Detect shifts against any indexSet name (or the model's temporal role).
+    // This avoids hard-coding step/month/year/etc.
+    const indexSetIds = Array.from(symbols.indexSets.values()).map(x => x?.id).filter(Boolean)
+    const temporal = Array.from(symbols.indexSets.values()).find(x => String(x?.role ?? '').toLowerCase() === 'temporal')
+    const keywords = [temporal?.id, ...indexSetIds]
+    const shift = computeShiftAny(ref, extra.text ?? '', keywords)
     deps.add({ name: ref, shift });
   }
 

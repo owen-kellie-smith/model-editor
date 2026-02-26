@@ -4,7 +4,7 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
-import { renderModelAsExcel } from "../domain/spreadsheetRenderer.js";
+import { renderModelAsExcel, renderModelAsHTMLPreview } from "../domain/spreadsheetRenderer.js";
 import { setElementContent } from "../utils/helpers.js";
 
 
@@ -76,6 +76,15 @@ function validateModel(text, filename, lang) {
     updateLoadedInfo();
     updateDirtyIndicator();
     
+    // Render HTML spreadsheet preview
+    try {
+      ui.spreadsheetPreview.innerHTML = renderModelAsHTMLPreview(result.obj, result.features);
+      ui.spreadsheetPreviewDetails.open = true;
+    } catch (previewErr) {
+      ui.spreadsheetPreview.innerHTML = '';
+      console.warn("Spreadsheet preview failed:", previewErr);
+    }
+    
     // Dispatch event for graph UI
     window.dispatchEvent(new CustomEvent('modelLoaded'));
   } catch (er) {
@@ -83,6 +92,7 @@ function validateModel(text, filename, lang) {
     modelEnv = null;
     ui.downloadModel.disabled = true;    // ❌ invalid
     ui.downloadSpreadsheet.disabled = true;  // ❌ disable spreadsheet download
+    ui.spreadsheetPreview.innerHTML = '';
     updateModelStatus(formatErrorNoStack(er), "error");
     updateDirtyIndicator();  // ✅ ADD THIS - also update on error
   }
@@ -201,7 +211,7 @@ export function wireModelHandlers() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      alert("Error rendering spreadsheet: " + error.message);
+      alert("Error rendering spreadsheet: " + error.message + ". See console for stack trace.");
       console.error("Spreadsheet rendering error:", error);
     }
   });

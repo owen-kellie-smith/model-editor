@@ -1,6 +1,12 @@
 <?xml version="1.0"?>
 <ModelSpec>
   <Title>AnnuityL1</Title>
+  <indexSets>
+    <indexSet id="t" min="0" max="11" role="temporal">
+      <description>Projection steps (months)</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
   <ModelPointFields>
     <VariableDefinition
       Name="MPF_ANNUAL_ANNUITY_AMOUNT"

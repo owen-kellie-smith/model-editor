@@ -23,6 +23,77 @@ function getDefinitionType(varXml) {
 }
 
 /**
+ * Returns the temporal indexSet id for the model.
+ * Prefers <indexSet role="temporal"> (case-insensitive). Falls back to legacy id="step".
+ * If still not found, picks the first integer indexSet.
+ */
+function getTemporalIndexSetId(modelObj) {
+  const indexSets = asArray(modelObj?.model?.indexSets?.indexSet)
+  const temporal = indexSets.find(is => String(is?.role ?? "").toLowerCase() === "temporal")
+  if (temporal?.id) return temporal.id
+  const legacy = indexSets.find(is => String(is?.id ?? "").toLowerCase() === "step")
+  if (legacy?.id) return legacy.id
+  const firstInt = indexSets.find(is => String(is?.dataType ?? "").toLowerCase() === "integer")
+  return firstInt?.id || null
+}
+
+/**
+ * Extracts the min/max range for the provided temporal index set.
+ * Defaults to { min: 0, max: 11 } when unspecified.
+ */
+function getTemporalRange(modelObj, temporalIndexSetId) {
+  const id = temporalIndexSetId ? String(temporalIndexSetId).toLowerCase() : null
+  const indexSets = asArray(modelObj?.model?.indexSets?.indexSet)
+  if (id) {
+    const is = indexSets.find(x => String(x?.id ?? "").toLowerCase() === id)
+    if (is) {
+      const min = parseInt(is.min, 10)
+      const max = parseInt(is.max, 10)
+      if (!isNaN(min) && !isNaN(max)) return { min, max }
+    }
+  }
+  return { min: 0, max: 11 }
+}
+
+/**
+ * Backward-compatible wrapper: use the model's temporal indexSet range.
+ */
+function getStepRange(modelObj, temporalIndexSetId) {
+  return getTemporalRange(modelObj, temporalIndexSetId ?? getTemporalIndexSetId(modelObj))
+}
+
+/**
+ * Builds a case-insensitive Map of variable ID → variable XML object from the model.
+ * Shared by both the Excel renderer and the HTML preview renderer.
+ * @param {Object} modelObj
+ * @returns {Map<string, Object>}
+ */
+function buildVariableMap(modelObj) {
+  const variableMap = new Map()
+  if (modelObj.model.variables?.variable) {
+    const vars = Array.isArray(modelObj.model.variables.variable)
+      ? modelObj.model.variables.variable
+      : [modelObj.model.variables.variable]
+    for (const v of vars) {
+      variableMap.set(v.id.toUpperCase(), v)
+    }
+  }
+  return variableMap
+}
+
+/**
+ * Returns the static data for the input_config sheet.
+ * Shared by both the Excel renderer and the HTML preview renderer.
+ * @returns {{ headers: string[], rows: Array[] }}
+ */
+function buildInputConfigData() {
+  return {
+    headers: ['parameter', 'value', 'description'],
+    rows: [['cohort', 1, 'Cohort identifier for calculations']]
+  }
+}
+
+/**
  * Renders a model as an Excel workbook using ExcelJS
  * @param {Object} modelObj - The model object (from getObjectFromXML)
  * @param {Object} modelFeatures - The model features (from getModelFeatures)
@@ -32,7 +103,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   if (!modelObj || !modelObj.model) {
     throw new Error("Invalid model object")
   }
-  
+
   if (!modelFeatures || !modelFeatures.variables) {
     throw new Error("Invalid model features")
   }
@@ -51,19 +122,14 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   const { variables, resolvedVarsWithArguments } = modelFeatures
   
   // Get variable details from model
-  const variableMap = new Map()
-  if (modelObj.model.variables && modelObj.model.variables.variable) {
-    const vars = Array.isArray(modelObj.model.variables.variable) 
-      ? modelObj.model.variables.variable 
-      : [modelObj.model.variables.variable]
-    
-    for (const v of vars) {
-      variableMap.set(v.id.toUpperCase(), v)
-    }
-  }
+  const variableMap = buildVariableMap(modelObj)
   
+  // Determine temporal index set (role="temporal" preferred; falls back to legacy "step")
+  const temporalIndexSetId = getTemporalIndexSetId(modelObj)
+  const temporalId = temporalIndexSetId ?? 'step';
+
   // Categorize variables by their argument structure
-  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments)
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
   
   // Create workbook
   const workbook = new ExcelJS.Workbook()
@@ -106,7 +172,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
         } else if (defType === "expression") {
           // For expression variables, convert to Excel formula
           const currentRow = constantRowMap.get(varName)
-          const formula = convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap)
+          const formula = convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap, temporalId)
           if (formula) {
             sheet.addRow([varXml.id, { formula }])
           } else {
@@ -134,7 +200,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   
   // Add calculation sheet for cohort-step variables (single cohort, multiple steps)
   if (categorized.cohortStep.length > 0) {
-    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly)
+    addCohortStepSheet(workbook, categorized.cohortStep, variableMap, categorized.constants, categorized.cohortOnly, modelObj, temporalId)
   }
   
   // Generate Excel file
@@ -149,15 +215,13 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
 /**
  * Categorize variables by their argument structure
  */
-function categorizeVariables(variableMap, resolvedVarsWithArguments) {
+function categorizeVariables(variableMap, resolvedVarsWithArguments, temporalIndexSetId) {
   const constants = []
   const cohortOnly = []
   const cohortStep = []
   const other = []
-  
-  // Common temporal/time-based argument names (step, month, year, period, time, etc.)
-  const temporalArgs = ['STEP', 'MONTH', 'YEAR', 'PERIOD', 'TIME', 'QUARTER', 'WEEK', 'DAY']
-  
+  // Temporal argument name comes from the model (indexSet role="temporal"), not hard-coded lists
+  const temporalArg = String(temporalIndexSetId ?? 'step').toUpperCase()
   for (const [varName, varXml] of variableMap) {
     const resolved = resolvedVarsWithArguments.get(varName)
     const args = resolved && resolved.domain ? resolved.domain : []
@@ -173,10 +237,10 @@ function categorizeVariables(variableMap, resolvedVarsWithArguments) {
       // Note: Variables with no arguments and no definition type are not categorized
     } else if (args.length === 1 && args[0].toUpperCase() === 'COHORT') {
       cohortOnly.push(varName)
-    } else if (args.length === 1 && temporalArgs.includes(args[0].toUpperCase())) {
+    } else if (args.length === 1 && args[0].toUpperCase() === temporalArg) {
       // Single temporal argument variables should be included in the cohort-step sheet
       cohortStep.push(varName)
-    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && temporalArgs.includes(args[1].toUpperCase())) {
+    } else if (args.length === 2 && args[0].toUpperCase() === 'COHORT' && args[1].toUpperCase() === temporalArg) {
       // Cohort + temporal argument variables
       cohortStep.push(varName)
     } else {
@@ -381,138 +445,114 @@ function generateSampleValue(columnId, dataType, rowIndex, min, max, tableId, va
 }
 
 /**
- * Add table sheets with sample data (extracted from model definitions)
+ * Builds the row/column data for every input table sheet.
+ * Returns an array of plain data objects — no ExcelJS dependency.
+ * Used by both the Excel renderer (addTableSheets) and the HTML preview renderer.
+ * @param {Object} modelObj
+ * @returns {Array<{name: string, headers: Array, metadataRows: Array[], dataRows: Array[]}>}
  */
-function addTableSheets(workbook, modelObj) {
+function buildTableSheetsData(modelObj) {
   const tableDefs = extractTableDefinitions(modelObj)
-  
-  // If no tables defined in model, skip adding any table sheets
-  // (Only add tables that are explicitly defined in the model)
-  if (tableDefs.size === 0) {
-    return
-  }
-  
-  // Extract column constraints from variables
+  if (tableDefs.size === 0) return []
+
   const columnConstraints = extractColumnConstraints(modelObj)
-  
-  // Generate sheets for each table in the model
+  const sheets = []
+
   for (const [tableId, tableDef] of tableDefs) {
-    const sheetName = `input_${tableId}`
-    const sheet = workbook.addWorksheet(sheetName)
-    
     // Build header row: row index column + data columns
     const headers = [tableDef.rowIndex]
-    
+
     if (tableDef.columns.length > 0) {
-      // Use defined columns
-      for (const col of tableDef.columns) {
-        headers.push(col.id)
-      }
+      for (const col of tableDef.columns) headers.push(col.id)
     } else {
-      // For unconstrained tables, generate column names based on context
-      // Check if any other table references this table in a columnOf constraint
       const referencedColumns = resolveColumnOfConstraint(tableId, tableDefs)
       if (referencedColumns.length > 0) {
-        // Use the resolved column names
         headers.push(...referencedColumns)
       } else {
-        // Generate generic column names
-        // Use pattern: {tableId}_column1, {tableId}_column2, etc.
         headers.push(`${tableId}_column1`, `${tableId}_column2`)
       }
     }
-    
-    sheet.addRow(headers)
-    
-    // Add metadata rows if columns are defined
+
+    // Build metadata rows (dataType / unit / domain) when columns are defined
+    const metadataRows = []
     if (tableDef.columns.length > 0) {
       const dataTypes = ['dataType']
       const units = ['unit']
       const domains = [tableDef.rowIndex]
-      
       for (const col of tableDef.columns) {
         dataTypes.push(col.dataType || '')
         units.push(col.unit || '')
         domains.push('')
       }
-      
-      sheet.addRow(dataTypes)
-      sheet.addRow(units)
-      sheet.addRow(domains)
+      metadataRows.push(dataTypes, units, domains)
     }
-    
+
     // Generate sample data rows
     const numSampleRows = determineSampleRowCount(tableDef)
-    
+    const dataRows = []
+
     for (let i = 0; i < numSampleRows; i++) {
       const row = []
-      
-      // Generate row index value
+
+      // Row index value
       if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
-        // Use model-specified range for row index
         const range = tableDef.rowIndexMax - tableDef.rowIndexMin
         let rowIndexValue
-        
         if (numSampleRows <= 1) {
-          // Single row: use minimum value
           rowIndexValue = tableDef.rowIndexMin
         } else if (range < numSampleRows) {
-          // If range is smaller than sample count, generate sequential values
           rowIndexValue = tableDef.rowIndexMin + i
         } else {
-          // Generate evenly-spaced values across the range
-          // This ensures we cover the full range including both min and max
           const step = range / (numSampleRows - 1)
           rowIndexValue = Math.round(tableDef.rowIndexMin + i * step)
         }
-        
         row.push(rowIndexValue)
       } else {
-        // Fallback: use simple sequential integers
         row.push(generateSampleValue(tableDef.rowIndex, 'integer', i))
       }
-      
-      // Add values for each column
+
+      // Column values
       if (tableDef.columns.length > 0) {
         for (const col of tableDef.columns) {
-          // Check if this column has a columnOf constraint
           const constraintKey = `${tableId}.${col.id}`
           const constraint = columnConstraints.get(constraintKey)
-          let validValues = null
-          
-          if (constraint && constraint.columnOfTable) {
-            // Resolve the constraint to get actual column names
-            validValues = resolveColumnOfConstraint(constraint.columnOfTable, tableDefs)
-          }
-          
+          const validValues = constraint?.columnOfTable
+            ? resolveColumnOfConstraint(constraint.columnOfTable, tableDefs)
+            : null
           row.push(generateSampleValue(col.id, col.dataType, i, col.min, col.max, tableId, validValues))
         }
       } else {
-        // Generate generic values for unconstrained columns
-        // Determine how many columns we need based on headers
-        // Headers has rowIndex + N data columns
         const numDataColumns = headers.length - 1
-        
-        // Get the row index value that was added to the row
         const rowIndexValue = row[0]
-        
-        // Constants for generic column value generation
-        const BASE_VALUE = 0.001           // Starting value for first column
-        const COLUMN_SCALE_FACTOR = 0.5    // Multiplier to differentiate columns
-        const RANGE_SCALE_FACTOR = 0.1     // Proportion of range to use for variation
-        
-        // Generate values for each column
+        const BASE_VALUE = 0.001
+        const COLUMN_SCALE_FACTOR = 0.5
+        const RANGE_SCALE_FACTOR = 0.1
         for (let colIdx = 0; colIdx < numDataColumns; colIdx++) {
-          // Use different scaling for each column to create variety
           const colValue = tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined
             ? BASE_VALUE * (1 + colIdx * COLUMN_SCALE_FACTOR) + (rowIndexValue - tableDef.rowIndexMin) / (tableDef.rowIndexMax - tableDef.rowIndexMin) * RANGE_SCALE_FACTOR
             : BASE_VALUE * (1 + i + colIdx * COLUMN_SCALE_FACTOR)
           row.push(colValue)
         }
       }
-      
-      sheet.addRow(row)
+
+      dataRows.push(row)
     }
+
+    sheets.push({ name: `input_${tableId}`, headers, metadataRows, dataRows })
+  }
+
+  return sheets
+}
+
+/**
+ * Add table sheets with sample data (extracted from model definitions)
+ */
+function addTableSheets(workbook, modelObj) {
+  for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
+    const sheet = workbook.addWorksheet(name)
+    sheet.addRow(headers)
+    for (const row of metadataRows) sheet.addRow(row)
+    for (const row of dataRows) sheet.addRow(row)
   }
 }
 
@@ -546,12 +586,9 @@ function determineSampleRowCount(tableDef) {
  */
 function addInputConfigSheet(workbook) {
   const sheet = workbook.addWorksheet('input_config')
-  
-  // Add headers
-  sheet.addRow(['parameter', 'value', 'description'])
-  
-  // Add cohort value
-  sheet.addRow(['cohort', 1, 'Cohort identifier for calculations'])
+  const { headers, rows } = buildInputConfigData()
+  sheet.addRow(headers)
+  for (const row of rows) sheet.addRow(row)
 }
 
 /**
@@ -913,19 +950,20 @@ function addCohortSheet(workbook, cohortVars, variableMap) {
 /**
  * Add cohort-step calculation sheet
  */
-function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars) {
+function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars, cohortOnlyVars, modelObj, temporalIndexSetId) {
   const sheet = workbook.addWorksheet('calc_cohort_step')
   
   // Build header row
-  const headers = ['step']
+  const temporalId = temporalIndexSetId ?? 'step'
+  const headers = [temporalId]
   const colIndexMap = new Map() // Map variable name to column index
   
-  let colIdx = 1 // Start at column B (A is step)
+  let colIdx = 1 // Start at column B (A is temporal index)
   for (const varName of cohortStepVars) {
     const varXml = variableMap.get(varName)
     const varId = varXml ? varXml.id : varName
     headers.push(varId)
-    colIndexMap.set(varName, colIdx + 1) // +1 because A is step
+    colIndexMap.set(varName, colIdx + 1) // +1 because A is temporal index
     colIdx++
   }
   sheet.addRow(headers)
@@ -939,15 +977,18 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
     cohortColIdx++
   }
   
+  // Determine step range from model (falls back to 0..11 = 12 steps)
+  const { min: stepMin, max: stepMax } = getStepRange(modelObj, temporalId)
+  const stepCount = stepMax - stepMin + 1
+
   // Add rows for steps
-  // First row (step=0): Hardcoded value 0
-  // Subsequent rows (step>0): Formula referencing previous row (e.g., =A2+1, =A3+1)
+  // First row: hardcoded stepMin value
+  // Subsequent rows: formula referencing previous row (e.g., =A2+1)
   // This makes the sheet copyable - users can copy rows down and step values auto-increment
-  const stepCount = 12  // Default to 12 steps for monthly projection
-  
-  for (let step = 0; step < stepCount; step++) {
-    const currentRow = step + 2 // +2 because row 1 is header
-    const stepValue = step === 0 ? 0 : { formula: `A${currentRow-1}+1` }
+  for (let i = 0; i < stepCount; i++) {
+    const step = stepMin + i
+    const currentRow = i + 2 // +2 because row 1 is header
+    const stepValue = i === 0 ? stepMin : { formula: `A${currentRow-1}+1` }
     const row = [stepValue]
     
     for (const varName of cohortStepVars) {
@@ -957,12 +998,10 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
         continue
       }
       
-      const defType = getDefinitionType(varXml)
-      const expression = getDefinitionText(varXml)
       const colLetter = getColumnLetter(colIndexMap.get(varName))
       
       // Generate appropriate formula based on variable type
-      let formula = generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap)
+      let formula = generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId)
       
       if (formula) {
         row.push({ formula })
@@ -978,19 +1017,19 @@ function addCohortStepSheet(workbook, cohortStepVars, variableMap, constantVars,
 /**
  * Generate Excel formula for a variable based on its definition
  */
-function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap) {
+function generateFormulaForVariable(varXml, varName, step, currentRow, colLetter, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId) {
   const defType = getDefinitionType(varXml)
   const expression = getDefinitionText(varXml)
   
   // Handle based on definition type, reading from actual model
   if (defType === 'expression') {
-    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+    return convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
   } else if (defType === 'table') {
     return generateTableLookupFormula(varXml, currentRow)
   } else if (defType === 'tableLookup') {
     return generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, cohortStepVars)
   } else if (defType === 'piecewise') {
-    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap)
+    return generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId)
   } else if (defType === 'constant') {
     // Constants should be in their own sheet, referenced by name
     const constantSheetName = 'constant'
@@ -1081,7 +1120,7 @@ function generateTableLookupFormulaAdvanced(varXml, currentRow, colIndexMap, coh
 /**
  * Generate Excel formula for piecewise conditional logic
  */
-function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap) {
+function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, cohortVarColMap, temporalId) {
   const definition = varXml.definition
   if (!definition || !definition.case) {
     return null
@@ -1101,33 +1140,34 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
   const valueText = firstCase.value?.['#text'] || firstCase.value || ''
   
   // Check if this is a step = 0 condition (or other temporal index = 0, e.g. month = 0)
-  if (/\b(step|month|year|period|time|quarter|week|day)\b/i.test(whenText) && whenText.includes('0')) {
+  const tId = String(temporalId ?? 'step')
+  if (new RegExp(`\\b${escapeRegex(tId)}\\b`, 'i').test(whenText) && whenText.includes('0')) {
     // Handle "if step=0 then value else otherValue" pattern
     if (step === 0) {
       // Evaluate the value for step 0
-      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+      const evaluatedValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
       return evaluatedValue || valueText
     } else {
       // Use the else case or second case
       if (cases.length > 1) {
         const secondCase = cases[1]
         const elseValue = secondCase.value?.['#text'] || secondCase.value || ''
-        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+        return convertExpressionToFormula(elseValue, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
       }
       return null
     }
   }
   
   // General IF formula generation
-  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
-  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap)
+  const condition = convertExpressionToFormula(whenText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
+  const thenValue = convertExpressionToFormula(valueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId)
   
   if (condition && thenValue) {
     let elseFormula = '0'
     if (cases.length > 1) {
       const elseCase = cases[1]
       const elseValueText = elseCase.value?.['#text'] || elseCase.value || ''
-      elseFormula = convertExpressionToFormula(elseValueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap) || '0'
+      elseFormula = convertExpressionToFormula(elseValueText, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId) || '0'
     }
     return `IF(${condition},${thenValue},${elseFormula})`
   }
@@ -1138,12 +1178,15 @@ function generatePiecewiseFormula(varXml, step, currentRow, colIndexMap, cohortS
 /**
  * Convert a model expression to an Excel formula
  */
-function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap) {
+function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortStepVars, constantVars, variableMap, step, cohortVarColMap, temporalId) {
   if (!expression || typeof expression !== 'string') {
     return null
   }
   
   let formula = expression.trim()
+  const tId = String(temporalId ?? 'step')
+  const tEsc = escapeRegex(tId)
+    const idxPat = (tId.toLowerCase() === 'step') ? tEsc : `(?:${tEsc}|step)`
   
   // Replace variable references with cell references
   // We need to identify variable names and replace them with appropriate cell references
@@ -1200,7 +1243,7 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
       
       // Pattern 1: Handle function calls with step parameter shifts
       // Example: variable(cohort, step - 1) or variable(cohort, step-2)
-      const patternWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      const patternWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*${tEsc}\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
       formula = formula.replace(patternWithOffset, (match, offset) => {
         // offset is the number after "step - "
         const targetRow = currentRow - parseInt(offset, 10)
@@ -1215,7 +1258,7 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
 
       // Pattern 1b: Handle single temporal-arg variables with offset
       // Example: outstanding_debt(month - 1) -> O2, variable(step - 2) -> K{row-2}
-      const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*(?:step|month|year|period|time|quarter|week|day)\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
+      const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
       formula = formula.replace(patternSingleArgWithOffset, (match, offset) => {
         const targetRow = currentRow - parseInt(offset, 10)
         if (targetRow < 2) {
@@ -1235,12 +1278,12 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
 
       // Pattern 2: Handle step-only variables
       // Example: discount_factor(step) -> K2
-      const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*step\\s*\\)`, 'gi')
+      const patternStepOnly = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*\\)`, 'gi')
       formula = formula.replace(patternStepOnly, `${colLetter}${currentRow}`)
       
       // Pattern 3: Handle cohort-step variables
       // Example: cashflow(cohort, step) -> I2
-      const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*step\\s*\\)`, 'gi')
+      const patternCohortStep = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*${tEsc}\\s*\\)`, 'gi')
       formula = formula.replace(patternCohortStep, `${colLetter}${currentRow}`)
       
       // Pattern 3b: Handle single-argument variables with any named index argument
@@ -1283,12 +1326,14 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
     }
   }
   
-  // Handle "step" reference (column A in calc_cohort_step sheet)
-  formula = formula.replace(/\bstep\b/gi, `A${currentRow}`)
-  
-  // Handle other temporal index references (month, year, period, etc.) that also map to column A
+  // Handle temporal index reference (column A in calc_cohort_step sheet)
   // Negative lookahead prevents replacing Excel built-in functions like MONTH(), YEAR(), DAY(), TIME()
-  formula = formula.replace(/\b(month|year|period|time|quarter|week|day)\b(?!\s*\()/gi, `A${currentRow}`)
+  formula = formula.replace(new RegExp(`\\b${tEsc}\\b(?!\\s*\\()`, 'gi'), `A${currentRow}`)
+
+  // Backward-compat: if the model's temporal index isn't named "step" but formulas still contain step
+  if (tId.toLowerCase() !== 'step') {
+    formula = formula.replace(/\bstep\b(?!\s*\()/gi, `A${currentRow}`)
+  }
   
   return formula || null
 }
@@ -1297,12 +1342,15 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
  * Convert a constant expression to an Excel formula for the constant sheet
  * This handles expressions that reference other constant variables
  */
-function convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap) {
+function convertConstantExpressionToFormula(expression, currentRow, constantRowMap, variableMap, temporalId) {
   if (!expression || typeof expression !== 'string') {
     return null
   }
   
   let formula = expression.trim()
+  const tId = String(temporalId ?? 'step')
+  const tEsc = escapeRegex(tId)
+    const idxPat = (tId.toLowerCase() === 'step') ? tEsc : `(?:${tEsc}|step)`
   
   // Handle function calls like floor(), max(), min()
   formula = formula.replace(/\bfloor\s*\(/gi, 'INT(')
@@ -1396,6 +1444,389 @@ function topologicalSort(incoming, variableNames) {
   }
 
   return sorted
+}
+
+// ─── HTML preview ──────────────────────────────────────────────────────────
+
+/**
+ * Evaluates model variables numerically for cohort 1 over the configured step
+ * range, using the same sample data that the spreadsheet renderer generates.
+ * Returns rows ready for renderSheetAsHtml.
+ *
+ * @param {Object} modelObj
+ * @param {Object} modelFeatures
+ * @returns {{ cohortHeaders, cohortRows, stepHeaders, stepRows }}
+ */
+function evaluateModelForPreview(modelObj, modelFeatures) {
+  // Determine which indexSet acts as the temporal axis for preview.
+  // Prefer an explicit role=\"temporal\" marker, then fall back to legacy \"step\".
+  const temporalId = getTemporalIndexSetId(modelObj) ?? 'step'
+
+  // Build lookup: tableId → { headers: string[], rows: any[][] }
+  const tableData = {}
+  for (const { name, headers, dataRows } of buildTableSheetsData(modelObj)) {
+    tableData[name.replace(/^input_/, '')] = { headers, rows: dataRows }
+  }
+
+  const variableMap = buildVariableMap(modelObj)
+  const { resolvedVarsWithArguments } = modelFeatures
+    const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
+  const { min: stepMin, max: stepMax } = getStepRange(modelObj, temporalId)
+  const cohortId = 1  // matches input_config cohort value
+
+  // Variable ids sorted longest-first to prevent shorter names from
+  // partially substituting inside longer ones (e.g. "attained_age" inside
+  // "attained_age_years_floor").
+  const allVarIds = Array.from(variableMap.values())
+    .map(v => v.id)
+    .sort((a, b) => b.length - a.length)
+
+  // Memoisation: key = "varId:cohort:step"
+  const cache = new Map()
+
+  function evalVar(varId, cohort, step) {
+    const key = `${varId}:${cohort ?? '_'}:${step ?? '_'}`
+    if (cache.has(key)) return cache.get(key)
+    cache.set(key, null) // sentinel to break cycles
+    const varXml = variableMap.get(varId.toUpperCase())
+    if (!varXml) return null
+    const result = evalVarImpl(varXml, cohort, step)
+    cache.set(key, result)
+    return result
+  }
+
+  function evalVarImpl(varXml, cohort, step) {
+    switch (getDefinitionType(varXml)) {
+      case 'constant':    return evalArith(getDefinitionText(varXml))
+      case 'expression':  return evalExpr(getDefinitionText(varXml), cohort, step)
+      case 'table':       return evalTableDef(varXml, cohort, step)
+      case 'tableLookup': return evalTableLookupDef(varXml, cohort, step)
+      case 'piecewise':   return evalPiecewiseDef(varXml, cohort, step)
+      default:            return null
+    }
+  }
+
+  /** Evaluate a purely-arithmetic constant expression (no variable refs). */
+  function evalArith(expr) {
+    if (!expr) return null
+    const e = String(expr).trim()
+    if (!e) return null
+    // Only evaluate expressions that contain digits and basic arithmetic operators.
+    // Expressions come from the user's own model XML so the risk is self-contained,
+    // but we restrict the character set here as a first-line guard.
+    try {
+      if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(e))
+        return Function('"use strict"; return (' + e + ')')()
+    } catch (_) {}
+    return null
+  }
+
+  /**
+   * Substitute all known variable references in expr with their evaluated
+   * numeric values, then evaluate the resulting arithmetic expression.
+   *
+   * Security note: expressions originate from the user's own model XML, so
+   * evaluation with `new Function` (strict mode, no closure access) is
+   * equivalent to a trusted-source script.  The broad try/catch ensures any
+   * malformed input is silently discarded and returns null.
+   */
+  function evalExpr(expr, cohort, step) {
+    const tId = String(temporalId ?? 'step')
+    const tEsc = escapeRegex(tId)
+    const idxPat = (tId.toLowerCase() === 'step') ? tEsc : `(?:${tEsc}|step)`
+    if (!expr || typeof expr !== 'string') return null
+    let e = expr.trim()
+
+    // Replace variable calls, longest-first to avoid partial-name clobbering
+    for (const varId of allVarIds) {
+      const esc = escapeRegex(varId)
+      // varname(cohort, <temporal> - N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*${idxPat}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) - +n))
+      )
+      // varname(cohort, <temporal> + N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*${idxPat}\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) + +n))
+      )
+      // varname(cohort, <temporal>)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*,\\s*${idxPat}\\s*\\)`, 'gi'),
+        () => numStr(evalVar(varId, cohort, step))
+      )
+      // varname(cohort)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*cohort\\s*\\)`, 'gi'),
+        () => numStr(evalVar(varId, cohort, null))
+      )
+      // varname(<temporal> - N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, null, (step ?? 0) - +n))
+      )
+      // varname(<temporal>)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*\\)`, 'gi'),
+        () => numStr(evalVar(varId, null, step))
+      )
+      // bare varname — constant, no arguments
+      e = e.replace(
+        new RegExp(`\\b${esc}\\b(?:\\(\\))?`, 'gi'),
+        () => numStr(evalVar(varId, null, null))
+      )
+    }
+
+    // Substitute the step index itself (after all variable names are gone)
+    if (step !== null && step !== undefined)
+      e = e.replace(new RegExp(`\\b${tEsc}\\b`, 'gi'), String(step))
+
+    // Backward-compat: if formulas still contain "step"
+    if (tId.toLowerCase() !== 'step') {
+      e = e.replace(/\bstep\b/gi, String(step))
+    }
+
+    // Map model-language functions → JS Math equivalents
+    e = e
+      .replace(/\bfloor\s*\(/gi,   'Math.floor(')
+      .replace(/\bceiling\s*\(/gi, 'Math.ceil(')
+      .replace(/\bceil\s*\(/gi,    'Math.ceil(')
+      .replace(/\bround\s*\(/gi,   'Math.round(')
+      .replace(/\bexp\s*\(/gi,     'Math.exp(')
+      .replace(/\blog\s*\(/gi,     'Math.log(')
+      .replace(/\bsin\s*\(/gi,     'Math.sin(')
+      .replace(/\bcos\s*\(/gi,     'Math.cos(')
+      .replace(/\bpow\s*\(/gi,     'Math.pow(')
+      .replace(/\babs\s*\(/gi,     'Math.abs(')
+      .replace(/\bmin\s*\(/gi,     'Math.min(')
+      .replace(/\bmax\s*\(/gi,     'Math.max(')
+      .replace(/\bint\s*\(/gi,     'Math.trunc(')
+
+    // Power operator: ^ → **
+    e = e.replace(/\^/g, '**')
+
+    // Single = (equality test in model language) → === for JavaScript.
+    // Uses negative lookbehind so that >=, <=, != and === are left untouched.
+    e = e.replace(/(?<![!<>=])=(?!=)/g, '===')
+
+    try {
+      const val = new Function('"use strict"; return (' + e + ')')()
+      if (typeof val === 'number' && isFinite(val)) return val
+      if (typeof val === 'boolean') return val ? 1 : 0
+    } catch (_) {}
+    return null
+  }
+
+  /** Lookup a table-definition variable (type="table"). */
+  function evalTableDef(varXml, cohort, step) {
+    const def = varXml.definition
+    const tableRef  = def?.table?.ref  || def?.table?.['#text']  || ''
+    const columnRef = def?.column?.ref || def?.column?.['#text'] || ''
+    if (!tableRef || !columnRef) return null
+
+    const tbl = tableData[tableRef]
+    if (!tbl) return null
+
+    const colIdx = tbl.headers.indexOf(columnRef)
+    if (colIdx === -1) return null
+
+    const args = resolvedVarsWithArguments.get(varXml.id.toUpperCase())?.domain ?? []
+    const hasCohort   = args.some(a => a.toLowerCase() === 'cohort')
+    const hasTemporal = args.some(a => a.toLowerCase() !== 'cohort')
+
+    if (hasCohort && !hasTemporal) {
+      // Exact match on the row-index column (cohort)
+      const row = tbl.rows.find(r => r[0] === cohort)
+      return row ? row[colIdx] : null
+    }
+    if (hasTemporal && !hasCohort) {
+      // Approximate match: largest row-index value ≤ step
+      let match = null
+      for (const row of tbl.rows) {
+        if (row[0] <= step) match = row
+        else break
+      }
+      return match ? match[colIdx] : null
+    }
+    return null
+  }
+
+  /** Lookup a tableLookup-definition variable (type="tableLookup"). */
+  function evalTableLookupDef(varXml, cohort, step) {
+    const def = varXml.definition
+    const tableRef  = def?.table?.ref          || def?.table?.['#text']          || ''
+    const rowRef    = def?.row?.ref            || def?.row?.['#text']            || ''
+    const colSelRef = def?.columnSelector?.ref || def?.columnSelector?.['#text'] || ''
+    if (!tableRef) return null
+
+    const tbl = tableData[tableRef]
+    if (!tbl) return null
+
+    // Evaluate row key (approximate: largest ≤ rowKey)
+    const rowKey = rowRef ? evalVar(rowRef, cohort, step) : step
+    if (rowKey === null) return null
+
+    let match = null
+    for (const row of tbl.rows) {
+      if (row[0] <= rowKey) match = row
+      else break
+    }
+    if (!match) return null
+
+    if (colSelRef) {
+      const colName = evalVar(colSelRef, cohort, null)
+      if (colName === null) return null
+      const colIdx = tbl.headers.indexOf(String(colName))
+      return colIdx !== -1 ? match[colIdx] : null
+    }
+    return match.length > 1 ? match[1] : null
+  }
+
+  /** Evaluate a piecewise-definition variable. */
+  function evalPiecewiseDef(varXml, cohort, step) {
+    for (const c of asArray(varXml.definition?.case)) {
+      const whenText  = c.when?.['#text']  ?? String(c.when  ?? '')
+      const valueText = c.value?.['#text'] ?? String(c.value ?? '')
+      if (evalExpr(whenText, cohort, step)) {
+        return evalExpr(valueText, cohort, step)
+      }
+    }
+    return null
+  }
+
+  /** Format a computed value for display.  Numerics are rounded to 6 decimal
+   *  places (1e6) to avoid long floating-point noise while preserving enough
+   *  precision for actuarial values like survival rates (e.g. 0.997034). */
+  function fmt(v) {
+    if (v === null || v === undefined) return ''
+    if (typeof v === 'number') {
+      if (!isFinite(v)) return ''
+      if (Number.isInteger(v)) return String(v)
+      return String(Math.round(v * 1e6) / 1e6)
+    }
+    return String(v)
+  }
+
+  /** Return '0' for null/undefined, String(v) otherwise. */
+  function numStr(v) {
+    return (v !== null && v !== undefined) ? String(v) : '0'
+  }
+
+  // ── Build calc_cohort data ─────────────────────────────────────────────────
+  const cohortHeaders = [
+    'cohort',
+    ...categorized.cohortOnly.map(n => variableMap.get(n)?.id ?? n)
+  ]
+  const cohortRow = [String(cohortId)]
+  for (const varName of categorized.cohortOnly) {
+    const varXml = variableMap.get(varName)
+    cohortRow.push(varXml ? fmt(evalVar(varXml.id, cohortId, null)) : '')
+  }
+
+  // ── Build calc_cohort_step data ────────────────────────────────────────────
+  const stepHeaders = [
+    temporalId,
+    ...categorized.cohortStep.map(n => variableMap.get(n)?.id ?? n)
+  ]
+  const stepRows = []
+  for (let s = stepMin; s <= stepMax; s++) {
+    const row = [String(s)]
+    for (const varName of categorized.cohortStep) {
+      const varXml = variableMap.get(varName)
+      row.push(varXml ? fmt(evalVar(varXml.id, cohortId, s)) : '')
+    }
+    stepRows.push(row)
+  }
+
+  return { cohortHeaders, cohortRows: [cohortRow], stepHeaders, stepRows }
+}
+
+
+/**
+ * Escapes HTML special characters to prevent XSS.
+ */
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * Renders a single sheet as an HTML <details>/<table> block.
+ */
+function renderSheetAsHtml(name, headers, rows) {
+  const headerHtml = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')
+  const rowsHtml = rows.map(row =>
+    `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`
+  ).join('')
+  return `<details class="preview-sheet" open>
+  <summary class="preview-sheet-name">${escapeHtml(name)}</summary>
+  <div class="preview-table-wrapper">
+    <table class="preview-table">
+      <thead><tr>${headerHtml}</tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  </div>
+</details>`
+}
+
+/**
+ * Renders a model as HTML tables for in-browser preview.
+ * Reuses the same data-building functions as the Excel renderer
+ * (buildVariableMap, buildInputConfigData, buildTableSheetsData)
+ * so the two renderers stay in sync without duplicating logic.
+ *
+ * @param {Object} modelObj      - The model object (from getObjectFromXML)
+ * @param {Object} modelFeatures - The model features (from validateModelCore)
+ * @returns {string} HTML string containing all preview tables
+ */
+export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
+  if (!modelObj?.model) throw new Error("Invalid model object")
+  if (!modelFeatures?.variables) throw new Error("Invalid model features")
+
+  // Determine which indexSet acts as the temporal axis for preview.
+  // Prefer an explicit role="temporal" marker, then fall back to legacy "step".
+  const temporalId = getTemporalIndexSetId(modelObj) ?? 'step'
+
+  const { resolvedVarsWithArguments } = modelFeatures
+  const variableMap = buildVariableMap(modelObj)
+  const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
+
+  const parts = []
+
+  // constant sheet
+  if (categorized.constants.length > 0) {
+    const rows = categorized.constants
+      .filter(varName => variableMap.has(varName))
+      .map(varName => {
+        const varXml = variableMap.get(varName)
+        return [varXml.id, getDefinitionText(varXml)]
+      })
+    parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows))
+  }
+
+  // input_config sheet — reuse buildInputConfigData
+  const cfg = buildInputConfigData()
+  parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows))
+
+  // input_{tableId} sheets — reuse buildTableSheetsData
+  for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
+    parts.push(renderSheetAsHtml(name, headers, [...metadataRows, ...dataRows]))
+  }
+
+  // calc_cohort and calc_cohort_step sheets — evaluated values
+  const { cohortHeaders, cohortRows, stepHeaders, stepRows } =
+    evaluateModelForPreview(modelObj, modelFeatures)
+
+  if (cohortRows.length > 0)
+    parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows))
+
+  if (stepRows.length > 0)
+    parts.push(renderSheetAsHtml('calc_cohort_step', stepHeaders, stepRows))
+
+  return `<div class="spreadsheet-preview">${parts.join('\n')}</div>`
 }
 
 // Export formula generation functions for testing
