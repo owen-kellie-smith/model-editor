@@ -82,10 +82,10 @@ function translateExprToPython(expr, varIdsLongestFirst) {
     .replace(/\batan\s*\(/gi, "math.atan(")
     .replace(/\bsqrt\s*\(/gi, "math.sqrt(");
 
-  // Replace variable calls foo(...) → V('foo', ...)
+  // Replace variable calls foo(...) → G('foo', ...) (non-recursive cache lookup)
   for (const vid of varIdsLongestFirst) {
     const esc = vid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    s = s.replace(new RegExp(`\\b${esc}\\s*\\(`, "g"), `V(${escapePyString(vid)}, `);
+    s = s.replace(new RegExp(`\\b${esc}\\s*\\(`, "g"), `G(${escapePyString(vid)}, `);
   }
 
   // Replace bare variable identifiers foo → V('foo') (longest-first avoids partial overlap)
@@ -97,7 +97,7 @@ function translateExprToPython(expr, varIdsLongestFirst) {
     const esc = vid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = new RegExp(`\\b${esc}\\b(?!\\s*\\()`, "g");
     if (!input.includes('"')) {
-      return input.replace(re, `V(${escapePyString(vid)})`);
+      return input.replace(re, `G(${escapePyString(vid)})`);
     }
     let out = "";
     let last = 0;
@@ -107,7 +107,7 @@ function translateExprToPython(expr, varIdsLongestFirst) {
       if (ch === '"' && input[i - 1] !== "\\") {
         // process segment up to this quote
         if (!inStr) {
-          out += input.slice(last, i).replace(re, `V(${escapePyString(vid)})`);
+          out += input.slice(last, i).replace(re, `G(${escapePyString(vid)})`);
         } else {
           out += input.slice(last, i);
         }
@@ -117,7 +117,7 @@ function translateExprToPython(expr, varIdsLongestFirst) {
       }
     }
     // tail
-    if (!inStr) out += input.slice(last).replace(re, `V(${escapePyString(vid)})`);
+    if (!inStr) out += input.slice(last).replace(re, `G(${escapePyString(vid)})`);
     else out += input.slice(last);
     return out;
   }
@@ -127,6 +127,51 @@ function translateExprToPython(expr, varIdsLongestFirst) {
   }
 
   return s;
+}
+
+function topoSortVarsForPoint(defs, deps) {
+  // Deterministic per-index-point evaluation order.
+  // Only consider shift==0 dependencies (same index point). Shifted deps are satisfied by outer temporal loop.
+  const ids = Object.keys(defs).map(String);
+  const adj = new Map();
+  const indeg = new Map();
+  for (const id of ids) {
+    adj.set(id, new Set());
+    indeg.set(id, 0);
+  }
+  for (const [to, arr] of Object.entries(deps)) {
+    for (const d of (arr || [])) {
+      const from = String(d?.name ?? "");
+      const shift = Number(d?.shift ?? 0);
+      if (!from || from === to) continue;
+      if (shift !== 0) continue;
+      if (!adj.has(from) || !adj.has(to)) continue;
+      if (!adj.get(from).has(to)) {
+        adj.get(from).add(to);
+        indeg.set(to, (indeg.get(to) || 0) + 1);
+      }
+    }
+  }
+
+  const ready = ids.filter(id => (indeg.get(id) || 0) === 0).sort();
+  const out = [];
+  while (ready.length) {
+    const id = ready.shift();
+    out.push(id);
+    for (const nxt of adj.get(id) || []) {
+      indeg.set(nxt, (indeg.get(nxt) || 0) - 1);
+      if ((indeg.get(nxt) || 0) === 0) {
+        const pos = ready.findIndex(x => x.localeCompare(nxt) > 0);
+        if (pos === -1) ready.push(nxt);
+        else ready.splice(pos, 0, nxt);
+      }
+    }
+  }
+  if (out.length !== ids.length) {
+    const remaining = ids.filter(id => !out.includes(id)).sort();
+    return out.concat(remaining);
+  }
+  return out;
 }
 
 function pythonLiteralTableSheets(modelObj) {
@@ -158,6 +203,7 @@ function pythonLiteralTableSheets(modelObj) {
 export function renderModelAsPython(modelObj, features) {
   if (!modelObj?.model) throwModelError("Invalid model object");
   if (!features?.resolvedVarsWithArguments) throwModelError("Invalid model features");
+  if (!features?.incoming) throwModelError("Invalid model features (missing incoming dependencies)");
 
   const variableMap = buildVariableMap(modelObj);
   const varIds = Array.from(variableMap.values()).map(v => String(v.id));
@@ -204,6 +250,22 @@ export function renderModelAsPython(modelObj, features) {
     domains[id] = Array.isArray(rv?.domain) ? rv.domain.map(String) : [];
   }
 
+
+  // Dependency graph (for deterministic evaluation order)
+  const deps = {};
+  for (const id of Object.keys(defs)) {
+    const key = id.toUpperCase();
+    const inc = features.incoming.get(key) || features.incoming.get(id) || new Set();
+    // dependencyCollector tends to normalize names (often uppercasing). Map back to the
+    // canonical variable id casing used in this model so topo sorting + G()/CACHE keys align.
+    const arr = Array.from(inc).map(d => {
+      const raw = String(d.name ?? "");
+      const canon = variableMap.get(raw.toUpperCase())?.id || raw;
+      return { name: String(canon), shift: Number(d.shift || 0) };
+    });
+    arr.sort((a,b) => (a.name.localeCompare(b.name) || (a.shift - b.shift)));
+    deps[id] = arr;
+  }
   // Pre-translate expressions to Python expressions that call V('var', ...)
   for (const [id, def] of Object.entries(defs)) {
     if (def.type === "constant" || def.type === "expression") {
@@ -217,6 +279,9 @@ export function renderModelAsPython(modelObj, features) {
   }
 
   const embeddedTablesJson = pythonLiteralTableSheets(modelObj);
+
+  // Deterministic per-index-point topo order (shift==0 edges)
+  const topoVars = topoSortVarsForPoint(defs, deps);
 
   // Python source
   const lines = [];
@@ -244,14 +309,19 @@ export function renderModelAsPython(modelObj, features) {
   // Embed metadata
   lines.push("# ---- Model metadata (embedded) ----");
   lines.push(`TEMPORAL_ID = ${escapePyString(temporalId)}`);
+  lines.push(`TEMP_MIN = ${tMin}`);
+  lines.push(`TEMP_MAX = ${tMax}`);
   lines.push(`INDEXSETS = ${JSON.stringify(indexSets, null, 2)}`);
   lines.push(`VAR_DOMAINS: Dict[str, List[str]] = ${JSON.stringify(domains, null, 2)}`);
+  lines.push(`VAR_DEPS: Dict[str, Any] = ${JSON.stringify(deps, null, 2)}`);
+  lines.push(`TOPO_VARS: List[str] = ${JSON.stringify(topoVars, null, 2)}`);
   lines.push(`VAR_DEFS: Dict[str, Any] = ${JSON.stringify(defs, null, 2)}`);
   lines.push(`DEFAULT_TABLES: Dict[str, Any] = ${embeddedTablesJson}`);
   lines.push("");
 
   // Runtime helpers (tables + evaluation)
   lines.push("# ---- Runtime helpers ----");
+  lines.push("# Error visibility: we propagate failures as NaN by default, and optionally fail fast with --strict.");
   lines.push("def _coerce_cell(x: str) -> Any:");
   lines.push("    s = x.strip()");
   lines.push("    if s == '':");
@@ -318,98 +388,169 @@ export function renderModelAsPython(modelObj, features) {
 
   lines.push("# Evaluation cache: (var_id, idx_tuple) -> value");
   lines.push("CACHE: Dict[Tuple[str, Tuple[Any, ...]], Any] = {}");
-  lines.push("IN_PROGRESS: set[Tuple[str, Tuple[Any, ...]]] = set()" );
+  lines.push("ERRORS: List[Dict[str, Any]] = []" );
+  lines.push("STRICT = False" );
   lines.push("");
 
-  lines.push("def V(var_id: str, *args: Any) -> Any:");
+  lines.push("BASE_ENV: Dict[str, Any] = {'math': math, 'G': None, 'min': min, 'max': max, 'abs': abs, 'round': round, 'pow': pow, 'int': int, 'float': float}" );
+  lines.push("# BASE_ENV['G'] will be set after G() is defined." );
+  lines.push("");
+
+  lines.push("def _nan() -> float:");
+  lines.push("    return float('nan')");
+  lines.push("");
+
+  lines.push("def _record_error(kind: str, var_id: str, key: Tuple[Any, ...], expr: str, err: Exception) -> None:");
+  lines.push("    ERRORS.append({'kind': kind, 'var': var_id, 'idx': list(key), 'expr': expr, 'error': repr(err)})");
+  lines.push("");
+
+  lines.push("def safe_eval(expr: str, env: Dict[str, Any], *, kind: str, var_id: str, key: Tuple[Any, ...]) -> Any:");
+  lines.push("    try:");
+  lines.push("        return eval(expr, {'__builtins__': {}}, env)");
+  lines.push("    except Exception as e:");
+  lines.push("        if STRICT:");
+  lines.push("            raise");
+  lines.push("        _record_error(kind, var_id, key, expr, e)");
+  lines.push("        return _nan()");
+  lines.push("");
+
+  lines.push("def safe_table_get(table: Dict[str, Any], row_key: Any, col_name: str, *, var_id: str, key: Tuple[Any, ...]) -> Any:");
+  lines.push("    try:");
+  lines.push("        return table_get(table, row_key, col_name)");
+  lines.push("    except Exception as e:");
+  lines.push("        if STRICT:");
+  lines.push("            raise");
+  lines.push("        _record_error('table_get', var_id, key, f'table_get(..., {row_key}, {col_name})', e)");
+  lines.push("        return _nan()");
+  lines.push("");
+
+  lines.push("def _key_tuple(var_id: str, idx: Dict[str, Any]) -> Tuple[Any, ...]:");
+  lines.push("    dom = VAR_DOMAINS.get(var_id, [])");
+  lines.push("    return tuple(idx.get(d) for d in dom)");
+  lines.push("");
+
+  lines.push("def G(var_id: str, *args: Any) -> Any:");
+  lines.push("    \"\"\"Non-recursive lookup of a variable value from CACHE.\n\n");
+  lines.push("    Expressions are generated to call G(...). The main loop computes values\n");
+  lines.push("    in deterministic topo order per index-point (and per temporal step).\n");
+  lines.push("    If a referenced value has not been computed yet, return NaN (and record).\n\"\"\"");
   lines.push("    dom = VAR_DOMAINS.get(var_id, [])");
   lines.push("    if len(args) > len(dom):");
   lines.push("        raise TypeError(f'{var_id} expects {len(dom)} args, got {len(args)}')");
   lines.push("    idx = dict(zip(dom, args))");
-  lines.push("    return eval_var(var_id, idx)");
-  lines.push("");
-
-  lines.push("def eval_var(var_id: str, idx: Dict[str, Any]) -> Any:");
-  lines.push("    dom = VAR_DOMAINS.get(var_id, [])");
-  lines.push("    key_tuple = tuple(idx.get(d) for d in dom)");
-  lines.push("    key = (var_id, key_tuple)");
+  lines.push("    kt = tuple(idx.get(d) for d in dom)");
+  lines.push("    key = (var_id, kt)");
   lines.push("    if key in CACHE:");
   lines.push("        return CACHE[key]");
-  lines.push("    if key in IN_PROGRESS:");
-  lines.push("        # break cycles gracefully");
-  lines.push("        return 0.0");
-  lines.push("    IN_PROGRESS.add(key)");
+  lines.push("    # If a scalar (domainless) value is requested before it was computed, compute it lazily.");
+  lines.push("    if len(dom) == 0:");
+  lines.push("        val = compute_value(var_id, {})");
+  lines.push("        if val is None:");
+  lines.push("            val = _nan()");
+  lines.push("        CACHE[key] = val");
+  lines.push("        return val");
+  lines.push("    if not STRICT:");
+  lines.push("        _record_error('missing_dep', var_id, kt, 'missing dependency', KeyError('value not computed yet'))");
+  lines.push("    return _nan()");
+  lines.push("");
+
+  lines.push("BASE_ENV['G'] = G" );
+  lines.push("");
+
+  lines.push("def compute_value(var_id: str, idx: Dict[str, Any]) -> Any:");
+  lines.push("    \"\"\"Compute one value for (var_id, idx) WITHOUT recursion.\"\"\"");
   lines.push("    d = VAR_DEFS.get(var_id) or {}" );
   lines.push("    t = d.get('type')" );
-  lines.push("    try:" );
-  lines.push("        if t in ('constant', 'expression'):" );
-  lines.push("            expr = d.get('py') or '0'" );
-  lines.push("            env = {'math': math, 'V': V, 'min': min, 'max': max, 'abs': abs, 'round': round, 'pow': pow, 'int': int}" );
-  lines.push("            # also expose index variables like step/month/cohort as plain names" );
+  lines.push("    key_tuple = _key_tuple(var_id, idx)" );
+  lines.push("    if t in ('constant', 'expression'):" );
+  lines.push("        expr = d.get('py') or '0'" );
+  lines.push("        env = dict(BASE_ENV)" );
+  lines.push("        env.update(idx)" );
+  lines.push("        return safe_eval(expr, env, kind='expr', var_id=var_id, key=key_tuple)" );
+  lines.push("    if t == 'piecewise':" );
+  lines.push("        for c in d.get('cases', []):" );
+  lines.push("            cond = c.get('when_py') or 'False'" );
+  lines.push("            env = dict(BASE_ENV)" );
   lines.push("            env.update(idx)" );
-  lines.push("            val = eval(expr, {'__builtins__': {}}, env)" );
-  lines.push("        elif t == 'piecewise':" );
-  lines.push("            val = 0.0" );
-  lines.push("            for c in d.get('cases', []):" );
-  lines.push("                cond = c.get('when_py') or 'False'" );
-  lines.push("                env = {'math': math, 'V': V, 'min': min, 'max': max, 'abs': abs, 'round': round, 'pow': pow, 'int': int}" );
-  lines.push("                env.update(idx)" );
-  lines.push("                if bool(eval(cond, {'__builtins__': {}}, env)):" );
-  lines.push("                    rhs = c.get('value_py') or '0'" );
-  lines.push("                    val = eval(rhs, {'__builtins__': {}}, env)" );
-  lines.push("                    break" );
-  lines.push("        elif t == 'table':" );
-  lines.push("            table_id = d.get('table')" );
-  lines.push("            col = d.get('column')" );
-  lines.push("            if not table_id or not col:" );
-  lines.push("                val = None" );
-  lines.push("            else:" );
-  lines.push("                table = TABLES.get(table_id)" );
-  lines.push("                if not table:" );
-  lines.push("                    val = None" );
-  lines.push("                else:" );
-  lines.push("                    # row key: if a domain exists, use the first domain index; else use None" );
-  lines.push("                    dom = VAR_DOMAINS.get(var_id, [])" );
-  lines.push("                    row_key = idx.get(dom[0]) if dom else None" );
-  lines.push("                    val = table_get(table, row_key, col)" );
-  lines.push("        elif t == 'tableLookup':" );
-  lines.push("            table_id = d.get('table')" );
-  lines.push("            row_ref = d.get('row')" );
-  lines.push("            col_sel = d.get('columnSelector')" );
-  lines.push("            table = TABLES.get(table_id)" );
-  lines.push("            if not table:" );
-  lines.push("                val = None" );
-  lines.push("            else:" );
-  lines.push("                row_key = V(row_ref, *[idx.get(a) for a in VAR_DOMAINS.get(row_ref, [])]) if row_ref else idx.get(TEMPORAL_ID)" );
-  lines.push("                if col_sel:" );
-  lines.push("                    col_name = V(col_sel, *[idx.get(a) for a in VAR_DOMAINS.get(col_sel, [])])" );
-  lines.push("                    val = table_get(table, row_key, str(col_name))" );
-  lines.push("                else:" );
-  lines.push("                    # default: second column" );
-  lines.push("                    headers = table.get('headers') or []" );
-  lines.push("                    if len(headers) < 2:" );
-  lines.push("                        val = None" );
-  lines.push("                    else:" );
-  lines.push("                        val = table_get(table, row_key, headers[1])" );
+  lines.push("            ok = bool(safe_eval(cond, env, kind='pw_cond', var_id=var_id, key=key_tuple))" );
+  lines.push("            if ok:" );
+  lines.push("                rhs = c.get('value_py') or '0'" );
+  lines.push("                return safe_eval(rhs, env, kind='pw_rhs', var_id=var_id, key=key_tuple)" );
+  lines.push("        return _nan()" );
+  lines.push("    if t == 'table':" );
+  lines.push("        table_id = d.get('table')" );
+  lines.push("        col = d.get('column')" );
+  lines.push("        table = TABLES.get(table_id) if table_id else None" );
+  lines.push("        if not table or not col:" );
+  lines.push("            return _nan()" );
+  lines.push("        dom = VAR_DOMAINS.get(var_id, [])" );
+  lines.push("        row_key = idx.get(dom[0]) if dom else None" );
+  lines.push("        return safe_table_get(table, row_key, col, var_id=var_id, key=key_tuple)" );
+  lines.push("    if t == 'tableLookup':" );
+  lines.push("        table_id = d.get('table')" );
+  lines.push("        row_ref = d.get('row')" );
+  lines.push("        col_sel = d.get('columnSelector')" );
+  lines.push("        table = TABLES.get(table_id) if table_id else None" );
+  lines.push("        if not table:" );
+  lines.push("            return _nan()" );
+  lines.push("        if row_ref:" );
+  lines.push("            row_key = G(row_ref, *[idx.get(a) for a in VAR_DOMAINS.get(row_ref, [])])" );
   lines.push("        else:" );
-  lines.push("            val = None" );
-  lines.push("    finally:" );
-  lines.push("        IN_PROGRESS.discard(key)" );
-  lines.push("    # Excel-style blank semantics: treat missing values as 0.0" );
-  lines.push("    if val is None:" );
-  lines.push("        val = 0.0" );
-  lines.push("    CACHE[key] = val" );
-  lines.push("    return val" );
+  lines.push("            row_key = idx.get(TEMPORAL_ID)" );
+  lines.push("        if col_sel:" );
+  lines.push("            col_name = G(col_sel, *[idx.get(a) for a in VAR_DOMAINS.get(col_sel, [])])" );
+  lines.push("            return safe_table_get(table, row_key, str(col_name), var_id=var_id, key=key_tuple)" );
+  lines.push("        headers = table.get('headers') or []" );
+  lines.push("        if len(headers) < 2:" );
+  lines.push("            return _nan()" );
+  lines.push("        return safe_table_get(table, row_key, headers[1], var_id=var_id, key=key_tuple)" );
+  lines.push("    return _nan()" );
+  lines.push("");
+
+  lines.push("def compute_point(idx: Dict[str, Any]) -> None:");
+  lines.push("    \"\"\"Compute all variables for this exact index-point (including current temporal step)\n");
+  lines.push("    in deterministic topo order, without recursion.\"\"\"");
+  lines.push("    # Ensure shifted deps that go out of temporal range are visible as NaN" );
+  lines.push("    for var_id in TOPO_VARS:" );
+  lines.push("        dom = VAR_DOMAINS.get(var_id, [])" );
+  lines.push("        kt = _key_tuple(var_id, idx)" );
+  lines.push("        key = (var_id, kt)" );
+  lines.push("        if key in CACHE:" );
+  lines.push("            continue" );
+  lines.push("        # Pre-mark any shifted dependencies that are out-of-range, so G() sees them deterministically" );
+  lines.push("        for dep in VAR_DEPS.get(var_id, []):" );
+  lines.push("            dep_id = dep.get('name')" );
+  lines.push("            shift = int(dep.get('shift') or 0)" );
+  lines.push("            if not dep_id or dep_id == var_id:" );
+  lines.push("                continue" );
+  lines.push("            dep_dom = VAR_DOMAINS.get(dep_id, [])" );
+  lines.push("            if shift != 0 and TEMPORAL_ID in dep_dom:" );
+  lines.push("                dep_idx = dict(idx)" );
+  lines.push("                tval = dep_idx.get(TEMPORAL_ID)" );
+  lines.push("                if tval is None:" );
+  lines.push("                    continue" );
+  lines.push("                dep_idx[TEMPORAL_ID] = tval + shift" );
+  lines.push("                if dep_idx[TEMPORAL_ID] < TEMP_MIN or dep_idx[TEMPORAL_ID] > TEMP_MAX:" );
+  lines.push("                    dep_kt = tuple(dep_idx.get(d) for d in dep_dom)" );
+  lines.push("                    dep_key = (dep_id, dep_kt)" );
+  lines.push("                    if dep_key not in CACHE:" );
+  lines.push("                        if not STRICT:" );
+  lines.push("                            _record_error('dep_oob', dep_id, dep_kt, 'out of range', ValueError('temporal index out of bounds'))" );
+  lines.push("                        CACHE[dep_key] = _nan()" );
+  lines.push("        val = compute_value(var_id, idx)" );
+  lines.push("        if val is None:" );
+  lines.push("            val = _nan()" );
+  lines.push("        CACHE[key] = val" );
   lines.push("");
 
   // Export and iteration
-  lines.push("def index_values(indexset_id: str, temporal_max: int, overrides: Dict[str, List[str]]) -> List[Any]:");
+  lines.push("def index_values(indexset_id: str, TEMP_MAX: int, overrides: Dict[str, List[str]]) -> List[Any]:");
   lines.push("    # integer ranges if min/max exist; else use overrides or defaults");
   lines.push("    meta = next((x for x in INDEXSETS if x.get('id') == indexset_id), None)" );
   lines.push("    dt = str((meta or {}).get('dataType') or '').lower()" );
   lines.push("    if indexset_id == TEMPORAL_ID:" );
-  lines.push("        # always 0..temporal_max" );
-  lines.push("        return list(range(0, temporal_max + 1))" );
+  lines.push("        # always 0..TEMP_MAX" );
+  lines.push("        return list(range(0, TEMP_MAX + 1))" );
   lines.push("    if dt in ('integer', 'int') and meta and meta.get('min') is not None and meta.get('max') is not None:" );
   lines.push("        try:" );
   lines.push("            lo = int(float(meta['min']))" );
@@ -444,6 +585,7 @@ export function renderModelAsPython(modelObj, features) {
   lines.push(`    ap.add_argument('--steps', type=int, default=${tMax}, help='temporal max (inclusive)')`);
   lines.push("    ap.add_argument('--csv', type=str, default='model_out.csv', help='output CSV path')");
   lines.push("    ap.add_argument('--index', action='append', default=[], help='Override index values: --index cohort=1,2 or --index day_type=weekday,weekend')");
+  lines.push("    ap.add_argument('--strict', action='store_true', help='Fail fast on evaluation errors (instead of returning NaN)')");
   lines.push("    args = ap.parse_args()" );
   lines.push("");
   lines.push("    overrides: Dict[str, List[str]] = {}" );
@@ -456,8 +598,10 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("    base_dir = os.path.dirname(os.path.abspath(__file__))" );
   lines.push("    global TABLES" );
   lines.push("    TABLES = load_tables_from_csv(base_dir, DEFAULT_TABLES)" );
-  lines.push("    temporal_max = int(args.steps)" );
-  lines.push("    if temporal_max < 0: raise SystemExit('steps must be >= 0')" );
+  lines.push("    global STRICT" );
+  lines.push("    STRICT = bool(args.strict)" );
+  lines.push("    TEMP_MAX = int(args.steps)" );
+  lines.push("    if TEMP_MAX < 0: raise SystemExit('steps must be >= 0')" );
   lines.push("");
 
   lines.push("    # Determine index values for all index sets used by any variable" );
@@ -465,13 +609,13 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("    for dom in VAR_DOMAINS.values():" );
   lines.push("        for d in dom:" );
   lines.push("            used_indexsets.add(d)" );
-  lines.push("    idx_vals: Dict[str, List[Any]] = {d: index_values(d, temporal_max, overrides) for d in used_indexsets}" );
+  lines.push("    idx_vals: Dict[str, List[Any]] = {d: index_values(d, TEMP_MAX, overrides) for d in used_indexsets}" );
   lines.push("");
 
   lines.push("    # Build output columns: all variables (scalar first), then indexed" );
-  lines.push("    scalar_vars = [vid for vid, dom in VAR_DOMAINS.items() if len(dom) == 0]" );
+  lines.push("    # IMPORTANT: compute scalars in deterministic topo order to avoid missing_dep due to alpha ordering" );
+  lines.push("    scalar_vars = [vid for vid in TOPO_VARS if len(VAR_DOMAINS.get(vid, [])) == 0]" );
   lines.push("    indexed_vars = [vid for vid, dom in VAR_DOMAINS.items() if len(dom) > 0]" );
-  lines.push("    scalar_vars.sort()" );
   lines.push("    indexed_vars.sort()" );
   lines.push("");
 
@@ -483,18 +627,26 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("        w = csv.writer(f)" );
   lines.push("        w.writerow(headers)" );
 
-  lines.push("        # Precompute scalar values once" );
-  lines.push("        scalar_vals = {vid: eval_var(vid, {}) for vid in scalar_vars}" );
+  lines.push("        # Precompute scalar values once (topo order, no recursion)" );
+  lines.push("        scalar_vals = {}" );
+  lines.push("        for vid in scalar_vars:" );
+  lines.push("            kt = ()" );
+  lines.push("            key = (vid, kt)" );
+  lines.push("            if key not in CACHE:" );
+  lines.push("                CACHE[key] = compute_value(vid, {})" );
+  lines.push("            scalar_vals[vid] = CACHE[key]" );
 
   lines.push("        # Cartesian product over axis" );
   lines.push("        def rec(i: int, cur: Dict[str, Any]):" );
   lines.push("            if i >= len(axis):" );
+  lines.push("                # Compute all values for this index-point before reading outputs" );
+  lines.push("                compute_point(cur)" );
   lines.push("                row = [cur.get(a) for a in axis]" );
   lines.push("                row += [scalar_vals.get(v) for v in scalar_vars]" );
   lines.push("                for v in indexed_vars:" );
   lines.push("                    dom = VAR_DOMAINS.get(v, [])" );
-  lines.push("                    idx = {d: cur.get(d) for d in dom}" );
-  lines.push("                    row.append(eval_var(v, idx))" );
+  lines.push("                    kt = tuple(cur.get(d) for d in dom)" );
+  lines.push("                    row.append(CACHE.get((v, kt), float('nan')))" );
   lines.push("                w.writerow(row)" );
   lines.push("                return" );
   lines.push("            a = axis[i]" );
@@ -506,6 +658,14 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("        rec(0, {})" );
   lines.push("");
   lines.push("    print(f'Wrote {args.csv}')" );
+  lines.push("    if ERRORS:" );
+  lines.push("        # Emit a compact error report to stderr" );
+  lines.push("        import sys" );
+  lines.push("        sys.stderr.write(f'\\nEncountered {len(ERRORS)} evaluation issue(s). Showing first 20:\\n')" );
+  lines.push("        for e in ERRORS[:20]:" );
+  lines.push("            sys.stderr.write(" );
+  lines.push("                f\"- {e['kind']} var={e['var']} idx={e['idx']} expr={e['expr']} err={e['error']}\\n\"" );
+  lines.push("            )" );
   lines.push("");
   lines.push("if __name__ == '__main__':" );
   lines.push("    main()" );
