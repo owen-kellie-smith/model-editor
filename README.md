@@ -18,7 +18,7 @@ A single web page for parsing, validating, and editing large declarative models 
 - **Graph Visualization** - Interactive dependency graphs with configurable depth (using Viz.js/DOT format)
 - **Multiple Definition Types** - Support for expression, constant, table, tableLookup, and piecewise definitions
 - **Parameterized Variables** - Variables with index sets for multi-dimensional modeling
-- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets
+- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python programs
 - **Zero-build Architecture** - Pure client-side application with no build step required
 
 ---

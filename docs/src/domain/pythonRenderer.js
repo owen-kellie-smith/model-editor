@@ -389,6 +389,7 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("# Evaluation cache: (var_id, idx_tuple) -> value");
   lines.push("CACHE: Dict[Tuple[str, Tuple[Any, ...]], Any] = {}");
   lines.push("ERRORS: List[Dict[str, Any]] = []" );
+  lines.push("SEEN_ERRORS = set()" );
   lines.push("STRICT = False" );
   lines.push("");
 
@@ -401,6 +402,10 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("");
 
   lines.push("def _record_error(kind: str, var_id: str, key: Tuple[Any, ...], expr: str, err: Exception) -> None:");
+  lines.push("    k = (kind, var_id, tuple(key), expr)");
+  lines.push("    if k in SEEN_ERRORS:");
+  lines.push("        return");
+  lines.push("    SEEN_ERRORS.add(k)");
   lines.push("    ERRORS.append({'kind': kind, 'var': var_id, 'idx': list(key), 'expr': expr, 'error': repr(err)})");
   lines.push("");
 
@@ -447,6 +452,9 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("        val = compute_value(var_id, {})");
   lines.push("        if val is None:");
   lines.push("            val = _nan()");
+  lines.push("        # If scalar computed to NaN, record it for visibility.");
+  lines.push("        if isinstance(val, float) and math.isnan(val):");
+  lines.push("            _record_error('nan_result', var_id, kt, 'nan', ValueError('scalar evaluated to NaN'))");
   lines.push("        CACHE[key] = val");
   lines.push("        return val");
   lines.push("    if not STRICT:");
@@ -540,6 +548,9 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("        val = compute_value(var_id, idx)" );
   lines.push("        if val is None:" );
   lines.push("            val = _nan()" );
+  lines.push("        # If the result is NaN and no specific error was recorded, record nan_result." );
+  lines.push("        if isinstance(val, float) and math.isnan(val):" );
+  lines.push("            _record_error('nan_result', var_id, kt, 'nan', ValueError('expression evaluated to NaN'))" );
   lines.push("        CACHE[key] = val" );
   lines.push("");
 
