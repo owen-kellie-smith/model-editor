@@ -89,7 +89,6 @@ Explicit state evolution:
 ### 6. Restaurant — seasonal variant  
 `restaurant-model/seasonal.xml`
 
-l
 - Large variable set  
 - Extensive conditional expressions   
 
