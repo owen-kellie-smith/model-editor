@@ -32,7 +32,7 @@ Load [moon-rocket.xml](moon-rocket.xml) into the model-editor.
 -   `altitude(t)` remains \~200 km
 -   `radius(t)` remains nearly constant
 -   `energy(t)` nearly constant
--   Plot `x` vs `y` → near-circle
+-   [Plot](#3-plotting-numerical-output) `x` vs `y` → near-circle
 
 ------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ or
 -   Increasing apogee
 -   `radius(t)` approaching lunar distance (\~384,000 km)
 
-Plot: - `radius(t)` - `x` vs `y`
+[Plot](#3-plotting-numerical-output): - `radius(t)` - `x` vs `y`
 
 ------------------------------------------------------------------------
 
@@ -129,7 +129,7 @@ If using adaptive `dt(t)`:
 -   Larger timestep far away
 -   Efficient long transfers
 
-Plot: - `dt(t)` - `tau(t)`
+[Plot](#3-plotting-numerical-output): - `dt(t)` - `tau(t)`
 
 ------------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ Plot: - `dt(t)` - `tau(t)`
 
 ### Orbit picture
 
-Plot: - X axis → `x` - Y axis → `y`
+[Plot](#3-plotting-numerical-output): - X axis → `x` - Y axis → `y`
 
 Optionally overlay: 
  - Earth as circle of radius `earth_radius` 
@@ -145,7 +145,7 @@ Optionally overlay:
 
 ### Energy diagnostics
 
-Plot: - `energy` vs `tau`
+[Plot](#3-plotting-numerical-output): - `energy` vs `tau`
 
 Should be: - Flat (two-body) - Slowly varying (three-body)
 
@@ -183,13 +183,13 @@ $$
 \beta = \frac{8}{3}
 $$
 
-Export to Python, add [plotting](#plotting) and run for 50000 steps i.e. in this case
+Export to Python, add [plotting](#3-plotting-numerical-output) and run for 50000 steps i.e. in this case
 `python3 lorenz_with_3d_plot.py --steps 50000`
  
 ![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_50000steps.png)
 ------------------------------------------------------------------------
 
-# :plotting:3. Plotting numerical output
+# 3. Plotting numerical output
 
 I found it much quicker to generate the numerical results via the exported Python script than via the exported spreadsheet.
 The exported Python script does not contain any plot command but you can manually add it.
