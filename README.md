@@ -120,16 +120,8 @@ All tests are located in the `tests/` directory and map to specific requirements
 docs/                   # Application source (served statically via GitHub Pages)
   index.html            # Main UI entry point
   src/                  # Application modules
-    app.js              # Main application entry
-    ui.js               # DOM element references
     applications/       # Feature modules (language, model, graph, CRUD)
     domain/             # Core business logic
-      model.js          # Model validation and features extraction
-      language.js       # Language parsing and validation
-      variableCrud.js   # CRUD operations with validation
-      graphRelations.js # Dependency graph generation
-      graphviz.js       # DOT format generation
-      serialize.js      # XML serialization
     utils/              # Helper utilities
     format/             # Formatting and error handling
   styles/               # CSS files
