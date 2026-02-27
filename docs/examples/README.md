@@ -89,11 +89,9 @@ Explicit state evolution:
 ### 6. Restaurant — seasonal variant  
 `restaurant-model/seasonal.xml`
 
-Highest structural density in this folder:
-
+l
 - Large variable set  
-- Extensive conditional expressions  
-- Dense dependency structure  
+- Extensive conditional expressions   
 
 ---
 
