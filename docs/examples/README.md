@@ -27,8 +27,7 @@ Models in this folder are composed from the following structural elements:
 
 ## Structural Progression
 
-### 1. [Restaurant](restaurant-model/) — base model  
-`restaurant-model/restaurantNoIndices.xml`
+### 1. [restaurantNoIndices.xml](restaurant-model/restaurantNoIndices.xml)  
 
 Components present:
 
