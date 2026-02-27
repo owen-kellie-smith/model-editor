@@ -184,7 +184,7 @@ $$
 $$
 
 Export to Python, add [plotting](#plotting) and run for 50000 steps i.e. in this case
-`python3 ython3 lorenz_with_3d_plot.py --steps 50000`
+`python3 lorenz_with_3d_plot.py --steps 50000`
  
 ![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_50000steps.png)
 ------------------------------------------------------------------------
