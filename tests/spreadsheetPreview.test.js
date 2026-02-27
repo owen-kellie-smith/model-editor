@@ -10,6 +10,7 @@ import path from 'path'
 describe('renderModelAsHTMLPreview', () => {
   let lang
   let restaurantModel
+  let restaurantNoIndicesModel
   let airlineModel
   let annuityModel
 
@@ -21,6 +22,9 @@ describe('renderModelAsHTMLPreview', () => {
       path.join(process.cwd(), 'docs', 'examples', 'restaurant-model', 'model.xml'), 'utf-8'
     )
     restaurantModel = validateModelCore(restaurantXml, 'restaurant-model.xml', lang)
+
+    const restaurantNoIdxXml = fs.readFileSync(getFixture('restaurantNoIndices.xml'), 'utf-8')
+    restaurantNoIndicesModel = validateModelCore(restaurantNoIdxXml, 'restaurantNoIndices.xml', lang)
 
     const airlineXml = fs.readFileSync(
       path.join(process.cwd(), 'docs', 'examples', 'airline-model', 'model.xml'), 'utf-8'
@@ -54,6 +58,31 @@ describe('renderModelAsHTMLPreview', () => {
   it('includes a constant table for restaurant model', () => {
     const html = renderModelAsHTMLPreview(restaurantModel.obj, restaurantModel.features)
     expect(html).toContain('constant')
+  })
+
+  it('renders derived no-index constants as numeric amounts in constant sheet', () => {
+    const html = renderModelAsHTMLPreview(restaurantNoIndicesModel.obj, restaurantNoIndicesModel.features)
+
+    // Extract constant sheet block
+    const m = html.match(/summary[^>]*>constant<\/summary>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)
+    expect(m).toBeTruthy()
+    const tbody = m[1]
+
+    function findConstValue(constId) {
+      // Match the row whose first cell equals constId and capture the second cell.
+      const re = new RegExp(
+        `<tr>[\\s\\S]*?<td[^>]*>\\s*${constId}\\s*<\\/td>[\\s\\S]*?<td[^>]*>\\s*([^<]*)\\s*<\\/td>[\\s\\S]*?<\\/tr>`,
+        'i'
+      )
+      const rm = tbody.match(re)
+      return rm?.[1] ?? null
+    }
+
+    // food_revenue_per_customer = avg_meal_price = 45 (should render as 45, not "avg_meal_price")
+    expect(findConstValue('food_revenue_per_customer')).toBe('45')
+
+    // total_revenue_per_customer = 45 + (12 * 0.75) = 54
+    expect(findConstValue('total_revenue_per_customer')).toBe('54')
   })
 
   it('includes a calc_cohort_step table for restaurant model', () => {

@@ -5,6 +5,7 @@ import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
 import { renderModelAsExcel, renderModelAsHTMLPreview } from "../domain/spreadsheetRenderer.js";
+import { renderModelAsPython } from "../domain/pythonRenderer.js";
 import { setElementContent } from "../utils/helpers.js";
 
 
@@ -54,7 +55,7 @@ function updateDirtyIndicator() {
   const isDirty = lastCommittedText !== null && currentText !== lastCommittedText;
   
   if (isDirty) {
-    ui.modelDirty.textContent = "✖ Unsaved changes";
+    ui.modelDirty.textContent = "✖ Unapplied changes";
     ui.modelDirty.style.display = "inline";
   } else {
     ui.modelDirty.textContent = "";
@@ -72,6 +73,7 @@ export function validateModel(text, filename, lang) {
     lastCommittedText = text;
     ui.downloadModel.disabled = false;   // ✅ valid
     ui.downloadSpreadsheet.disabled = false;  // ✅ enable spreadsheet download
+    ui.downloadPython.disabled = false;  // ✅ enable python export
     updateModelStatus("✓ Valid", "success");
     updateLoadedInfo();
     updateDirtyIndicator();
@@ -92,6 +94,7 @@ export function validateModel(text, filename, lang) {
     modelEnv = null;
     ui.downloadModel.disabled = true;    // ❌ invalid
     ui.downloadSpreadsheet.disabled = true;  // ❌ disable spreadsheet download
+    ui.downloadPython.disabled = true;  // ❌ disable python export
     ui.spreadsheetPreview.innerHTML = '';
     updateModelStatus(formatErrorNoStack(er), "error");
     updateDirtyIndicator();  // ✅ ADD THIS - also update on error
@@ -213,6 +216,17 @@ export function wireModelHandlers() {
     } catch (error) {
       alert("Error rendering spreadsheet: " + error.message + ". See console for stack trace.");
       console.error("Spreadsheet rendering error:", error);
+    }
+  });
+
+  ui.downloadPython.addEventListener("click", () => {
+    if (!modelEnv) return;
+    try {
+      const py = renderModelAsPython(modelEnv.obj, modelEnv.features);
+      exportFile(py, "model.py", "text/x-python");
+    } catch (error) {
+      alert("Error exporting Python: " + error.message + ". See console for stack trace.");
+      console.error("Python export error:", error);
     }
   });
   

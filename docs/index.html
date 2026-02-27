@@ -31,8 +31,8 @@
       <div id="languageStatus" class="status error">
       </div>
       <br>
-      <button id="loadLanguageText">Save changes to language</button>
-      <button id="downloadLanguage" disabled>Export language</button>
+      <button id="loadLanguageText">Apply changes</button>
+      <button id="downloadLanguage" disabled>Export as XML</button>
      </details>
     </div>
 
@@ -54,15 +54,16 @@
       <div id="modelStatus" class="status error">
       </div>
       <br>
-      <button id="loadModelText" disabled>Save changes to model</button>
-      <button id="downloadModel" disabled>Export model</button>
-      <button id="downloadSpreadsheet" disabled>Render model as spreadsheet</button>
+      <button id="loadModelText" disabled>Apply changes</button>
+      <button id="downloadModel" disabled>Export as XML</button>
+      <button id="downloadSpreadsheet" disabled>Export as spreadsheet</button>
+      <button id="downloadPython" disabled>Export as Python</button>
      </details>
     </div>
 
     <div class="editor">
       <details id="spreadsheetPreviewDetails">
-        <summary>Spreadsheet Preview</summary>
+        <summary>Sample Evaluation</summary>
         <div id="spreadsheetPreview"></div>
       </details>
     </div>
