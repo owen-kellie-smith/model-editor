@@ -59,9 +59,9 @@ The model-editor can export:
 - **Python scripts** (`.py`) - Render models as calculation-ready scripts which output a `.csv` file
 - **SVG/PNG files** - Download dependency graphs as images
 
-### Can the model-editor read spreadsheet files?
+### Can the model-editor read spreadsheet files or Python scripts?
 
-**No.** The model-editor is a declarative model editor. The "Render model as spreadsheet" feature is **one-way** - it generates Excel files from XML models but cannot import spreadsheet files back into XML format.
+**No.** The "Render model" features are **one-way** 
 
 ---
 
