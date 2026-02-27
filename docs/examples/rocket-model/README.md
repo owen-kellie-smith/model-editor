@@ -6,11 +6,18 @@ declarative system can represent time-stepped dynamical systems.
 The main example is a spacecraft orbiting Earth, optionally perturbed by
 the Moon.
 
+The second example is a numerical integration of the Lorenz Equations (1963).
+
+These examples demonstrate that the declarative modelling system can
+express nonlinear dynamics, indexed recursion, and adaptive stepping.
+
 ------------------------------------------------------------------------
 
-# 1. Stable Circular Orbit
+# 1. Spacecraft orbiting Earth
 
-## Try this
+## 1. Stable Circular Orbit
+
+### Try this
 
 -   Set `mu_moon = 0`
 -   Keep `altitude0 = 200`
@@ -18,7 +25,7 @@ the Moon.
 -   Use `dt = 10`
 -   Simulate \~6000 steps
 
-## Expect to see
+### Expect to see
 
 -   `altitude(t)` remains \~200 km
 -   `radius(t)` remains nearly constant
@@ -27,15 +34,15 @@ the Moon.
 
 ------------------------------------------------------------------------
 
-# 2. Make the Moon Disappear
+## 2. Make the Moon Disappear
 
-## Try this
+### Try this
 
 Set:
 
     mu_moon = 0
 
-## Expect to see
+### Expect to see
 
 -   Pure two-body motion
 -   Conic-section orbit
@@ -45,7 +52,7 @@ This is your numerical stability baseline.
 
 ------------------------------------------------------------------------
 
-# 3. Turn the Moon Back On
+## 3. Turn the Moon Back On
 
 Restore:
 
@@ -54,7 +61,7 @@ Restore:
 If using moving Moon, ensure `moon_x(t)` and `moon_y(t)` depend on
 `tau(t)`.
 
-## Expect to see
+### Expect to see
 
 -   Slight orbital perturbations
 -   Slow oscillations in altitude
@@ -62,9 +69,9 @@ If using moving Moon, ensure `moon_x(t)` and `moon_y(t)` depend on
 
 ------------------------------------------------------------------------
 
-# 4. Raise Apogee (Simulate TLI)
+## 4. Raise Apogee (Simulate TLI)
 
-## Try this
+### Try this
 
 Increase initial tangential velocity:
 
@@ -74,7 +81,7 @@ or
 
     vy0 = 1.10 * (mu_earth / x0)^(1/2)
 
-## Expect to see
+### Expect to see
 
 -   Elliptical orbit
 -   Increasing apogee
@@ -84,7 +91,7 @@ Plot: - `radius(t)` - `x` vs `y`
 
 ------------------------------------------------------------------------
 
-# 5. Add Thrust
+## 5. Add Thrust
 
 Example: thrust in +y direction for first 300 seconds.
 
@@ -96,7 +103,7 @@ Define:
 
     thrust_accel = 0.001   (km/s^2)
 
-## Expect to see
+### Expect to see
 
 -   Increased apogee
 -   Higher orbital energy
@@ -104,17 +111,17 @@ Define:
 
 ------------------------------------------------------------------------
 
-# 6. Adaptive Time Step
+## 6. Adaptive Time Step
 
 If using adaptive `dt(t)`:
 
-## Try this
+### Try this
 
 -   `dt_max = 30`
 -   `dt_min = 1`
 -   Adjust `dt_factor`
 
-## Expect to see
+### Expect to see
 
 -   Smaller timestep near Earth
 -   Larger timestep far away
@@ -124,7 +131,7 @@ Plot: - `dt(t)` - `tau(t)`
 
 ------------------------------------------------------------------------
 
-# 7. What to Plot for Pictures
+## 7. What to Plot for Pictures
 
 ### Orbit picture
 
@@ -142,41 +149,86 @@ Should be: - Flat (two-body) - Slowly varying (three-body)
 
 ------------------------------------------------------------------------
 
-# 8. Numerical Method
+# 2. [Lorenz Equations (1963)](https://en.wikipedia.org/wiki/Lorenz_system)
 
-This model uses Velocity-Verlet (Leapfrog) integration:
+Using [lorenz-difference.xml](lorenz-difference.xml) to integrate
 
-1.  Kick half-step velocity
-2.  Drift position
-3.  Recompute acceleration
-4.  Kick half-step velocity
+## Equations
 
-Advantages: - Second-order accuracy - Good energy behaviour - Suitable
-for orbital mechanics
+$$
+\frac{dx}{dt} = \sigma (y - x)
+$$
 
-Caveats: - Very large dt injects energy - Variable dt weakens symplectic
-properties
+$$
+\frac{dy}{dt} = x(\rho - z) - y
+$$
 
-Rule of thumb: - LEO stable orbit → dt ≤ 10 s - Reduce dt if energy
-drifts steadily
+$$
+\frac{dz}{dt} = xy - \beta z
+$$
 
-------------------------------------------------------------------------
+with classic chaotic parameters
 
-# 9. Suggested Experiments
+$$
+\sigma = 10
+$$
 
-1.  Remove Moon → verify circular orbit.
-2.  Increase velocity by 5% → elliptical orbit.
-3.  Increase velocity by 41% → escape trajectory.
-4.  Add thrust pulse → tune apogee to lunar distance.
-5.  Increase dt → observe instability.
-6.  Decrease dt → improved energy conservation.
+$$
+\rho = 28
+$$
 
-------------------------------------------------------------------------
+$$
+\beta = \frac{8}{3}
+$$
 
-The second example is a numerical integration of the Lorenz Equations (1963)
-
+Export to Python, add [plotting](#plotting) and run for 50000 steps i.e. in this case
+`python3 ython3 lorenz_with_3d_plot.py --steps 50000`
+ 
 ![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_200000steps.png)
 ------------------------------------------------------------------------
 
-These examples demonstrate that the declarative modelling system can
-express nonlinear dynamics, indexed recursion, and adaptive stepping.
+# :plotting:3. Plotting numerical output
+
+I found it much quicker to generate the numerical results via the exported Python script than via the exported spreadsheet.
+The exported Python script does not contain any plot command but you can manually add it.
+For example, by loading [lorenz-difference.xml](lorenz-difference.xml), exporting its model.py Python script, and comparing that with [lorenz_with_3d_plot.py](lorenz_with_3d_plot.py) (which produced the graphic below) you can see that all that was added was
+```
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  
+```
+(near the top of model.py) and
+```
+        # ---- 3D Plot of x,y,z ----
+        ts = list(range(0, TEMP_MAX + 1))
+
+        xs, ys, zs = [], [], []
+        for tval in ts:
+            xs.append(CACHE.get(("x", (tval,)), float("nan")))
+            ys.append(CACHE.get(("y", (tval,)), float("nan")))
+            zs.append(CACHE.get(("z", (tval,)), float("nan")))
+
+        # Filter out NaNs so matplotlib doesn't silently plot nothing
+        pts = [(x, y, z) for x, y, z in zip(xs, ys, zs)
+               if not (math.isnan(x) or math.isnan(y) or math.isnan(z))]
+
+        if not pts:
+            print("No finite (x,y,z) points found to plot. "
+                  "Try running with --strict to see why values are NaN.")
+        else:
+            xs, ys, zs = zip(*pts)
+
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection="3d")
+            ax.plot(xs, ys, zs)
+
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_zlabel("z")
+            ax.set_title("Lorenz Attractor")
+            plt.show()
+```
+(near the bottom)
+
+------------------------------------------------------------------------
+
+
