@@ -66,7 +66,7 @@ Further structural density:
 
 ---
 
-### 5. Non-linear dynamics [Rocket model and Chaotic model](rocket-model)  
+### 5. Non-linear dynamics [moon-rocket.xml and lorenz-difference.xml](rocket-model)  
 
 Explicit state evolution:
 
