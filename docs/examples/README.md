@@ -55,7 +55,7 @@ Additional components introduced:
 
 ---
 
-### 3. Airline — base model  
+### 3. [Airline](airline-model) — base model  
 `airline-model/model.xml`
 
 Increased scale and interaction:
