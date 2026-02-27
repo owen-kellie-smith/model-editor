@@ -1,4 +1,4 @@
-# Examples -- Orbital Mechanics Model
+# Examples -- Non-linear dynamics
 
 This folder contains a non-financial example model demonstrating how the
 declarative system can represent time-stepped dynamical systems.
