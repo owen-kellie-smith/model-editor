@@ -1,0 +1,295 @@
+<?xml version="1.0"?>
+<model>
+  <units>
+    <unit id="S">
+      s
+    </unit>
+    <unit id="ONE">
+      1
+    </unit>
+    <unit id="ONE_PER_S">
+      1/s
+    </unit>
+  </units>
+  <indexSets>
+    <indexSet id="t" role="temporal" dataType="integer" min="0" max="20"></indexSet>
+  </indexSets>
+  <variables>
+    <variable id="sigma">
+      <unit>ONE_PER_S</unit>
+      <definition type="constant">
+        10
+      </definition>
+    </variable>
+    <variable id="rho">
+      <unit>ONE</unit>
+      <definition type="constant">
+        28
+      </definition>
+    </variable>
+    <variable id="beta">
+      <unit>ONE_PER_S</unit>
+      <definition type="constant">
+        2.6666666666666665
+      </definition>
+    </variable>
+    <variable id="x0">
+      <unit>ONE</unit>
+      <definition type="constant">
+        1
+      </definition>
+    </variable>
+    <variable id="y0">
+      <unit>ONE</unit>
+      <definition type="constant">
+        1
+      </definition>
+    </variable>
+    <variable id="z0">
+      <unit>ONE</unit>
+      <definition type="constant">
+        1
+      </definition>
+    </variable>
+    <variable id="dt_min">
+      <unit>S</unit>
+      <definition type="constant">
+        0.0005
+      </definition>
+    </variable>
+    <variable id="dt_max">
+      <unit>S</unit>
+      <definition type="constant">
+        0.02
+      </definition>
+    </variable>
+    <variable id="dt_factor">
+      <unit>ONE</unit>
+      <definition type="constant">
+        0.02
+      </definition>
+    </variable>
+    <variable id="eps">
+      <unit>ONE_PER_S</unit>
+      <definition type="constant">
+        1e-12
+      </definition>
+    </variable>
+    <variable id="tau">
+      <unit>S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="constant">
+            0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            tau(t-1) + dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="x">
+      <unit>ONE</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            x0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            x(t-1) + fx_mid(t-1) * dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="y">
+      <unit>ONE</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            y0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            y(t-1) + fy_mid(t-1) * dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="z">
+      <unit>ONE</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            z0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            z(t-1) + fz_mid(t-1) * dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="fx">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        sigma * (y(t) - x(t))
+      </definition>
+    </variable>
+    <variable id="fy">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        x(t) * (rho - z(t)) - y(t)
+      </definition>
+    </variable>
+    <variable id="fz">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        x(t) * y(t) - beta * z(t)
+      </definition>
+    </variable>
+    <variable id="rhs_norm">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        (fx(t)^2 + fy(t)^2 + fz(t)^2)^(1/2)
+      </definition>
+    </variable>
+    <variable id="dt">
+      <unit>S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="constant">
+            0.01
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            min(
+              dt_max,
+              max(
+                dt_min,
+                dt_factor / max(eps, rhs_norm(t))
+              )
+            )
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="x_half">
+      <unit>ONE</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        x(t) + 0.5 * fx(t) * dt(t)
+      </definition>
+    </variable>
+    <variable id="y_half">
+      <unit>ONE</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        y(t) + 0.5 * fy(t) * dt(t)
+      </definition>
+    </variable>
+    <variable id="z_half">
+      <unit>ONE</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        z(t) + 0.5 * fz(t) * dt(t)
+      </definition>
+    </variable>
+    <variable id="fx_mid">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        sigma * (y_half(t) - x_half(t))
+      </definition>
+    </variable>
+    <variable id="fy_mid">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        x_half(t) * (rho - z_half(t)) - y_half(t)
+      </definition>
+    </variable>
+    <variable id="fz_mid">
+      <unit>ONE_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        x_half(t) * y_half(t) - beta * z_half(t)
+      </definition>
+    </variable>
+  </variables>
+</model>

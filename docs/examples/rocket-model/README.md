@@ -6,7 +6,6 @@ declarative system can represent time-stepped dynamical systems.
 The main example is a spacecraft orbiting Earth, optionally perturbed by
 the Moon.
 
-
 ------------------------------------------------------------------------
 
 # 1. Stable Circular Orbit
@@ -174,6 +173,10 @@ drifts steadily
 
 ------------------------------------------------------------------------
 
-This example demonstrates that the declarative modelling system can
-express nonlinear dynamics, indexed recursion, units, diagnostics,
-multi-body gravity, and adaptive stepping.
+The second example is a numerical integration of the Lorenz Equations (1963)
+
+![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_200000steps.png)
+------------------------------------------------------------------------
+
+These examples demonstrate that the declarative modelling system can
+express nonlinear dynamics, indexed recursion, and adaptive stepping.
