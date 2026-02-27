@@ -15,6 +15,8 @@ express nonlinear dynamics, indexed recursion, and adaptive stepping.
 
 # 1. Spacecraft orbiting Earth
 
+Load [moon-rocket.xml](moon-rocket.xml) into the model-editor.
+
 ## 1. Stable Circular Orbit
 
 ### Try this
@@ -151,7 +153,7 @@ Should be: - Flat (two-body) - Slowly varying (three-body)
 
 # 2. [Lorenz Equations (1963)](https://en.wikipedia.org/wiki/Lorenz_system)
 
-Using [lorenz-difference.xml](lorenz-difference.xml) to integrate
+Load [lorenz-difference.xml](lorenz-difference.xml) into the model-editor to integrate
 
 ## Equations
 
@@ -184,7 +186,7 @@ $$
 Export to Python, add [plotting](#plotting) and run for 50000 steps i.e. in this case
 `python3 ython3 lorenz_with_3d_plot.py --steps 50000`
  
-![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_200000steps.png)
+![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_50000steps.png)
 ------------------------------------------------------------------------
 
 # :plotting:3. Plotting numerical output
