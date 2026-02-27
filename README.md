@@ -54,6 +54,7 @@ The model-editor reads **XML files only**:
 The model-editor can export:
 - **XML files** (`.xml`) - Export language and model definitions
 - **Excel spreadsheets** (`.xlsx`) - Render models as calculation-ready spreadsheets with multiple sheets, formulas, and sample data
+- **Python scripts** (`.py`) - Render models as calculation-ready scripts which output a `.csv` file
 - **SVG/PNG files** - Download dependency graphs as images
 
 ### Can the model-editor read spreadsheet files?
