@@ -27,7 +27,7 @@ Models in this folder are composed from the following structural elements:
 
 ## Structural Progression
 
-### 1. Restaurant — base model  
+### 1. [Restaurant](restaurant-model/) — base model  
 `restaurant-model/restaurantNoIndices.xml`
 
 Components present:
@@ -43,8 +43,8 @@ Components absent:
 
 ---
 
-### 2. [Annuity](ammuity-model/)  
-`[annuity-model](annuity-model)/vendor-format-model.xml`
+### 2. [Annuity](annuity-model/)  
+`annuity-model/vendor-format-model.xml`
 
 Additional components introduced:
 
