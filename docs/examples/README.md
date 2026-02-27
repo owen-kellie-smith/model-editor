@@ -35,8 +35,8 @@ Components present:
 
 Components absent:
 
-- Indices
 - Tables  
+- Indices
 - Time-step recurrence  
 
 ---
