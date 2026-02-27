@@ -22,8 +22,6 @@ Models in this folder are composed from the following structural elements:
   Sets whose members label instances of a variable.  
   At most one integer index set may serve as the time step.
 
-Not every model uses all components.  
-Later examples introduce additional components or denser interactions between them.
 
 ---
 
