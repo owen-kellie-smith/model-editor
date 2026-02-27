@@ -27,7 +27,7 @@ Models in this folder are composed from the following structural elements:
 
 ## Structural Progression
 
-### 1. [restaurantNoIndices.xml](restaurant-model/restaurantNoIndices.xml)  
+### 1. Restaurant cashflow [restaurantNoIndices.xml](restaurant-model/restaurantNoIndices.xml)  
 
 Components present:
 
@@ -38,44 +38,35 @@ Components absent:
 - Indices
 - Tables  
 - Time-step recurrence  
-- Extensive conditional definitions  
 
 ---
 
-### 2. Annuity: [vendor-format-model.xml](annuity-model/vendor-format-model.xml)  `
+### 2. Airline cashflow [airline_no_seasons.xml](airline-model/airline_no_seasons.xml)
+
+Additional components introduced:
+- Time index
+- Conditional (piecewise) expressions  
+
+---
+
+### 3. Annuity cashflow [vendor-format-model.xml](annuity-model/vendor-format-model.xml)  `
 
 Additional components introduced:
 
-- Tables  
-- Conditional (piecewise) expressions  
+- Cohort index (enabling model point file where each row represents the constants for a cohort)  
 - Time-step recurrence  
-- Multiple index sets  
 
 ---
 
-### 3. [Airline](airline-model) — base model  
-`airline-model/model.xml`
-
-Increased scale and interaction:
-
-- Larger variable set  
-- Multiple index sets  
-- Limited conditional expressions  
-
----
-
-### 4. [Airline](airline-model) — variant  
-`airline-model/Dividends.xml`
+### 4. Airline cashflow with seasons [airline_with_seasons.xml](airline-model/airline_with_seasons.xml)
 
 Further structural density:
 
 - More frequent conditional expressions  
-- Alternative configuration of the airline base model  
 
 ---
 
-### 5. [Rocket](rocket-model)  
-`rocket-model/moon-rocket.xml`
+### 5. Non-linear dynamics [Rocket model and Chaotic model](rocket-model)  
 
 Explicit state evolution:
 
@@ -84,8 +75,7 @@ Explicit state evolution:
 
 ---
 
-### 6. [Restaurant](restaurant-model) — seasonal variant  
-`restaurant-model/seasonal.xml`
+### 6. Restaurant with seasons [seasonal.xml](restaurant-model/seasonal.xml)  
 
 - Large variable set  
 - Extensive conditional expressions   
