@@ -1,6 +1,6 @@
 # Examples
 
-This folder contains example models and the language definition used by the editor.
+This folder contains example models and the single language definition which satisfied all of them.
 
 The models are arranged in order of increasing structural complexity.  
 Structural complexity refers to the number and interaction of the model components described below.
