@@ -66,7 +66,7 @@ Increased scale and interaction:
 
 ---
 
-### 4. Airline — variant  
+### 4. [Airline](airline-model) — variant  
 `airline-model/Dividends.xml`
 
 Further structural density:
@@ -76,7 +76,7 @@ Further structural density:
 
 ---
 
-### 5. Rocket  
+### 5. [Rocket](rocket-model)  
 `rocket-model/moon-rocket.xml`
 
 Explicit state evolution:
@@ -86,7 +86,7 @@ Explicit state evolution:
 
 ---
 
-### 6. Restaurant — seasonal variant  
+### 6. [Restaurant](restaurant-model) — seasonal variant  
 `restaurant-model/seasonal.xml`
 
 - Large variable set  
