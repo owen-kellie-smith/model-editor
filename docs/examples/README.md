@@ -42,8 +42,7 @@ Components absent:
 
 ---
 
-### 2. [Annuity](annuity-model/)  
-`annuity-model/vendor-format-model.xml`
+### 2. Annuity: [vendor-format-model.xml](annuity-model/vendor-format-model.xml)  `
 
 Additional components introduced:
 
