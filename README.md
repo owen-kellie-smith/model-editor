@@ -28,11 +28,18 @@ python3 -m http.server 8080
 ```
 then visit http://localhost:8080
 
-3. Load or paste a `language.xml` (e.g. from docs/examples/) which lists functions in the modelling language that your model may use.
-4. Load or paste a `model.xml` (e.g. from docs/examples/annuity-model)
-5. Inspect validation and dependency output in the log panel
+3. Load or paste a `language.xml` (e.g. from the Example link) which lists functions / reserved words that exist in your modelling language.
+4. Load or paste a `model.xml` (e.g. from the Example link)
+5. Export as spreadsheet (which adds sample inputs that you can change in your spreadsheet editor).
+6. Export as Python.  Run the Python script as 
+```bash
+python3 model.py
+```
+and inspect its model_output.csv.
+7. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor. 
+8. Inspect the Graph of variable dependencies.
+9. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
 
-No build step or server required.
 
 ---
 
