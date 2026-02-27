@@ -12,9 +12,8 @@ A single web page for parsing, validating, and editing large declarative models 
 
 - **XML Model Parsing & Validation** - Load and validate declarative models with immediate error feedback
 - **Variable CRUD Operations** - Create, read, update, delete, and copy variables with full validation
-- **Dependency Analysis** - Automatic calculation of incoming/outgoing variable relationships
-- **Graph Visualization** - Interactive dependency graphs with configurable depth (using Viz.js/DOT format)
 - **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python programs
+- **Graph Visualization** - Interactive dependency graphs with configurable depth (using Viz.js/DOT format)
 - **Zero-build Architecture** - Pure client-side application with no build step required
 
 ---
