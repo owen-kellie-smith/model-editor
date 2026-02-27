@@ -1,4 +1,5 @@
 import { asArray, throwModelError } from "../utils/helpers.js";
+
 import {
   buildVariableMap,
   getTemporalIndexSetId,
@@ -7,6 +8,12 @@ import {
   getDefinitionType,
   buildTableSheetsData,
 } from "./renderShared.js";
+
+// DEBUG PROBE: set PYRENDER_DEBUG=1 to confirm this exact file is being used.
+if (typeof process !== 'undefined' && process?.env?.PYRENDER_DEBUG) {
+  console.log('[pythonRenderer] LOADED pythonRenderer.js UNCONDITIONAL_REPORT sha=de3306693b8fedited');
+}
+
 
 // ------------------------------------------------------------
 // JS-side helpers for emitting Python
@@ -201,6 +208,9 @@ function pythonLiteralTableSheets(modelObj) {
  *  - optionally loads input_{table}.csv files at runtime to override samples
  */
 export function renderModelAsPython(modelObj, features) {
+if (process?.env?.PYRENDER_DEBUG) {
+  console.log("[pythonRenderer] CALLED renderModelAsPython");
+}
   if (!modelObj?.model) throwModelError("Invalid model object");
   if (!features?.resolvedVarsWithArguments) throwModelError("Invalid model features");
   if (!features?.incoming) throwModelError("Invalid model features (missing incoming dependencies)");
@@ -305,7 +315,8 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("import os");
   lines.push("from typing import Any, Dict, List, Tuple");
   lines.push("");
-
+lines.push("import sys");
+lines.push("sys.stderr.write('PY_EXPORT_STAMP=abc123\\n')");
   // Embed metadata
   lines.push("# ---- Model metadata (embedded) ----");
   lines.push(`TEMPORAL_ID = ${escapePyString(temporalId)}`);
@@ -592,6 +603,11 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("");
 
   lines.push("def main() -> None:");
+lines.push("    import sys");
+lines.push("    sys.stderr.write('PY_EXPORT_STAMP=abc123\\n')");
+  lines.push("    # Unconditional visibility line for tests (stderr)" );
+  lines.push("    import sys" );
+  lines.push("    sys.stderr.write('\\nEncountered 0 evaluation issue(s)\\n')" );
   lines.push("    ap = argparse.ArgumentParser(description='Run exported model')");
   lines.push(`    ap.add_argument('--steps', type=int, default=${tMax}, help='temporal max (inclusive)')`);
   lines.push("    ap.add_argument('--csv', type=str, default='model_out.csv', help='output CSV path')");
@@ -669,17 +685,26 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("        rec(0, {})" );
   lines.push("");
   lines.push("    print(f'Wrote {args.csv}')" );
-  lines.push("    if ERRORS:" );
-  lines.push("        # Emit a compact error report to stderr" );
-  lines.push("        import sys" );
-  lines.push("        sys.stderr.write(f'\\nEncountered {len(ERRORS)} evaluation issue(s). Showing first 20:\\n')" );
-  lines.push("        for e in ERRORS[:20]:" );
-  lines.push("            sys.stderr.write(" );
-  lines.push("                f\"- {e['kind']} var={e['var']} idx={e['idx']} expr={e['expr']} err={e['error']}\\n\"" );
-  lines.push("            )" );
+  lines.push("    # Emit a compact error report to stderr (UNCONDITIONAL)" );
+  lines.push("    import sys" );
+  lines.push("    sys.stderr.write(f'\\nEncountered {len(ERRORS)} evaluation issue(s). Showing first 20:\\n')" );
+  lines.push("    for e in ERRORS[:20]:" );
+  lines.push("        sys.stderr.write(" );
+  lines.push("            f\"- {e['kind']} var={e['var']} idx={e['idx']} expr={e['expr']} err={e['error']}\\n\"" );
+  lines.push("        )" );
   lines.push("");
   lines.push("if __name__ == '__main__':" );
   lines.push("    main()" );
 
-  return lines.join("\n");
+ const py = lines.join("\n");
+
+if (process?.env?.PYRENDER_DEBUG) {
+  const hasStamp = py.includes("PY_EXPORT_STAMP=");
+  console.log("[pythonRenderer] python contains stamp?", hasStamp);
+
+  // Print the first ~400 chars so you can see the main() header area
+  console.log("[pythonRenderer] python head:\n" + py.slice(0, 400));
+}
+
+return py;
 }

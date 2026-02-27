@@ -1183,6 +1183,148 @@ function topologicalSort(incoming, variableNames) {
 // ─── HTML preview ──────────────────────────────────────────────────────────
 
 /**
+ * Evaluate "constant sheet" values for HTML preview.
+ *
+ * The constant sheet includes both:
+ *  - definitionType="constant" (literal constants like "1/12")
+ *  - definitionType="expression" with no arguments (derived constants)
+ *
+ * In the Excel renderer, derived constants become formulas that ultimately
+ * show numeric results. The preview should do the same, so we attempt to
+ * evaluate derived constants numerically (including nested references to other
+ * constants), and fall back to raw expression text when evaluation isn't
+ * possible.
+ */
+function evaluateConstantsForPreview(modelObj, modelFeatures, variableMap, categorized, temporalId) {
+  // Variable ids sorted longest-first to prevent shorter names from
+  // partially substituting inside longer ones.
+  const allVarIds = Array.from(variableMap.values())
+    .map(v => v.id)
+    .sort((a, b) => b.length - a.length)
+
+  // Memoisation: key = varId
+  const cache = new Map()
+
+  /** Format computed values for display (mirror evaluateModelForPreview). */
+  function fmt(v) {
+    if (v === null || v === undefined) return ''
+    if (typeof v === 'number') {
+      if (!isFinite(v)) return ''
+      if (Number.isInteger(v)) return String(v)
+      return String(Math.round(v * 1e6) / 1e6)
+    }
+    return String(v)
+  }
+
+  function numStr(v) {
+    return (v !== null && v !== undefined) ? String(v) : '0'
+  }
+
+  function evalVar(varId) {
+    const key = String(varId ?? '')
+    if (!key) return null
+    if (cache.has(key)) return cache.get(key)
+    cache.set(key, null) // sentinel to break cycles
+    const varXml = variableMap.get(key.toUpperCase())
+    if (!varXml) return null
+    const result = evalVarImpl(varXml)
+    cache.set(key, result)
+    return result
+  }
+
+  function evalVarImpl(varXml) {
+    switch (getDefinitionType(varXml)) {
+      case 'constant':   return evalArith(getDefinitionText(varXml))
+      case 'expression': return evalExpr(getDefinitionText(varXml))
+      default:           return null
+    }
+  }
+
+  /** Evaluate a purely-arithmetic constant expression (no variable refs). */
+  function evalArith(expr) {
+    if (!expr) return null
+    const e = String(expr).trim()
+    if (!e) return null
+    try {
+      if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(e))
+        return Function('"use strict"; return (' + e + ')')()
+    } catch (_) {}
+    return null
+  }
+
+  /** Evaluate an expression intended to be constant (no cohort/temporal args). */
+  function evalExpr(expr) {
+    if (!expr || typeof expr !== 'string') return null
+    let e = expr.trim()
+
+    // Constants should not depend on time; treat temporal index words as 0.
+    const tId = String(temporalId ?? 'step')
+    const tEsc = escapeRegex(tId)
+    e = e.replace(new RegExp(`\\b${tEsc}\\b`, 'gi'), '0')
+    if (tId.toLowerCase() !== 'step') e = e.replace(/\bstep\b/gi, '0')
+
+    // Replace variable references (constants), longest-first.
+    for (const varId of allVarIds) {
+      const esc = escapeRegex(varId)
+      // bare varname — constant, no arguments
+      e = e.replace(
+        new RegExp(`\\b${esc}\\b(?:\\(\\))?`, 'gi'),
+        () => numStr(evalVar(varId))
+      )
+    }
+
+    // Map model-language functions → JS Math equivalents
+    e = e
+      .replace(/\bfloor\s*\(/gi,   'Math.floor(')
+      .replace(/\bceiling\s*\(/gi, 'Math.ceil(')
+      .replace(/\bceil\s*\(/gi,    'Math.ceil(')
+      .replace(/\bround\s*\(/gi,   'Math.round(')
+      .replace(/\bexp\s*\(/gi,     'Math.exp(')
+      .replace(/\blog\s*\(/gi,     'Math.log(')
+      .replace(/\bsin\s*\(/gi,     'Math.sin(')
+      .replace(/\bcos\s*\(/gi,     'Math.cos(')
+      .replace(/\bpow\s*\(/gi,     'Math.pow(')
+      .replace(/\babs\s*\(/gi,     'Math.abs(')
+      .replace(/\bmin\s*\(/gi,     'Math.min(')
+      .replace(/\bmax\s*\(/gi,     'Math.max(')
+      .replace(/\bint\s*\(/gi,     'Math.trunc(')
+
+    // Power operator: ^ → **
+    e = e.replace(/\^/g, '**')
+
+    // Single = (equality test in model language) → === for JavaScript.
+    e = e.replace(/(?<![!<>=])=(?!=)/g, '===')
+
+    try {
+      const val = new Function('"use strict"; return (' + e + ')')()
+      if (typeof val === 'number' && isFinite(val)) return val
+      if (typeof val === 'boolean') return val ? 1 : 0
+    } catch (_) {}
+    return null
+  }
+
+  // Produce rows for the constant sheet.
+  const rows = categorized.constants
+    .filter(varName => variableMap.has(varName))
+    .map(varName => {
+      const varXml = variableMap.get(varName)
+      const defType = getDefinitionType(varXml)
+      const raw = getDefinitionText(varXml)
+
+      // Try to evaluate derived constants to a numeric value.
+      let rendered = raw
+      if (defType === 'constant' || defType === 'expression') {
+        const v = evalVar(varXml.id)
+        if (v !== null && v !== undefined) rendered = fmt(v)
+      }
+
+      return [varXml.id, rendered]
+    })
+
+  return rows
+}
+
+/**
  * Evaluates model variables numerically for cohort 1 over the configured step
  * range, using the same sample data that the spreadsheet renderer generates.
  * Returns rows ready for renderSheetAsHtml.
@@ -1538,6 +1680,12 @@ function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'st
     // Preserve rich objects (ExcelJS formulas sometimes get serialized as objects elsewhere)
     if (typeof value === 'object') return JSON.stringify(value)
 
+    // IMPORTANT: "text" columns (like the constant-sheet value column) should
+    // not auto-format numeric-looking strings into fixed decimals (e.g. 45 →
+    // 45.0000). If the model didn't declare a numeric dataType for the column,
+    // we preserve the author's literal rendering.
+    if (kind === 'text') return String(value)
+
     const n = toNumberIfSafe(value)
     if (n == null || Number.isNaN(n)) {
       // booleans sometimes come through as true/false
@@ -1620,12 +1768,7 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
 
   // constant sheet
   if (categorized.constants.length > 0) {
-    const rows = categorized.constants
-      .filter(varName => variableMap.has(varName))
-      .map(varName => {
-        const varXml = variableMap.get(varName)
-        return [varXml.id, getDefinitionText(varXml)]
-      })
+    const rows = evaluateConstantsForPreview(modelObj, modelFeatures, variableMap, categorized, temporalId)
     parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows, dataTypeById, { temporalId }))
   }
 
