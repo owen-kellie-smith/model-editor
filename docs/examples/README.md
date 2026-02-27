@@ -27,7 +27,7 @@ Models in this folder are composed from the following structural elements:
 
 ## Structural Progression
 
-### 1. Restaurant — base model  
+### 1. [Restaurant](restaurant-model/) — base model  
 `restaurant-model/restaurantNoIndices.xml`
 
 Components present:
@@ -43,8 +43,8 @@ Components absent:
 
 ---
 
-### 2. Annuity  
-`[annuity-model](annuity-model)/vendor-format-model.xml`
+### 2. [Annuity](annuity-model/)  
+`annuity-model/vendor-format-model.xml`
 
 Additional components introduced:
 
@@ -55,7 +55,7 @@ Additional components introduced:
 
 ---
 
-### 3. Airline — base model  
+### 3. [Airline](airline-model) — base model  
 `airline-model/model.xml`
 
 Increased scale and interaction:
@@ -66,7 +66,7 @@ Increased scale and interaction:
 
 ---
 
-### 4. Airline — variant  
+### 4. [Airline](airline-model) — variant  
 `airline-model/Dividends.xml`
 
 Further structural density:
@@ -76,7 +76,7 @@ Further structural density:
 
 ---
 
-### 5. Rocket  
+### 5. [Rocket](rocket-model)  
 `rocket-model/moon-rocket.xml`
 
 Explicit state evolution:
@@ -86,7 +86,7 @@ Explicit state evolution:
 
 ---
 
-### 6. Restaurant — seasonal variant  
+### 6. [Restaurant](restaurant-model) — seasonal variant  
 `restaurant-model/seasonal.xml`
 
 - Large variable set  
