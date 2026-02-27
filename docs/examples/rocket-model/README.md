@@ -1,6 +1,6 @@
 # Examples -- Non-linear dynamics
 
-This folder contains a non-financial example model demonstrating how the
+This folder contains non-financial example models demonstrating how the
 declarative system can represent time-stepped dynamical systems.
 
 The main example is a spacecraft orbiting Earth, optionally perturbed by
