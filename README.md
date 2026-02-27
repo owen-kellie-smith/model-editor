@@ -36,6 +36,7 @@ then visit http://localhost:8080
 python3 model.py
 ```
 and inspect its model_output.csv.
+
 7. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor. 
 8. Inspect the Graph of variable dependencies.
 9. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
