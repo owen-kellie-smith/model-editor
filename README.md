@@ -46,15 +46,15 @@ and inspect its model_output.csv.
 
 ## File Format Support
 
-### What files can the model-editor read?
+### What files can you read with the model-editor?
 
 The model-editor reads **XML files only**:
 - **Language files** (`language.xml`) - Define available functions and their arities
 - **Model files** (`model.xml`) - Define variables, their relationships, and calculations
 
-### What files can the model-editor write?
+### What files can you write with the model-editor?
 
-The model-editor can export:
+You can export:
 - **XML files** (`.xml`) - Export language and model definitions
 - **Excel spreadsheets** (`.xlsx`) - Render models as calculation-ready spreadsheets with multiple sheets, formulas, and sample data
 - **Python scripts** (`.py`) - Render models as calculation-ready scripts which output a `.csv` file
@@ -113,7 +113,6 @@ All tests are located in the `tests/` directory and map to specific requirements
 - Single-page, no-build browser UI
 - Load XML via file input or pasted text
 - Immediate feedback with contextual error reporting
-- UI state resets on invalid input to avoid partial state
 
 ---
 
