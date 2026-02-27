@@ -53,7 +53,7 @@ Additional components introduced:
 
 Additional components introduced:
 
-- Cohort index (enabling model point file where each row represents the constants for a cohort)  
+- Cohort index (enabling model point file where each row represents the initial conditions for a cohort)  
 - Time-step recurrence  
 
 ---
