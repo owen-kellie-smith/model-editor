@@ -1,0 +1,276 @@
+<?xml version="1.0"?>
+<model id="airline-profitability">
+  <indexSets>
+    <indexSet id="month" role="temporal" min="0" max="12">
+      <description>Projection month</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+  <units>
+    <unit id="USD"></unit>
+    <unit id="USD_per_month"></unit>
+    <unit id="percent"></unit>
+    <unit id="passengers"></unit>
+    <unit id="seats"></unit>
+    <unit id="flights"></unit>
+    <unit id="hours"></unit>
+    <unit id="miles"></unit>
+  </units>
+  <variables>
+    <variable id="aircraft_count">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        10
+      </definition>
+    </variable>
+    <variable id="seats_per_aircraft">
+      <dataType>integer</dataType>
+      <unit>seats</unit>
+      <definition type="constant">
+        180
+      </definition>
+    </variable>
+    <variable id="flights_per_aircraft_per_month">
+      <dataType>integer</dataType>
+      <unit>flights</unit>
+      <definition type="constant">
+        110
+      </definition>
+    </variable>
+    <variable id="fuel_cost_per_flight">
+      <dataType>currency</dataType>
+      <definition type="constant">
+        7500
+      </definition>
+    </variable>
+    <variable id="avg_ticket_price">
+      <dataType>real</dataType>
+      <definition type="constant">
+        165
+      </definition>
+    </variable>
+    <variable id="avg_load_factor">
+      <dataType>real</dataType>
+      <definition type="constant">
+        0.83
+      </definition>
+    </variable>
+    <variable id="total_monthly_flights">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>integer</dataType>
+      <unit>flights</unit>
+      <definition type="expression">
+        aircraft_count * flights_per_aircraft_per_month
+      </definition>
+    </variable>
+    <variable id="monthly_revenue">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        total_monthly_flights(month) * seats_per_aircraft * avg_load_factor * avg_ticket_price
+      </definition>
+    </variable>
+    <variable id="crew_cost_per_flight">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        2200
+      </definition>
+    </variable>
+    <variable id="maintenance_cost_per_flight">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        1700
+      </definition>
+    </variable>
+    <variable id="landing_fees_per_flight">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        500
+      </definition>
+    </variable>
+    <variable id="monthly_lease_cost">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        4200000
+      </definition>
+    </variable>
+    <variable id="monthly_admin_cost">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        850000
+      </definition>
+    </variable>
+    <variable id="monthly_marketing_cost">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        50000
+      </definition>
+    </variable>
+    <variable id="annual_interest_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.065
+      </definition>
+    </variable>
+    <variable id="initial_debt">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        50000000
+      </definition>
+    </variable>
+    <variable id="monthly_fuel_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        fuel_cost_per_flight * total_monthly_flights(month)
+      </definition>
+    </variable>
+    <variable id="monthly_crew_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        crew_cost_per_flight * total_monthly_flights(month)
+      </definition>
+    </variable>
+    <variable id="monthly_maintenance_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        maintenance_cost_per_flight * total_monthly_flights(month)
+      </definition>
+    </variable>
+    <variable id="monthly_landing_fees">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        landing_fees_per_flight * total_monthly_flights(month)
+      </definition>
+    </variable>
+    <variable id="monthly_variable_costs">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_fuel_cost(month) + monthly_crew_cost(month) + monthly_maintenance_cost(month) + monthly_landing_fees(month)
+      </definition>
+    </variable>
+    <variable id="monthly_fixed_costs">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_lease_cost + monthly_admin_cost + monthly_marketing_cost
+      </definition>
+    </variable>
+    <variable id="monthly_total_costs">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_variable_costs(month) + monthly_fixed_costs
+      </definition>
+    </variable>
+    <variable id="monthly_net_profit">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_revenue(month) - monthly_total_costs(month)
+      </definition>
+    </variable>
+    <variable id="monthly_profit_margin">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        monthly_net_profit(month) / monthly_revenue(month)
+      </definition>
+    </variable>
+    <variable id="monthly_interest_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        annual_interest_rate / 12
+      </definition>
+    </variable>
+    <variable id="outstanding_debt">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 0</when>
+          <value>initial_debt</value>
+        </case>
+        <case>
+          <when>month &gt; 0</when>
+          <value>max(0, outstanding_debt(month - 1) - monthly_net_profit_after_interest(month - 1))</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="monthly_interest_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        outstanding_debt(month) * monthly_interest_rate
+      </definition>
+    </variable>
+    <variable id="monthly_net_profit_after_interest">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_net_profit(month) - monthly_interest_cost(month)
+      </definition>
+    </variable>
+    <variable id="monthly_profit_margin_after_interest">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        monthly_net_profit_after_interest(month) / monthly_revenue(month)
+      </definition>
+    </variable>
+  </variables>
+</model>

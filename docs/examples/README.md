@@ -28,15 +28,15 @@ Models in this folder are composed from the following structural elements:
 ## Structural Progression
 
 ### 1. Restaurant — base model  
-`restaurant-model/model.xml`
+`restaurant-model/restaurantNoIndices.xml`
 
 Components present:
 
 - Variables  
-- A single index set  
 
 Components absent:
 
+- Indices
 - Tables  
 - Time-step recurrence  
 - Extensive conditional definitions  
