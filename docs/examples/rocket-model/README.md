@@ -3,7 +3,7 @@
 This folder contains non-financial example models demonstrating how the
 declarative system can represent time-stepped dynamical systems.
 
-The main example is a spacecraft orbiting Earth, optionally perturbed by
+The first example is a spacecraft orbiting Earth, optionally perturbed by
 the Moon.
 
 The second example is a numerical integration of the Lorenz Equations (1963).
