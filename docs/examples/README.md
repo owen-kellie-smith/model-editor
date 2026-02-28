@@ -26,7 +26,9 @@ Models in this folder are composed from the following structural elements:
 ---
 
 
-## 1. Restaurant cashflow [restaurantNoIndices.xml](restaurant-model)  
+## 1. Restaurant cashflow 
+
+[restaurantNoIndices.xml](restaurant-model)  
 
 Components present:
 
@@ -40,7 +42,9 @@ Components absent:
 
 ---
 
-## 2. Airline cashflow [airline_no_seasons.xml](airline-model)
+## 2. Airline cashflow 
+
+[airline_no_seasons.xml](airline-model)
 
 Additional components introduced:
 - Time index
@@ -48,7 +52,9 @@ Additional components introduced:
 
 ---
 
-## 3. Annuity cashflow [vendor-format-model.xml](annuity-model)  `
+## 3. Annuity cashflow 
+
+[vendor-format-model.xml](annuity-model)  `
 
 Additional components introduced:
 
@@ -57,7 +63,9 @@ Additional components introduced:
 
 ---
 
-## 4. Airline cashflow with seasons [airline_with_seasons.xml](airline-model)
+## 4. Airline cashflow with seasons 
+
+[airline_with_seasons.xml](airline-model)
 
 Further structural density:
 
@@ -65,7 +73,9 @@ Further structural density:
 
 ---
 
-## 5. Non-linear dynamics [moon-rocket.xml and lorenz-difference.xml](rocket-model)  
+## 5. Non-linear dynamics 
+
+[moon-rocket.xml and lorenz-difference.xml](rocket-model)  
 
 Explicit state evolution:
 
@@ -74,7 +84,9 @@ Explicit state evolution:
 
 ---
 
-## 6. Restaurant with seasons [seasonal.xml](restaurant-model)  
+## 6. Restaurant with seasons 
+
+[seasonal.xml](restaurant-model)  
 
 - Large variable set  
 - Extensive conditional expressions   
