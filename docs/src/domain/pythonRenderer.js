@@ -326,6 +326,15 @@ export function renderModelAsPython(modelObj, features) {
   lines.push(`DEFAULT_TABLES: Dict[str, Any] = ${embeddedTablesJson}`);
   lines.push("");
 
+
+lines.push("def _sanitize_filename(name):");
+lines.push("    import re");
+lines.push("    s = str(name or 'model')");
+lines.push("    s = re.sub(r'[^A-Za-z0-9_\\-]', '_', s)");
+lines.push("    s = re.sub(r'_+', '_', s).strip('_')");
+lines.push("    return s or 'model'");
+lines.push("");
+
   // Runtime helpers (tables + evaluation)
   lines.push("# ---- Runtime helpers ----");
   lines.push("# Error visibility: we propagate failures as NaN by default, and optionally fail fast with --strict.");
@@ -601,12 +610,14 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("def main() -> None:");
   lines.push("    ap = argparse.ArgumentParser(description='Run exported model')");
   lines.push(`    ap.add_argument('--steps', type=int, default=${tMax}, help='temporal max (inclusive)')`);
-  lines.push("    ap.add_argument('--csv', type=str, default='model_out.csv', help='output CSV path')");
+lines.push("    default_csv = _sanitize_filename(MODEL_ID) + '_out.csv'");
+lines.push("    ap.add_argument('--csv', type=str, default=default_csv, help='Output CSV path (default: <model_id>_out.csv)')");
   lines.push("    ap.add_argument('--index', action='append', default=[], help='Override index values: --index cohort=1,2 or --index day_type=weekday,weekend')");
   lines.push("    ap.add_argument('--strict', action='store_true', help='Fail fast on evaluation errors (instead of returning NaN)')");
   // ---- Optional trajectory plotting (runtime) ----
   lines.push("    ap.add_argument('--plot', action='store_true', help='Generate a trajectory GIF after computing results')");
-  lines.push("    ap.add_argument('--gif', type=str, default='model_out.gif', help='GIF output path (only used with --plot)')");
+lines.push("    default_gif = _sanitize_filename(MODEL_ID) + '.gif'");
+lines.push("    ap.add_argument('--gif', type=str, default=default_gif, help='GIF output path (default: <model_id>.gif)')");
   lines.push("    ap.add_argument('--fps', type=int, default=24, help='Frames per second for trajectory GIF')");
   lines.push("    ap.add_argument('--dpi', type=int, default=120, help='DPI for GIF rendering')");
   lines.push("    ap.add_argument('--traj', type=str, default='', help='Trajectory columns x,y,z (e.g. x,y,z). If set, outputs a 3D trajectory GIF.')");
