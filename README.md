@@ -29,7 +29,7 @@ python3 -m http.server 8080
 then visit http://localhost:8080
 
 3. Load or paste a `language.xml` (e.g. from the Example link) which lists functions (reserved words) in your modelling language.
-4. Load or paste a `model.xml` (e.g. from the [examples folder](examples))
+4. Load or paste a `model.xml` (e.g. from the [examples folder](docs/examples))
 5. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor. 
 6. Inspect the Graph of variable dependencies.
 7. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
