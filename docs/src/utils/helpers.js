@@ -1,6 +1,15 @@
 import { createDOMParser } from "./domParser.js"
 import { log } from "../utils/logger.js"
 
+export function sanitizeFilename(name) {
+  return String(name || "model")
+    .replace(/[^a-zA-Z0-9_\-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    || "model";
+}
+
+
 export function escapeHtml(text) {
   if (text == null) {
     return '';
