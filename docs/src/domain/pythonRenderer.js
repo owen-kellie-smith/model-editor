@@ -327,6 +327,14 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("");
 
   // Runtime helpers (tables + evaluation)
+  lines.push("def _sanitize_filename(name):");
+  lines.push("    import re");
+  lines.push("    s = str(name or 'model')");
+  lines.push("    s = re.sub(r'[^A-Za-z0-9_\\-]', '_', s)");
+  lines.push("    s = re.sub(r'_+', '_', s).strip('_')");
+  lines.push("    return s or 'model'");
+  lines.push("");
+
   lines.push("# ---- Runtime helpers ----");
   lines.push("# Error visibility: we propagate failures as NaN by default, and optionally fail fast with --strict.");
   lines.push("def _coerce_cell(x: str) -> Any:");
@@ -601,12 +609,14 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("def main() -> None:");
   lines.push("    ap = argparse.ArgumentParser(description='Run exported model')");
   lines.push(`    ap.add_argument('--steps', type=int, default=${tMax}, help='temporal max (inclusive)')`);
-  lines.push("    ap.add_argument('--csv', type=str, default='model_out.csv', help='output CSV path')");
+  lines.push("    default_csv = _sanitize_filename(MODEL_ID) + '_out.csv'");
+  lines.push("    ap.add_argument('--csv', type=str, default=default_csv, help='Output CSV path (default: <model_id>_out.csv)')");
   lines.push("    ap.add_argument('--index', action='append', default=[], help='Override index values: --index cohort=1,2 or --index day_type=weekday,weekend')");
   lines.push("    ap.add_argument('--strict', action='store_true', help='Fail fast on evaluation errors (instead of returning NaN)')");
   lines.push("    # ---- Optional trajectory GIF output ----");
   lines.push("    ap.add_argument('--plot', action='store_true', help='Generate a trajectory GIF after computing results')");
-  lines.push("    ap.add_argument('--gif', type=str, default='model.gif', help='GIF output path (only used with --plot)')");
+  lines.push("    default_gif = _sanitize_filename(MODEL_ID) + '.gif'");
+  lines.push("    ap.add_argument('--gif', type=str, default=default_gif, help='GIF output path (default: <model_id>.gif; only used with --plot)')");
   lines.push("    ap.add_argument('--fps', type=int, default=24, help='Frames per second for GIF')");
   lines.push("    ap.add_argument('--dpi', type=int, default=120, help='DPI for GIF rendering')");
   lines.push("    ap.add_argument('--traj', type=str, default='', help='Trajectory spec(s). Format: label:x[,y[,z]];label2:x[,y[,z]]. (1D uses t vs x; 2D uses x,y; 3D uses x,y,z).')");
@@ -617,6 +627,7 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("    ap.add_argument('--traj-tail-color', type=str, default='blue', help='Default tail color for trajectories.')");
   lines.push("    ap.add_argument('--traj-head-colors', type=str, default='', help='Per-trajectory head colors: label=color,label2=color')");
   lines.push("    ap.add_argument('--traj-tail-colors', type=str, default='', help='Per-trajectory tail colors: label=color,label2=color')");
+  lines.push("    ap.add_argument('--no-model-id-title', action='store_true', help='Suppress model id in plot title (saves space)')");
   lines.push("    args = ap.parse_args()" );
   lines.push("");
   lines.push("    overrides: Dict[str, List[str]] = {}" );
@@ -712,15 +723,17 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("            except Exception as e:");
   lines.push("                raise SystemExit('Trajectory plotting requires pandas, matplotlib, and Pillow. ' + repr(e))");
   lines.push("");
-  lines.push("            df = pd.read_csv(args.csv)");
+  lines.push("            # Read only header first (fast) to discover columns, then load only needed columns.");
+  lines.push("            _all_cols = pd.read_csv(args.csv, nrows=0).columns.tolist()");
+  lines.push("            df = None  # will be loaded after parsing traj spec")
   lines.push("            tcol = str(getattr(args, 'traj_t', TEMPORAL_ID)).strip() or TEMPORAL_ID");
   lines.push("            step = max(1, int(getattr(args, 'traj_step', 1)))");
   lines.push("            point_only = bool(getattr(args, 'traj_point', False))");
   lines.push("            default_head = str(getattr(args, 'traj_head_color', 'red'))");
   lines.push("            default_tail = str(getattr(args, 'traj_tail_color', 'blue'))");
   lines.push("");
-  lines.push("            if tcol not in df.columns:");
-  lines.push("                raise SystemExit(f'Temporal column {tcol} not found. Available: {list(df.columns)}')");
+  lines.push("            if tcol not in _all_cols:");
+  lines.push("                raise SystemExit(f'Temporal column {tcol} not found. Available: {_all_cols}')");
   lines.push("");
   lines.push("            def _parse_color_map(s: str):");
   lines.push("                out = {}");
@@ -757,14 +770,20 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("                raise SystemExit(f'All trajectories must have the same dimensionality (got {dims}). Use z=0 for 2D in 3D, or provide only x for 1D.')");
   lines.push("            dim = dims[0]");
   lines.push("");
+  lines.push("            _need = {tcol}");
+  lines.push("            for _label, _parts in trajs:");
+  lines.push("                for _c in _parts:");
+  lines.push("                    if _c in _all_cols: _need.add(_c)");
+  lines.push("            df = pd.read_csv(args.csv, usecols=sorted(_need))");
+  lines.push("");
   lines.push("            traj_data = []");
   lines.push("            frames = None");
   lines.push("            for label, parts in trajs:");
   lines.push("                cols = [tcol] + parts");
   lines.push("                for c in cols:");
-  lines.push("                    if c != tcol and c not in df.columns:");
+  lines.push("                    if c != tcol and c not in _all_cols:");
   lines.push("                        try: float(c)");
-  lines.push("                        except Exception: raise SystemExit(f\'Column {c} not found. Available: {list(df.columns)}\')");
+  lines.push("                        except Exception: raise SystemExit(f\'Column {c} not found. Available: {_all_cols}\')");
   lines.push("                dd = df[[c for c in cols if c in df.columns]].copy()");
   lines.push("                for c in parts:");
   lines.push("                    if c not in dd.columns:");
@@ -836,7 +855,10 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("                    ax.set_xlabel(traj_data[0][2][0]); ax.set_ylabel(traj_data[0][2][1]); ax.set_zlabel(traj_data[0][2][2]); ax.set_xlim(x_min, x_max); ax.set_ylim(y_min, y_max); ax.set_zlim(z_min, z_max)");
   lines.push("                try: ax.legend(loc='upper right', fontsize='small')");
   lines.push("                except Exception: pass");
-  lines.push("                ax.set_title(f'{tcol}={t_now}')");
+  lines.push("                if bool(getattr(args, 'no_model_id_title', False)):");
+  lines.push("                    ax.set_title(f'{tcol}={t_now}')");
+  lines.push("                else:");
+  lines.push("                    ax.set_title(f'{MODEL_ID} | {tcol}={t_now}')");
   lines.push("");
   lines.push("            ani = FuncAnimation(fig, draw, frames=len(frame_idx), interval=1000 / max(1, fps), repeat=False)");
   lines.push("            ani.save(out_gif, writer=PillowWriter(fps=fps), dpi=dpi)");
