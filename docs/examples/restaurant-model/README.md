@@ -14,7 +14,9 @@ This model projects the financial performance of a restaurant operation. It calc
 
 ## Usage
 
-To use this model in the model editor:
+See ../../../#how-to-run
+
+o use this model in the model editor:
 
 1. **Load the language definition:**
    - Navigate to the [model editor](https://owen-kellie-smith.github.io/model-editor/)
