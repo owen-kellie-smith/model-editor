@@ -11,9 +11,9 @@ A single web page for parsing, validating, and editing declarative models stored
 ## Features
 
 - **XML Model Parsing & Validation** - Load and validate declarative models with immediate error feedback
-- **Variable CRUD Operations** - Create, read, update, delete, and copy single variables with full validation
-- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python scripts
 - **Graph Visualization** - Render dependency graphs with configurable depth (using Viz.js/DOT format)
+- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python scripts
+
 
 
 ---
