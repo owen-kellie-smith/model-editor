@@ -38,8 +38,11 @@ then visit http://localhost:8080
 ```bash
 python3 model.py
 ```
-and inspect its model_output.csv.
-
+and inspect its model_output.csv.  See what command line arguments are available in the Python script 
+```bash
+python3 model.py --help
+```
+E.g. you can plot a graph of the Python output. See [e.g. the Lorenz equation example](docs/examples/rocket-model))
 
 
 
