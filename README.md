@@ -88,7 +88,7 @@ npm install  # Install dev dependencies
 npm test     # Run all tests with Vitest
 ```
 
-All tests are located in the `tests/` directory and map to specific requirements (R1-R11 below).
+All tests are located in the `tests/` directory and map to specific requirements (R1-R12 below).
 
 ---
 
