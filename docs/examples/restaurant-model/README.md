@@ -14,7 +14,7 @@ This model projects the financial performance of a restaurant operation. It calc
 
 ## Usage
 
-See ../../../#how-to-run
+See the [repo README](../../../README.md#how-to-run)
 
 To use this model in the model editor:
 
