@@ -2,7 +2,7 @@
 
 ![Tests](https://github.com/owen-kellie-smith/model-editor/actions/workflows/tests.yml/badge.svg)
 
-A single web page for parsing, validating, and editing large declarative models stored in XML with built-in constraints to preserve model validity.
+A single web page for parsing, validating, and editing declarative models stored in XML with built-in constraints to preserve model validity.
 
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
@@ -11,10 +11,10 @@ A single web page for parsing, validating, and editing large declarative models 
 ## Features
 
 - **XML Model Parsing & Validation** - Load and validate declarative models with immediate error feedback
-- **Variable CRUD Operations** - Create, read, update, delete, and copy variables with full validation
-- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python programs
-- **Graph Visualization** - Interactive dependency graphs with configurable depth (using Viz.js/DOT format)
-- **Zero-build Architecture** - Pure client-side application with no build step required
+- **Graph Visualization** - Render dependency graphs with configurable depth (using Viz.js/DOT format)
+- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python scripts
+
+
 
 ---
 
@@ -28,18 +28,19 @@ python3 -m http.server 8080
 ```
 then visit http://localhost:8080
 
-3. Load or paste a `language.xml` (e.g. from the Example link) which lists functions / reserved words that exist in your modelling language.
-4. Load or paste a `model.xml` (e.g. from the Example link)
-5. Export as spreadsheet (which adds sample inputs that you can change in your spreadsheet editor).
-6. Export as Python.  Run the Python script as 
+3. Load or paste a `language.xml` (e.g. from the Example link) which lists functions (reserved words) in your modelling language.
+4. Load or paste a `model.xml` (e.g. from the [examples folder](docs/examples))
+5. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor. 
+6. Inspect the Graph of variable dependencies.
+7. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
+8. Export as spreadsheet (which adds sample inputs that you can change in your spreadsheet editor).
+9. Export as Python.  Run the Python script as 
 ```bash
 python3 model.py
 ```
 and inspect its model_output.csv.
 
-7. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor. 
-8. Inspect the Graph of variable dependencies.
-9. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
+
 
 
 ---
@@ -87,7 +88,7 @@ npm install  # Install dev dependencies
 npm test     # Run all tests with Vitest
 ```
 
-All tests are located in the `tests/` directory and map to specific requirements (R1-R11 below).
+All tests are located in the `tests/` directory and map to specific requirements (R1-R12 below).
 
 ---
 
@@ -171,7 +172,7 @@ Formulas can reference variables at different time steps:
 
 The model editor includes functionality to export a loaded model as a working Excel spreadsheet (XLSX format) with actual formulas that is semantically equivalent to the original model. This allows models to be used in spreadsheet applications like Excel, Google Sheets, or LibreOffice Calc with automatic calculation.
 
-### What is Rendered
+### What is rendered
 
 When a model is rendered as a spreadsheet, the output includes:
 
@@ -217,7 +218,7 @@ The spreadsheet renderer follows these steps:
 - **Function compatibility**: Not all model functions may have direct Excel equivalents. Custom functions may require manual implementation or will appear as function names (Excel will show #NAME? error).
 - **Parameterized variables**: Variables with index sets (multi-dimensional) need to be expanded into multiple cells.
 - **Tables**: Table data must be embedded or referenced as separate sheets/ranges.
-- **Time-shift references**: Time-dependent formulas (e.g., `balance(step-1)`) require careful handling to maintain correct cell references.
+- **Time-shift references**: Time-dependent formulas (e.g., `balance(step-1)`) may fail to convert correctly.
 
 ### Usage
 
@@ -278,7 +279,7 @@ This project intentionally has **no build step**. All code runs directly in the 
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes following the existing code style
+3. Make your changes
 4. Add tests for new functionality
 5. Ensure all tests pass with `npm test`
 6. Submit a pull request

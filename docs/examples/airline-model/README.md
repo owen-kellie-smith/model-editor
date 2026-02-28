@@ -15,20 +15,5 @@ This model projects the financial performance of a small airline. It calculates 
 
 ## Usage
 
-To use this model in the model editor:
+See the [repo README](../../../README.md#how-to-run)
 
-1. **Load the language definition:**
-   - Navigate to the [model editor](https://owen-kellie-smith.github.io/model-editor/)
-   - Load `language.xml` from the parent `docs/examples/` directory
-   - The existing language definition supports all functions needed by this model
-
-2. **Load the model:**
-   - Load `model.xml` from this directory
-   - Review validation output to ensure the model is valid
-   - View dependency graphs to understand variable relationships
-   - Export the model as a spreadsheet to perform calculations
-
-4. **Export to spreadsheet:**
-   - Use the "Render model as spreadsheet" feature
-   - Generate an Excel file with formulas and sample data
-   - Analyze results in your preferred spreadsheet tool

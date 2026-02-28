@@ -1,9 +1,8 @@
 # Examples
 
-This folder contains example models and the language definition used by the editor.
+This folder contains example models and the single [language definition](#language-definition) which satisfies all of them.
 
-The models are arranged in order of increasing structural complexity.  
-Structural complexity refers to the number and interaction of the model components described below.
+The models are in ascending order of their count of model components, so the simplest model appears first.
 
 ---
 
@@ -25,10 +24,10 @@ Models in this folder are composed from the following structural elements:
 
 ---
 
-## Structural Progression
 
-### 1. [Restaurant](restaurant-model/) — base model  
-`restaurant-model/restaurantNoIndices.xml`
+## 1. Restaurant cashflow 
+
+[restaurantNoIndices.xml](restaurant-model)  
 
 Components present:
 
@@ -36,48 +35,46 @@ Components present:
 
 Components absent:
 
-- Indices
 - Tables  
+- Indices
 - Time-step recurrence  
-- Extensive conditional definitions  
 
 ---
 
-### 2. [Annuity](annuity-model/)  
-`annuity-model/vendor-format-model.xml`
+## 2. Airline cashflow 
+
+[airline_no_seasons.xml](airline-model)
+
+Additional components introduced:
+- Time index
+- Conditional (piecewise) expressions  
+
+---
+
+## 3. Annuity cashflow 
+
+[vendor-format-model.xml](annuity-model)  `
 
 Additional components introduced:
 
-- Tables  
-- Conditional (piecewise) expressions  
+- Cohort index (enabling model point file where each row represents the initial conditions for a cohort)  
 - Time-step recurrence  
-- Multiple index sets  
 
 ---
 
-### 3. [Airline](airline-model) — base model  
-`airline-model/model.xml`
+## 4. Airline cashflow with seasons 
 
-Increased scale and interaction:
-
-- Larger variable set  
-- Multiple index sets  
-- Limited conditional expressions  
-
----
-
-### 4. [Airline](airline-model) — variant  
-`airline-model/Dividends.xml`
+[airline_with_seasons.xml](airline-model)
 
 Further structural density:
 
 - More frequent conditional expressions  
-- Alternative configuration of the airline base model  
 
 ---
 
-### 5. [Rocket](rocket-model)  
-`rocket-model/moon-rocket.xml`
+## 5. Non-linear dynamics 
+
+[moon-rocket.xml and lorenz-difference.xml](rocket-model)  
 
 Explicit state evolution:
 
@@ -86,8 +83,9 @@ Explicit state evolution:
 
 ---
 
-### 6. [Restaurant](restaurant-model) — seasonal variant  
-`restaurant-model/seasonal.xml`
+## 6. Restaurant with seasons 
+
+[seasonal.xml](restaurant-model)  
 
 - Large variable set  
 - Extensive conditional expressions   
