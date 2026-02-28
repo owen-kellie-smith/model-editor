@@ -315,6 +315,7 @@ export function renderModelAsPython(modelObj, features) {
   // Embed metadata
   lines.push("# ---- Model metadata (embedded) ----");
   lines.push(`TEMPORAL_ID = ${escapePyString(temporalId)}`);
+  lines.push(`MODEL_ID = ${escapePyString(String(modelObj?.model?.id ?? "model"))}`);
   lines.push(`TEMP_MIN = ${tMin}`);
   lines.push(`TEMP_MAX = ${tMax}`);
   lines.push(`INDEXSETS = ${JSON.stringify(indexSets, null, 2)}`);
@@ -613,7 +614,8 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("    ap.add_argument('--traj-step', type=int, default=1, help='Frame stride for --traj (use >1 to reduce frames).')");
   lines.push("    ap.add_argument('--traj-point', action='store_true', help='In --traj mode, draw only the moving point (not the whole path so far).')");
   lines.push("    ap.add_argument('--traj-head-color', type=str, default='red', help='Color of trajectory head (default: red)')");
-  lines.push("    ap.add_argument('--traj-tail-color', type=str, default='blue', help='Color of trajectory tail (default: blue)')");     
+  lines.push("    ap.add_argument('--traj-tail-color', type=str, default='blue', help='Color of trajectory tail (default: blue)')"); 
+  lines.push("    ap.add_argument('--no-model-id-title', action='store_true', help='Suppress model id in plot title (saves space)')");      
   lines.push("    args = ap.parse_args()" );
   lines.push("");
   lines.push("    overrides: Dict[str, List[str]] = {}" );
@@ -765,8 +767,10 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("                ax3d.set_xlim(x_min, x_max)" );
   lines.push("                ax3d.set_ylim(y_min, y_max)" );
   lines.push("                ax3d.set_zlim(z_min, z_max)" );
-  lines.push("                ax3d.set_title(f'{tcol}={dtraj.iloc[j][tcol]}')" );
-  lines.push("" );
+  lines.push("                if bool(getattr(args, 'no_model_id_title', False)):");
+  lines.push("                    ax3d.set_title(f'{tcol}={dtraj.iloc[j][tcol]}')");
+  lines.push("                else:");
+  lines.push("                    ax3d.set_title(f'{MODEL_ID} | {tcol}={dtraj.iloc[j][tcol]}')");  lines.push("" );
   lines.push("            ani = FuncAnimation(fig, draw, frames=len(frame_idx), interval=1000 / max(1, fps), repeat=False)" );
   lines.push("            ani.save(out_gif, writer=PillowWriter(fps=fps), dpi=dpi)" );
   lines.push("            plt.close(fig)" );
@@ -779,5 +783,7 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("if __name__ == '__main__':" );
   lines.push("    main()" );
 
+ 
   return lines.join("\n");
+
 }
