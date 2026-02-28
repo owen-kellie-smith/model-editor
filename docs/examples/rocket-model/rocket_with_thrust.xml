@@ -189,12 +189,8 @@
       <definition type="piecewise">
         <case><when type="expression">t=0</when><value type="constant">0</value></case>
 
-        <!-- If we are burning this step, accumulate dt -->
-        <case>
-          <when type="expression">t&gt;0</when>
-          <value type="expression">
-            tli_burn_used(t-1) + tli_burn_on(t-1)*dt(t-1)
-          </value>
+        <case><when type="expression">t&gt;0</when>
+          <value type="expression">tli_burn_used(t-1) + tli_burn_on(t)*dt(t-1)</value>
         </case>
       </definition>
     </variable>
@@ -211,11 +207,18 @@
     <variable id="tli_burn_on">
       <arguments><arg indexSet="t"/></arguments>
       <definition type="piecewise">
+        <!-- At t=0, allow burn (we start at perigee-ish by construction) -->
         <case><when type="expression">t=0</when><value type="constant">1</value></case>
 
-        <!-- Burn only if not done AND near perigee -->
+        <!-- If we already used enough burn time as of last step, stop -->
         <case>
-          <when type="expression">(tli_done(t)=0) * (near_perigee(t)=1) = 1</when>
+          <when type="expression">tli_burn_used(t-1) &gt;= tli_burn_s</when>
+          <value type="constant">0</value>
+        </case>
+
+        <!-- Otherwise burn only near perigee -->
+        <case>
+          <when type="expression">near_perigee(t)=1</when>
           <value type="constant">1</value>
         </case>
 
@@ -415,6 +418,14 @@
         </case>
         <case><when type="expression">1=1</when><value type="constant">0</value></case>
       </definition>
+    </variable>
+
+    <variable id="is_burning"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">tli_burn_on(t)</definition>
+    </variable>
+
+    <variable id="tli_remaining"><unit>S</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">tli_burn_s - tli_burn_used(t)</definition>
     </variable>
 
     <!-- ===================================================== -->
