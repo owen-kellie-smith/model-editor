@@ -2,7 +2,7 @@
 
 This folder contains example models and the single [language definition](#language-definition) which satisfies all of them.
 
-The models are in ascending order of their count of model components.
+The models are in ascending order of their count of model components, so the simplest model appears first.
 
 ---
 
