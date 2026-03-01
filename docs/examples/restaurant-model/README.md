@@ -15,7 +15,7 @@ This model projects the financial performance of a restaurant operation. It calc
 
 See  [How to run](../../../README.md#how-to-run)
 
-<picture>
+![graph of variable dependencies](graph-WEEKDAYS_PER_MONTH.svg)
 
 A graph of variable dependencies shows that MONTHLY_PROFIT_MARGIN is a far downstream variable so it is a good variable to use to check that all 3 renderings do equivalent calculations.
 
