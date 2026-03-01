@@ -61,7 +61,7 @@ The static .gif below was output by running in bash (in Downloads folder)
 ![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_static.gif)
 ------------------------------------------------------------------------
 
-The animated .gif below was output by running in bash (in Downloads folder) 
+An animated .gif can be output by running in bash (in Downloads folder) 
 
 `python3 lorenz.py --steps 60000 --plot-traj --fps 30 --plot-vars "lorenz:x,y,z" --gif lorenz60000_trajFPS30.gif`
 
