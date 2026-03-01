@@ -814,20 +814,22 @@ def main() -> None:
     ap.add_argument('--csv', type=str, default=default_csv, help='Output CSV path (default: <model_id>_out.csv)')
     ap.add_argument('--index', action='append', default=[], help='Override index values: --index cohort=1,2 or --index day_type=weekday,weekend')
     ap.add_argument('--strict', action='store_true', help='Fail fast on evaluation errors (instead of returning NaN)')
-    # ---- Optional trajectory GIF output ----
-    ap.add_argument('--plot', action='store_true', help='Generate a trajectory GIF after computing results')
+    # ---- Optional plot GIF output ----
+    plot_group = ap.add_mutually_exclusive_group()
+    plot_group.add_argument('--plot-traj', dest='plot_traj', action='store_true', help='Generate an animated trajectory GIF after computing results (requires --plot-vars)')
+    plot_group.add_argument('--plot-static', dest='plot_static', action='store_true', help='Generate a single-frame (static) trajectory GIF after computing results (requires --plot-vars)')
     default_gif = _sanitize_filename(MODEL_ID) + '.gif'
-    ap.add_argument('--gif', type=str, default=default_gif, help='GIF output path (default: <model_id>.gif; only used with --plot)')
-    ap.add_argument('--fps', type=int, default=24, help='Frames per second for GIF')
+    ap.add_argument('--gif', type=str, default=default_gif, help='GIF output path (default: <model_id>.gif; only used with --plot-traj/--plot-static)')
+    ap.add_argument('--fps', type=int, default=24, help='Frames per second for animated GIF (only used with --plot-traj)')
     ap.add_argument('--dpi', type=int, default=120, help='DPI for GIF rendering')
-    ap.add_argument('--traj', type=str, default='', help='Trajectory spec(s). Format: label:x[,y[,z]];label2:x[,y[,z]]. (1D uses t vs x; 2D uses x,y; 3D uses x,y,z).')
-    ap.add_argument('--traj-t', type=str, default=TEMPORAL_ID, help='Temporal column to animate over for --traj (defaults to temporal index).')
-    ap.add_argument('--traj-step', type=int, default=1, help='Frame stride for --traj (use >1 to reduce frames).')
-    ap.add_argument('--traj-point', action='store_true', help='Draw only the moving point (not the whole tail).')
-    ap.add_argument('--traj-head-color', type=str, default='red', help='Default head color for trajectories.')
-    ap.add_argument('--traj-tail-color', type=str, default='blue', help='Default tail color for trajectories.')
-    ap.add_argument('--traj-head-colors', type=str, default='', help='Per-trajectory head colors: label=color,label2=color')
-    ap.add_argument('--traj-tail-colors', type=str, default='', help='Per-trajectory tail colors: label=color,label2=color')
+    ap.add_argument('--plot-vars', dest='plot_vars', type=str, default='', help='Plot specification(s). Format: label:x[,y[,z]];label2:x[,y[,z]]. (1D uses t vs x; 2D uses x,y; 3D uses x,y,z).')
+    ap.add_argument('--plot-t', dest='plot_t', type=str, default=TEMPORAL_ID, help='Temporal column to animate over for --plot-vars (defaults to temporal index).')
+    ap.add_argument('--plot-step', dest='plot_step', type=int, default=1, help='Frame stride for --plot-traj (use >1 to reduce frames).')
+    ap.add_argument('--plot-point', dest='plot_point', action='store_true', help='Draw only the moving point (not the whole tail).')
+    ap.add_argument('--plot-head-color', dest='plot_head_color', type=str, default='red', help='Default head color for plotted trajectories.')
+    ap.add_argument('--plot-tail-color', dest='plot_tail_color', type=str, default='blue', help='Default tail color for plotted trajectories.')
+    ap.add_argument('--plot-head-colors', dest='plot_head_colors', type=str, default='', help='Per-trajectory head colors: label=color,label2=color')
+    ap.add_argument('--plot-tail-colors', dest='plot_tail_colors', type=str, default='', help='Per-trajectory tail colors: label=color,label2=color')
     ap.add_argument('--no-model-id-title', action='store_true', help='Suppress model id in plot title (saves space)')
     args = ap.parse_args()
 
@@ -904,11 +906,13 @@ def main() -> None:
                 f"- {e['kind']} var={e['var']} idx={e['idx']} expr={e['expr']} err={e['error']}\n"
             )
 
-    # ---- Trajectory GIF (optional) ----
-    if bool(getattr(args, 'plot', False)):
-        traj_spec = str(getattr(args, 'traj', '')).strip()
-        if not traj_spec:
-            print('Plot requested but --traj not provided; skipping plot.')
+    # ---- Plot GIF (optional) ----
+    plot_traj = bool(getattr(args, 'plot_traj', False))
+    plot_static = bool(getattr(args, 'plot_static', False))
+    if plot_traj or plot_static:
+        plot_vars = str(getattr(args, 'plot_vars', '')).strip()
+        if not plot_vars:
+            print('Plot requested but --plot-vars not provided; skipping plot.')
         else:
             try:
                 import pandas as pd
@@ -919,12 +923,12 @@ def main() -> None:
 
             # Read only header first (fast) to discover columns, then load only needed columns.
             _all_cols = pd.read_csv(args.csv, nrows=0).columns.tolist()
-            df = None  # will be loaded after parsing traj spec
-            tcol = str(getattr(args, 'traj_t', TEMPORAL_ID)).strip() or TEMPORAL_ID
-            step = max(1, int(getattr(args, 'traj_step', 1)))
-            point_only = bool(getattr(args, 'traj_point', False))
-            default_head = str(getattr(args, 'traj_head_color', 'red'))
-            default_tail = str(getattr(args, 'traj_tail_color', 'blue'))
+            df = None  # will be loaded after parsing plot spec
+            tcol = str(getattr(args, 'plot_t', TEMPORAL_ID)).strip() or TEMPORAL_ID
+            step = max(1, int(getattr(args, 'plot_step', 1)))
+            point_only = bool(getattr(args, 'plot_point', False))
+            default_head = str(getattr(args, 'plot_head_color', 'red'))
+            default_tail = str(getattr(args, 'plot_tail_color', 'blue'))
 
             if tcol not in _all_cols:
                 raise SystemExit(f'Temporal column {tcol} not found. Available: {_all_cols}')
@@ -940,8 +944,8 @@ def main() -> None:
                     out[k.strip()] = v.strip()
                 return out
 
-            head_map = _parse_color_map(str(getattr(args, 'traj_head_colors', '')))
-            tail_map = _parse_color_map(str(getattr(args, 'traj_tail_colors', '')))
+            head_map = _parse_color_map(str(getattr(args, 'plot_head_colors', '')))
+            tail_map = _parse_color_map(str(getattr(args, 'plot_tail_colors', '')))
 
             def _parse_trajs(spec: str):
                 items = [p.strip() for p in spec.split(';') if p.strip()]
@@ -958,7 +962,24 @@ def main() -> None:
                     out.append((label, parts))
                 return out
 
-            trajs = _parse_trajs(traj_spec)
+            trajs = _parse_trajs(plot_vars)
+
+            def _parse_trajs(spec: str):
+                items = [p.strip() for p in spec.split(';') if p.strip()]
+                out = []
+                for it in items:
+                    if ':' in it:
+                        label, rhs = it.split(':', 1)
+                        label = (label.strip() or 'traj')
+                    else:
+                        label, rhs = ('traj', it)
+                    parts = [q.strip() for q in rhs.split(',') if q.strip()]
+                    if len(parts) < 1 or len(parts) > 3:
+                        raise SystemExit('Each trajectory must have 1 to 3 coordinates: x[,y[,z]]')
+                    out.append((label, parts))
+                return out
+
+            trajs = _parse_trajs(plot_vars)
             dims = sorted(set(len(parts) for _, parts in trajs))
             if len(dims) != 1:
                 raise SystemExit(f'All trajectories must have the same dimensionality (got {dims}). Use z=0 for 2D in 3D, or provide only x for 1D.')
@@ -995,6 +1016,7 @@ def main() -> None:
             if not frames: raise SystemExit('No frames found')
             frame_idx = list(range(0, len(frames), step))
             if frame_idx[-1] != len(frames) - 1: frame_idx.append(len(frames) - 1)
+            if plot_static: frame_idx = [len(frames) - 1]
 
             out_gif = str(getattr(args, 'gif', 'model.gif'))
             fps = int(getattr(args, 'fps', 24))
