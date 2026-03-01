@@ -54,6 +54,7 @@ $$
 Export to Python to output (to Downloads folder) `lorenz.py`.
 
 The static .gif below was output by running in bash (in Downloads folder)
+
 `python3 lorenz.py --steps 60000 --plot-static --plot-vars "lorenz:x,y,z" --gif lorenz60000_static.gif`
 
  
@@ -61,6 +62,7 @@ The static .gif below was output by running in bash (in Downloads folder)
 ------------------------------------------------------------------------
 
 The animated .gif below was output by running in bash (in Downloads folder) 
+
 `python3 lorenz.py --steps 60000 --plot-traj --fps 30 --plot-vars "lorenz:x,y,z" --gif lorenz60000_trajFPS30.gif`
 
 
