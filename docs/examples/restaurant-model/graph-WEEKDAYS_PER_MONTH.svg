@@ -1,0 +1,462 @@
+<svg width="1985pt" height="584pt" viewBox="0.00 0.00 1985.25 584.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 580)">
+<title>dependencies</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-580 1981.2488,-580 1981.2488,4 -4,4"/>
+<!-- WEEKDAYS_PER_MONTH -->
+<g id="node1" class="node">
+<title>WEEKDAYS_PER_MONTH</title>
+<polygon fill="#add8e6" stroke="#000000" points="715.4202,-576 530.3838,-576 530.3838,-540 715.4202,-540 715.4202,-576"/>
+<text text-anchor="middle" x="622.902" y="-553.8" font-family="Times,serif" font-size="14.00" fill="#000000">WEEKDAYS_PER_MONTH</text>
+</g>
+<!-- MONTHLY_FOOD_REVENUE -->
+<g id="node2" class="node">
+<title>MONTHLY_FOOD_REVENUE</title>
+<polygon fill="none" stroke="#000000" points="1025.2609,-522 821.4745,-522 821.4745,-486 1025.2609,-486 1025.2609,-522"/>
+<text text-anchor="middle" x="923.3677" y="-499.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_FOOD_REVENUE</text>
+</g>
+<!-- WEEKDAYS_PER_MONTH&#45;&gt;MONTHLY_FOOD_REVENUE -->
+<g id="edge1" class="edge">
+<title>WEEKDAYS_PER_MONTH-&gt;MONTHLY_FOOD_REVENUE</title>
+<path fill="none" stroke="#000000" d="M715.5033,-541.3576C746.3655,-535.811 781.0523,-529.5771 813.1182,-523.8142"/>
+<polygon fill="#000000" stroke="#000000" points="813.7552,-527.2558 822.9784,-522.0421 812.517,-520.3662 813.7552,-527.2558"/>
+</g>
+<!-- MONTHLY_BEVERAGE_REVENUE -->
+<g id="node3" class="node">
+<title>MONTHLY_BEVERAGE_REVENUE</title>
+<polygon fill="none" stroke="#000000" points="1043.3089,-468 803.4265,-468 803.4265,-432 1043.3089,-432 1043.3089,-468"/>
+<text text-anchor="middle" x="923.3677" y="-445.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_BEVERAGE_REVENUE</text>
+</g>
+<!-- WEEKDAYS_PER_MONTH&#45;&gt;MONTHLY_BEVERAGE_REVENUE -->
+<g id="edge2" class="edge">
+<title>WEEKDAYS_PER_MONTH-&gt;MONTHLY_BEVERAGE_REVENUE</title>
+<path fill="none" stroke="#000000" d="M715.4586,-550.7281C731.9898,-546.5448 748.3707,-540.2866 762.3298,-531 786.3452,-515.0232 774.4866,-493.2327 798.3298,-477 800.4983,-475.5237 802.7329,-474.1261 805.0229,-472.8031"/>
+<polygon fill="#000000" stroke="#000000" points="806.8618,-475.7914 814.1076,-468.0617 803.623,-469.5858 806.8618,-475.7914"/>
+</g>
+<!-- MONTHLY_TOTAL_REVENUE -->
+<g id="node4" class="node">
+<title>MONTHLY_TOTAL_REVENUE</title>
+<polygon fill="none" stroke="#000000" points="1295.6478,-468 1084.3248,-468 1084.3248,-432 1295.6478,-432 1295.6478,-468"/>
+<text text-anchor="middle" x="1189.9863" y="-445.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_TOTAL_REVENUE</text>
+</g>
+<!-- MONTHLY_FOOD_REVENUE&#45;&gt;MONTHLY_TOTAL_REVENUE -->
+<g id="edge3" class="edge">
+<title>MONTHLY_FOOD_REVENUE-&gt;MONTHLY_TOTAL_REVENUE</title>
+<path fill="none" stroke="#000000" d="M1012.5185,-485.9437C1037.6433,-480.855 1065.1273,-475.2885 1090.8009,-470.0887"/>
+<polygon fill="#000000" stroke="#000000" points="1091.8133,-473.4548 1100.9195,-468.0393 1090.4237,-466.5941 1091.8133,-473.4548"/>
+</g>
+<!-- MONTHLY_FOOD_COST -->
+<g id="node5" class="node">
+<title>MONTHLY_FOOD_COST</title>
+<polygon fill="none" stroke="#000000" points="1276.8434,-414 1103.1292,-414 1103.1292,-378 1276.8434,-378 1276.8434,-414"/>
+<text text-anchor="middle" x="1189.9863" y="-391.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_FOOD_COST</text>
+</g>
+<!-- MONTHLY_FOOD_REVENUE&#45;&gt;MONTHLY_FOOD_COST -->
+<g id="edge4" class="edge">
+<title>MONTHLY_FOOD_REVENUE-&gt;MONTHLY_FOOD_COST</title>
+<path fill="none" stroke="#000000" d="M1025.1512,-489.1958C1033.366,-485.89 1041.2461,-481.8743 1048.4056,-477 1072.2488,-460.7673 1060.8725,-439.6792 1084.4056,-423 1087.4397,-420.8495 1090.6304,-418.8701 1093.9356,-417.0482"/>
+<polygon fill="#000000" stroke="#000000" points="1095.5246,-420.167 1102.9237,-412.5839 1092.4106,-413.8977 1095.5246,-420.167"/>
+</g>
+<!-- MONTHLY_BEVERAGE_REVENUE&#45;&gt;MONTHLY_TOTAL_REVENUE -->
+<g id="edge5" class="edge">
+<title>MONTHLY_BEVERAGE_REVENUE-&gt;MONTHLY_TOTAL_REVENUE</title>
+<path fill="none" stroke="#000000" d="M1043.4177,-450C1053.5767,-450 1063.8394,-450 1073.9667,-450"/>
+<polygon fill="#000000" stroke="#000000" points="1074.0401,-453.5001 1084.0401,-450 1074.04,-446.5001 1074.0401,-453.5001"/>
+</g>
+<!-- MONTHLY_BEVERAGE_COST -->
+<g id="node6" class="node">
+<title>MONTHLY_BEVERAGE_COST</title>
+<polygon fill="none" stroke="#000000" points="1295.3921,-360 1084.5805,-360 1084.5805,-324 1295.3921,-324 1295.3921,-360"/>
+<text text-anchor="middle" x="1189.9863" y="-337.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_BEVERAGE_COST</text>
+</g>
+<!-- MONTHLY_BEVERAGE_REVENUE&#45;&gt;MONTHLY_BEVERAGE_COST -->
+<g id="edge6" class="edge">
+<title>MONTHLY_BEVERAGE_REVENUE-&gt;MONTHLY_BEVERAGE_COST</title>
+<path fill="none" stroke="#000000" d="M1032.6278,-431.9383C1038.1471,-429.3375 1043.449,-426.3745 1048.4056,-423 1072.2488,-406.7673 1060.8725,-385.6792 1084.4056,-369 1086.4991,-367.5162 1088.6671,-366.1139 1090.8959,-364.7885"/>
+<polygon fill="#000000" stroke="#000000" points="1092.5949,-367.849 1099.7645,-360.0485 1089.2953,-361.6754 1092.5949,-367.849"/>
+</g>
+<!-- MONTHLY_GROSS_PROFIT -->
+<g id="node12" class="node">
+<title>MONTHLY_GROSS_PROFIT</title>
+<polygon fill="none" stroke="#000000" points="1525.0365,-414 1331.4103,-414 1331.4103,-378 1525.0365,-378 1525.0365,-414"/>
+<text text-anchor="middle" x="1428.2234" y="-391.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_GROSS_PROFIT</text>
+</g>
+<!-- MONTHLY_TOTAL_REVENUE&#45;&gt;MONTHLY_GROSS_PROFIT -->
+<g id="edge15" class="edge">
+<title>MONTHLY_TOTAL_REVENUE-&gt;MONTHLY_GROSS_PROFIT</title>
+<path fill="none" stroke="#000000" d="M1269.647,-431.9437C1291.7993,-426.9226 1316.004,-421.4362 1338.6819,-416.2959"/>
+<polygon fill="#000000" stroke="#000000" points="1339.6589,-419.6633 1348.6377,-414.0393 1338.1114,-412.8365 1339.6589,-419.6633"/>
+</g>
+<!-- MONTHLY_NET_PROFIT -->
+<g id="node13" class="node">
+<title>MONTHLY_NET_PROFIT</title>
+<polygon fill="none" stroke="#000000" points="1736.4947,-452 1560.6745,-452 1560.6745,-416 1736.4947,-416 1736.4947,-452"/>
+<text text-anchor="middle" x="1648.5846" y="-429.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_NET_PROFIT</text>
+</g>
+<!-- MONTHLY_TOTAL_REVENUE&#45;&gt;MONTHLY_NET_PROFIT -->
+<g id="edge16" class="edge">
+<title>MONTHLY_TOTAL_REVENUE-&gt;MONTHLY_NET_PROFIT</title>
+<path fill="none" stroke="#000000" d="M1295.7738,-446.3092C1372.4498,-443.634 1475.3893,-440.0426 1550.2782,-437.4298"/>
+<polygon fill="#000000" stroke="#000000" points="1550.7817,-440.9145 1560.6535,-437.0678 1550.5375,-433.9187 1550.7817,-440.9145"/>
+</g>
+<!-- MONTHLY_PROFIT_MARGIN -->
+<g id="node14" class="node">
+<title>MONTHLY_PROFIT_MARGIN</title>
+<polygon fill="none" stroke="#000000" points="1977.2285,-475 1772.3097,-475 1772.3097,-439 1977.2285,-439 1977.2285,-475"/>
+<text text-anchor="middle" x="1874.7691" y="-452.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_PROFIT_MARGIN</text>
+</g>
+<!-- MONTHLY_TOTAL_REVENUE&#45;&gt;MONTHLY_PROFIT_MARGIN -->
+<g id="edge17" class="edge">
+<title>MONTHLY_TOTAL_REVENUE-&gt;MONTHLY_PROFIT_MARGIN</title>
+<path fill="none" stroke="#000000" d="M1295.8991,-453.8461C1307.9287,-454.2515 1320.0127,-454.6448 1331.567,-455 1511.3785,-460.5273 1556.4118,-463.5974 1736.2894,-461 1744.6728,-460.8789 1753.3407,-460.7167 1762.0603,-460.5267"/>
+<polygon fill="#000000" stroke="#000000" points="1762.3891,-464.0202 1772.3062,-460.2917 1762.2285,-457.022 1762.3891,-464.0202"/>
+</g>
+<!-- MONTHLY_FOOD_COST&#45;&gt;MONTHLY_GROSS_PROFIT -->
+<g id="edge19" class="edge">
+<title>MONTHLY_FOOD_COST-&gt;MONTHLY_GROSS_PROFIT</title>
+<path fill="none" stroke="#000000" d="M1277.0066,-396C1291.3704,-396 1306.4071,-396 1321.1928,-396"/>
+<polygon fill="#000000" stroke="#000000" points="1321.3776,-399.5001 1331.3776,-396 1321.3776,-392.5001 1321.3776,-399.5001"/>
+</g>
+<!-- MONTHLY_TOTAL_COSTS -->
+<g id="node15" class="node">
+<title>MONTHLY_TOTAL_COSTS</title>
+<polygon fill="none" stroke="#000000" points="1523.132,-360 1333.3148,-360 1333.3148,-324 1523.132,-324 1523.132,-360"/>
+<text text-anchor="middle" x="1428.2234" y="-337.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_TOTAL_COSTS</text>
+</g>
+<!-- MONTHLY_FOOD_COST&#45;&gt;MONTHLY_TOTAL_COSTS -->
+<g id="edge18" class="edge">
+<title>MONTHLY_FOOD_COST-&gt;MONTHLY_TOTAL_COSTS</title>
+<path fill="none" stroke="#000000" d="M1269.647,-377.9437C1291.7993,-372.9226 1316.004,-367.4362 1338.6819,-362.2959"/>
+<polygon fill="#000000" stroke="#000000" points="1339.6589,-365.6633 1348.6377,-360.0393 1338.1114,-358.8365 1339.6589,-365.6633"/>
+</g>
+<!-- MONTHLY_BEVERAGE_COST&#45;&gt;MONTHLY_GROSS_PROFIT -->
+<g id="edge23" class="edge">
+<title>MONTHLY_BEVERAGE_COST-&gt;MONTHLY_GROSS_PROFIT</title>
+<path fill="none" stroke="#000000" d="M1269.647,-360.0563C1291.7993,-365.0774 1316.004,-370.5638 1338.6819,-375.7041"/>
+<polygon fill="#000000" stroke="#000000" points="1338.1114,-379.1635 1348.6377,-377.9607 1339.6589,-372.3367 1338.1114,-379.1635"/>
+</g>
+<!-- MONTHLY_BEVERAGE_COST&#45;&gt;MONTHLY_TOTAL_COSTS -->
+<g id="edge22" class="edge">
+<title>MONTHLY_BEVERAGE_COST-&gt;MONTHLY_TOTAL_COSTS</title>
+<path fill="none" stroke="#000000" d="M1295.5209,-342C1304.6543,-342 1313.8955,-342 1323.0261,-342"/>
+<polygon fill="#000000" stroke="#000000" points="1323.2763,-345.5001 1333.2762,-342 1323.2762,-338.5001 1323.2763,-345.5001"/>
+</g>
+<!-- CUSTOMERS_WEEKDAY -->
+<g id="node7" class="node">
+<title>CUSTOMERS_WEEKDAY</title>
+<polygon fill="none" stroke="#000000" points="711.6498,-468 534.1542,-468 534.1542,-432 711.6498,-432 711.6498,-468"/>
+<text text-anchor="middle" x="622.902" y="-445.8" font-family="Times,serif" font-size="14.00" fill="#000000">CUSTOMERS_WEEKDAY</text>
+</g>
+<!-- CUSTOMERS_WEEKDAY&#45;&gt;MONTHLY_FOOD_REVENUE -->
+<g id="edge7" class="edge">
+<title>CUSTOMERS_WEEKDAY-&gt;MONTHLY_FOOD_REVENUE</title>
+<path fill="none" stroke="#000000" d="M711.8321,-465.9826C743.5105,-471.6759 779.5783,-478.158 812.8469,-484.1371"/>
+<polygon fill="#000000" stroke="#000000" points="812.6124,-487.651 823.0739,-485.9751 813.8507,-480.7613 812.6124,-487.651"/>
+</g>
+<!-- CUSTOMERS_WEEKDAY&#45;&gt;MONTHLY_BEVERAGE_REVENUE -->
+<g id="edge8" class="edge">
+<title>CUSTOMERS_WEEKDAY-&gt;MONTHLY_BEVERAGE_REVENUE</title>
+<path fill="none" stroke="#000000" d="M711.8321,-450C737.3389,-450 765.6915,-450 793.1373,-450"/>
+<polygon fill="#000000" stroke="#000000" points="793.2009,-453.5001 803.2009,-450 793.2009,-446.5001 793.2009,-453.5001"/>
+</g>
+<!-- CUSTOMERS_WEEKEND -->
+<g id="node8" class="node">
+<title>CUSTOMERS_WEEKEND</title>
+<polygon fill="none" stroke="#000000" points="711.0957,-522 534.7083,-522 534.7083,-486 711.0957,-486 711.0957,-522"/>
+<text text-anchor="middle" x="622.902" y="-499.8" font-family="Times,serif" font-size="14.00" fill="#000000">CUSTOMERS_WEEKEND</text>
+</g>
+<!-- CUSTOMERS_WEEKEND&#45;&gt;MONTHLY_FOOD_REVENUE -->
+<g id="edge9" class="edge">
+<title>CUSTOMERS_WEEKEND-&gt;MONTHLY_FOOD_REVENUE</title>
+<path fill="none" stroke="#000000" d="M711.0214,-504C742.407,-504 778.1823,-504 811.3062,-504"/>
+<polygon fill="#000000" stroke="#000000" points="811.4931,-507.5001 821.4931,-504 811.4931,-500.5001 811.4931,-507.5001"/>
+</g>
+<!-- CUSTOMERS_WEEKEND&#45;&gt;MONTHLY_BEVERAGE_REVENUE -->
+<g id="edge10" class="edge">
+<title>CUSTOMERS_WEEKEND-&gt;MONTHLY_BEVERAGE_REVENUE</title>
+<path fill="none" stroke="#000000" d="M711.0214,-488.1631C743.0151,-482.4132 779.5702,-475.8434 813.2285,-469.7943"/>
+<polygon fill="#000000" stroke="#000000" points="813.8809,-473.2332 823.1041,-468.0195 812.6426,-466.3436 813.8809,-473.2332"/>
+</g>
+<!-- WEEKEND_DAYS_PER_MONTH -->
+<g id="node9" class="node">
+<title>WEEKEND_DAYS_PER_MONTH</title>
+<polygon fill="none" stroke="#000000" points="733.6856,-414 512.1184,-414 512.1184,-378 733.6856,-378 733.6856,-414"/>
+<text text-anchor="middle" x="622.902" y="-391.8" font-family="Times,serif" font-size="14.00" fill="#000000">WEEKEND_DAYS_PER_MONTH</text>
+</g>
+<!-- WEEKEND_DAYS_PER_MONTH&#45;&gt;MONTHLY_FOOD_REVENUE -->
+<g id="edge11" class="edge">
+<title>WEEKEND_DAYS_PER_MONTH-&gt;MONTHLY_FOOD_REVENUE</title>
+<path fill="none" stroke="#000000" d="M733.873,-408.9037C743.9349,-412.5747 753.6053,-417.1958 762.3298,-423 786.3452,-438.9768 774.4866,-460.7673 798.3298,-477 802.6926,-479.9703 807.323,-482.6217 812.1337,-484.988"/>
+<polygon fill="#000000" stroke="#000000" points="811.0252,-488.3256 821.5842,-489.1958 813.8725,-481.9309 811.0252,-488.3256"/>
+</g>
+<!-- WEEKEND_DAYS_PER_MONTH&#45;&gt;MONTHLY_BEVERAGE_REVENUE -->
+<g id="edge12" class="edge">
+<title>WEEKEND_DAYS_PER_MONTH-&gt;MONTHLY_BEVERAGE_REVENUE</title>
+<path fill="none" stroke="#000000" d="M723.3705,-414.0563C752.186,-419.235 783.7551,-424.9087 813.1251,-430.1871"/>
+<polygon fill="#000000" stroke="#000000" points="812.5325,-433.6366 822.9939,-431.9607 813.7707,-426.747 812.5325,-433.6366"/>
+</g>
+<!-- FOOD_REVENUE_PER_CUSTOMER -->
+<g id="node10" class="node">
+<title>FOOD_REVENUE_PER_CUSTOMER</title>
+<polygon fill="none" stroke="#000000" points="744.2094,-252 501.5946,-252 501.5946,-216 744.2094,-216 744.2094,-252"/>
+<text text-anchor="middle" x="622.902" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">FOOD_REVENUE_PER_CUSTOMER</text>
+</g>
+<!-- FOOD_REVENUE_PER_CUSTOMER&#45;&gt;MONTHLY_FOOD_REVENUE -->
+<g id="edge14" class="edge">
+<title>FOOD_REVENUE_PER_CUSTOMER-&gt;MONTHLY_FOOD_REVENUE</title>
+<path fill="none" stroke="#000000" d="M647.8464,-252.0173C678.8307,-275.6133 731.3757,-319.8071 762.3298,-369 789.2762,-411.8239 760.6556,-443.2265 798.3298,-477 802.6189,-480.845 807.3225,-484.1881 812.3124,-487.0914"/>
+<polygon fill="#000000" stroke="#000000" points="811.0825,-490.3946 821.5761,-491.8559 814.2842,-484.1697 811.0825,-490.3946"/>
+</g>
+<!-- TOTAL_REVENUE_PER_CUSTOMER -->
+<g id="node11" class="node">
+<title>TOTAL_REVENUE_PER_CUSTOMER</title>
+<polygon fill="none" stroke="#000000" points="1048.4435,-36 798.2919,-36 798.2919,0 1048.4435,0 1048.4435,-36"/>
+<text text-anchor="middle" x="923.3677" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">TOTAL_REVENUE_PER_CUSTOMER</text>
+</g>
+<!-- FOOD_REVENUE_PER_CUSTOMER&#45;&gt;TOTAL_REVENUE_PER_CUSTOMER -->
+<g id="edge13" class="edge">
+<title>FOOD_REVENUE_PER_CUSTOMER-&gt;TOTAL_REVENUE_PER_CUSTOMER</title>
+<path fill="none" stroke="#000000" d="M648.8004,-215.844C678.8457,-193.8362 728.5677,-154.3964 762.3298,-112 783.388,-85.5563 771.3212,-65.3286 798.3298,-45 799.9933,-43.7479 801.7026,-42.5514 803.4522,-41.4079"/>
+<polygon fill="#000000" stroke="#000000" points="805.6371,-44.1854 812.5099,-36.1222 802.1089,-38.1395 805.6371,-44.1854"/>
+</g>
+<!-- MONTHLY_NET_PROFIT&#45;&gt;MONTHLY_PROFIT_MARGIN -->
+<g id="edge29" class="edge">
+<title>MONTHLY_NET_PROFIT-&gt;MONTHLY_PROFIT_MARGIN</title>
+<path fill="none" stroke="#000000" d="M1736.3572,-442.9253C1744.7469,-443.7784 1753.3326,-444.6515 1761.9165,-445.5244"/>
+<polygon fill="#000000" stroke="#000000" points="1761.6777,-449.018 1771.9805,-446.5477 1762.3859,-442.054 1761.6777,-449.018"/>
+</g>
+<!-- MONTHLY_TOTAL_COSTS&#45;&gt;MONTHLY_NET_PROFIT -->
+<g id="edge31" class="edge">
+<title>MONTHLY_TOTAL_COSTS-&gt;MONTHLY_NET_PROFIT</title>
+<path fill="none" stroke="#000000" d="M1499.5312,-360.0654C1508.1628,-362.7945 1516.7836,-365.7841 1524.8798,-369 1554.3696,-380.7135 1586.0161,-397.4245 1609.9182,-410.969"/>
+<polygon fill="#000000" stroke="#000000" points="1608.2623,-414.054 1618.6791,-415.988 1611.7419,-407.9801 1608.2623,-414.054"/>
+</g>
+<!-- BEVERAGE_REVENUE_PER_CUSTOMER -->
+<g id="node16" class="node">
+<title>BEVERAGE_REVENUE_PER_CUSTOMER</title>
+<polygon fill="none" stroke="#000000" points="762.2576,-103 483.5464,-103 483.5464,-67 762.2576,-67 762.2576,-103"/>
+<text text-anchor="middle" x="622.902" y="-80.8" font-family="Times,serif" font-size="14.00" fill="#000000">BEVERAGE_REVENUE_PER_CUSTOMER</text>
+</g>
+<!-- BEVERAGE_REVENUE_PER_CUSTOMER&#45;&gt;MONTHLY_BEVERAGE_REVENUE -->
+<g id="edge21" class="edge">
+<title>BEVERAGE_REVENUE_PER_CUSTOMER-&gt;MONTHLY_BEVERAGE_REVENUE</title>
+<path fill="none" stroke="#000000" d="M654.0292,-103.0926C686.6477,-123.8153 736.645,-160.9257 762.3298,-207 809.7186,-292.0077 731.1656,-352.5658 798.3298,-423 799.1153,-423.8237 799.9194,-424.6253 800.7411,-425.4052"/>
+<polygon fill="#000000" stroke="#000000" points="798.637,-428.2064 808.5832,-431.8565 803.0841,-422.8005 798.637,-428.2064"/>
+</g>
+<!-- BEVERAGE_REVENUE_PER_CUSTOMER&#45;&gt;TOTAL_REVENUE_PER_CUSTOMER -->
+<g id="edge20" class="edge">
+<title>BEVERAGE_REVENUE_PER_CUSTOMER-&gt;TOTAL_REVENUE_PER_CUSTOMER</title>
+<path fill="none" stroke="#000000" d="M701.0173,-66.9861C731.3795,-60.0375 766.4618,-52.0736 798.3298,-45 808.352,-42.7754 818.8318,-40.4738 829.2771,-38.1956"/>
+<polygon fill="#000000" stroke="#000000" points="830.2382,-41.5685 839.265,-36.0218 828.7494,-34.7286 830.2382,-41.5685"/>
+</g>
+<!-- MAX_CUSTOMERS_PER_DAY -->
+<g id="node17" class="node">
+<title>MAX_CUSTOMERS_PER_DAY</title>
+<polygon fill="none" stroke="#000000" points="440.3153,-495 231.0131,-495 231.0131,-459 440.3153,-459 440.3153,-495"/>
+<text text-anchor="middle" x="335.6642" y="-472.8" font-family="Times,serif" font-size="14.00" fill="#000000">MAX_CUSTOMERS_PER_DAY</text>
+</g>
+<!-- MAX_CUSTOMERS_PER_DAY&#45;&gt;CUSTOMERS_WEEKDAY -->
+<g id="edge24" class="edge">
+<title>MAX_CUSTOMERS_PER_DAY-&gt;CUSTOMERS_WEEKDAY</title>
+<path fill="none" stroke="#000000" d="M440.5829,-467.1378C467.7252,-464.5864 496.8602,-461.8478 523.6997,-459.3249"/>
+<polygon fill="#000000" stroke="#000000" points="524.2364,-462.79 533.8649,-458.3694 523.5812,-455.8207 524.2364,-462.79"/>
+</g>
+<!-- MAX_CUSTOMERS_PER_DAY&#45;&gt;CUSTOMERS_WEEKEND -->
+<g id="edge25" class="edge">
+<title>MAX_CUSTOMERS_PER_DAY-&gt;CUSTOMERS_WEEKEND</title>
+<path fill="none" stroke="#000000" d="M440.5829,-486.8622C468.0094,-489.4403 497.4706,-492.2096 524.5421,-494.7543"/>
+<polygon fill="#000000" stroke="#000000" points="524.5076,-498.2664 534.7913,-495.7177 525.1628,-491.2971 524.5076,-498.2664"/>
+</g>
+<!-- OCCUPANCY_RATE_WEEKDAY -->
+<g id="node18" class="node">
+<title>OCCUPANCY_RATE_WEEKDAY</title>
+<polygon fill="none" stroke="#000000" points="447.2845,-441 224.0439,-441 224.0439,-405 447.2845,-405 447.2845,-441"/>
+<text text-anchor="middle" x="335.6642" y="-418.8" font-family="Times,serif" font-size="14.00" fill="#000000">OCCUPANCY_RATE_WEEKDAY</text>
+</g>
+<!-- OCCUPANCY_RATE_WEEKDAY&#45;&gt;CUSTOMERS_WEEKDAY -->
+<g id="edge26" class="edge">
+<title>OCCUPANCY_RATE_WEEKDAY-&gt;CUSTOMERS_WEEKDAY</title>
+<path fill="none" stroke="#000000" d="M447.5403,-433.5162C472.7378,-435.8847 499.3075,-438.3823 523.9325,-440.697"/>
+<polygon fill="#000000" stroke="#000000" points="523.7077,-444.1912 533.9914,-441.6425 524.3629,-437.2219 523.7077,-444.1912"/>
+</g>
+<!-- OCCUPANCY_RATE_WEEKEND -->
+<g id="node19" class="node">
+<title>OCCUPANCY_RATE_WEEKEND</title>
+<polygon fill="none" stroke="#000000" points="446.7302,-549 224.5982,-549 224.5982,-513 446.7302,-513 446.7302,-549"/>
+<text text-anchor="middle" x="335.6642" y="-526.8" font-family="Times,serif" font-size="14.00" fill="#000000">OCCUPANCY_RATE_WEEKEND</text>
+</g>
+<!-- OCCUPANCY_RATE_WEEKEND&#45;&gt;CUSTOMERS_WEEKEND -->
+<g id="edge27" class="edge">
+<title>OCCUPANCY_RATE_WEEKEND-&gt;CUSTOMERS_WEEKEND</title>
+<path fill="none" stroke="#000000" d="M446.7178,-520.5611C472.2481,-518.1613 499.2277,-515.6252 524.194,-513.2784"/>
+<polygon fill="#000000" stroke="#000000" points="524.7611,-516.7406 534.3897,-512.3201 524.106,-509.7714 524.7611,-516.7406"/>
+</g>
+<!-- AVG_MEAL_PRICE -->
+<g id="node20" class="node">
+<title>AVG_MEAL_PRICE</title>
+<polygon fill="none" stroke="#000000" points="405.3098,-252 266.0186,-252 266.0186,-216 405.3098,-216 405.3098,-252"/>
+<text text-anchor="middle" x="335.6642" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">AVG_MEAL_PRICE</text>
+</g>
+<!-- AVG_MEAL_PRICE&#45;&gt;FOOD_REVENUE_PER_CUSTOMER -->
+<g id="edge28" class="edge">
+<title>AVG_MEAL_PRICE-&gt;FOOD_REVENUE_PER_CUSTOMER</title>
+<path fill="none" stroke="#000000" d="M405.5632,-234C431.5232,-234 461.892,-234 491.5573,-234"/>
+<polygon fill="#000000" stroke="#000000" points="491.5834,-237.5001 501.5833,-234 491.5833,-230.5001 491.5834,-237.5001"/>
+</g>
+<!-- FOOD_COST_PERCENT -->
+<g id="node21" class="node">
+<title>FOOD_COST_PERCENT</title>
+<polygon fill="none" stroke="#000000" points="1006.4687,-414 840.2667,-414 840.2667,-378 1006.4687,-378 1006.4687,-414"/>
+<text text-anchor="middle" x="923.3677" y="-391.8" font-family="Times,serif" font-size="14.00" fill="#000000">FOOD_COST_PERCENT</text>
+</g>
+<!-- FOOD_COST_PERCENT&#45;&gt;MONTHLY_FOOD_COST -->
+<g id="edge30" class="edge">
+<title>FOOD_COST_PERCENT-&gt;MONTHLY_FOOD_COST</title>
+<path fill="none" stroke="#000000" d="M1006.6308,-396C1033.8467,-396 1064.3181,-396 1092.4858,-396"/>
+<polygon fill="#000000" stroke="#000000" points="1092.7489,-399.5001 1102.7488,-396 1092.7488,-392.5001 1092.7489,-399.5001"/>
+</g>
+<!-- AVG_BEVERAGE_PRICE -->
+<g id="node22" class="node">
+<title>AVG_BEVERAGE_PRICE</title>
+<polygon fill="none" stroke="#000000" points="422.8042,-130 248.5242,-130 248.5242,-94 422.8042,-94 422.8042,-130"/>
+<text text-anchor="middle" x="335.6642" y="-107.8" font-family="Times,serif" font-size="14.00" fill="#000000">AVG_BEVERAGE_PRICE</text>
+</g>
+<!-- AVG_BEVERAGE_PRICE&#45;&gt;BEVERAGE_REVENUE_PER_CUSTOMER -->
+<g id="edge32" class="edge">
+<title>AVG_BEVERAGE_PRICE-&gt;BEVERAGE_REVENUE_PER_CUSTOMER</title>
+<path fill="none" stroke="#000000" d="M423.0149,-103.7891C439.0199,-102.2847 456.1322,-100.6762 473.3584,-99.0569"/>
+<polygon fill="#000000" stroke="#000000" points="473.8781,-102.5236 483.5066,-98.103 473.2229,-95.5543 473.8781,-102.5236"/>
+</g>
+<!-- BEVERAGE_ATTACH_RATE -->
+<g id="node23" class="node">
+<title>BEVERAGE_ATTACH_RATE</title>
+<polygon fill="none" stroke="#000000" points="434.625,-76 236.7034,-76 236.7034,-40 434.625,-40 434.625,-76"/>
+<text text-anchor="middle" x="335.6642" y="-53.8" font-family="Times,serif" font-size="14.00" fill="#000000">BEVERAGE_ATTACH_RATE</text>
+</g>
+<!-- BEVERAGE_ATTACH_RATE&#45;&gt;BEVERAGE_REVENUE_PER_CUSTOMER -->
+<g id="edge33" class="edge">
+<title>BEVERAGE_ATTACH_RATE-&gt;BEVERAGE_REVENUE_PER_CUSTOMER</title>
+<path fill="none" stroke="#000000" d="M434.9174,-67.3297C447.3871,-68.5018 460.3515,-69.7205 473.3809,-70.9452"/>
+<polygon fill="#000000" stroke="#000000" points="473.0664,-74.431 483.3501,-71.8823 473.7216,-67.4617 473.0664,-74.431"/>
+</g>
+<!-- BEVERAGE_COST_PERCENT -->
+<g id="node24" class="node">
+<title>BEVERAGE_COST_PERCENT</title>
+<polygon fill="none" stroke="#000000" points="1024.5174,-360 822.218,-360 822.218,-324 1024.5174,-324 1024.5174,-360"/>
+<text text-anchor="middle" x="923.3677" y="-337.8" font-family="Times,serif" font-size="14.00" fill="#000000">BEVERAGE_COST_PERCENT</text>
+</g>
+<!-- BEVERAGE_COST_PERCENT&#45;&gt;MONTHLY_BEVERAGE_COST -->
+<g id="edge34" class="edge">
+<title>BEVERAGE_COST_PERCENT-&gt;MONTHLY_BEVERAGE_COST</title>
+<path fill="none" stroke="#000000" d="M1024.5449,-342C1040.7701,-342 1057.6706,-342 1074.2049,-342"/>
+<polygon fill="#000000" stroke="#000000" points="1074.4433,-345.5001 1084.4433,-342 1074.4433,-338.5001 1074.4433,-345.5001"/>
+</g>
+<!-- SEATING_CAPACITY -->
+<g id="node25" class="node">
+<title>SEATING_CAPACITY</title>
+<polygon fill="none" stroke="#000000" points="170.2842,-549 17.57,-549 17.57,-513 170.2842,-513 170.2842,-549"/>
+<text text-anchor="middle" x="93.9271" y="-526.8" font-family="Times,serif" font-size="14.00" fill="#000000">SEATING_CAPACITY</text>
+</g>
+<!-- SEATING_CAPACITY&#45;&gt;MAX_CUSTOMERS_PER_DAY -->
+<g id="edge35" class="edge">
+<title>SEATING_CAPACITY-&gt;MAX_CUSTOMERS_PER_DAY</title>
+<path fill="none" stroke="#000000" d="M170.4142,-513.9141C193.9994,-508.6455 220.2027,-502.7922 244.6646,-497.3278"/>
+<polygon fill="#000000" stroke="#000000" points="245.6686,-500.6898 254.665,-495.0939 244.1425,-493.8582 245.6686,-500.6898"/>
+</g>
+<!-- AVG_PARTY_SIZE -->
+<g id="node26" class="node">
+<title>AVG_PARTY_SIZE</title>
+<polygon fill="none" stroke="#000000" points="161.6805,-495 26.1737,-495 26.1737,-459 161.6805,-459 161.6805,-495"/>
+<text text-anchor="middle" x="93.9271" y="-472.8" font-family="Times,serif" font-size="14.00" fill="#000000">AVG_PARTY_SIZE</text>
+</g>
+<!-- AVG_PARTY_SIZE&#45;&gt;MAX_CUSTOMERS_PER_DAY -->
+<g id="edge36" class="edge">
+<title>AVG_PARTY_SIZE-&gt;MAX_CUSTOMERS_PER_DAY</title>
+<path fill="none" stroke="#000000" d="M161.9077,-477C180.1857,-477 200.4738,-477 220.5497,-477"/>
+<polygon fill="#000000" stroke="#000000" points="220.6963,-480.5001 230.6963,-477 220.6963,-473.5001 220.6963,-480.5001"/>
+</g>
+<!-- TABLE_TURNOVER_RATE -->
+<g id="node27" class="node">
+<title>TABLE_TURNOVER_RATE</title>
+<polygon fill="none" stroke="#000000" points="187.7814,-441 .0728,-441 .0728,-405 187.7814,-405 187.7814,-441"/>
+<text text-anchor="middle" x="93.9271" y="-418.8" font-family="Times,serif" font-size="14.00" fill="#000000">TABLE_TURNOVER_RATE</text>
+</g>
+<!-- TABLE_TURNOVER_RATE&#45;&gt;MAX_CUSTOMERS_PER_DAY -->
+<g id="edge37" class="edge">
+<title>TABLE_TURNOVER_RATE-&gt;MAX_CUSTOMERS_PER_DAY</title>
+<path fill="none" stroke="#000000" d="M174.7581,-441.0563C197.3366,-446.0999 222.0165,-451.613 245.1167,-456.7732"/>
+<polygon fill="#000000" stroke="#000000" points="244.3868,-460.1964 254.9093,-458.9607 245.9129,-453.3647 244.3868,-460.1964"/>
+</g>
+<!-- MONTHLY_FIXED_COSTS -->
+<g id="node28" class="node">
+<title>MONTHLY_FIXED_COSTS</title>
+<polygon fill="none" stroke="#000000" points="1282.2327,-225 1097.7399,-225 1097.7399,-189 1282.2327,-189 1282.2327,-225"/>
+<text text-anchor="middle" x="1189.9863" y="-202.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_FIXED_COSTS</text>
+</g>
+<!-- MONTHLY_FIXED_COSTS&#45;&gt;MONTHLY_TOTAL_COSTS -->
+<g id="edge38" class="edge">
+<title>MONTHLY_FIXED_COSTS-&gt;MONTHLY_TOTAL_COSTS</title>
+<path fill="none" stroke="#000000" d="M1222.116,-225.2067C1264.8624,-249.4295 1340.4707,-292.2739 1387.2665,-318.7912"/>
+<polygon fill="#000000" stroke="#000000" points="1385.7974,-321.9816 1396.2232,-323.8667 1389.2485,-315.8914 1385.7974,-321.9816"/>
+</g>
+<!-- MONTHLY_LABOR_COST -->
+<g id="node29" class="node">
+<title>MONTHLY_LABOR_COST</title>
+<polygon fill="none" stroke="#000000" points="1015.0614,-306 831.674,-306 831.674,-270 1015.0614,-270 1015.0614,-306"/>
+<text text-anchor="middle" x="923.3677" y="-283.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_LABOR_COST</text>
+</g>
+<!-- MONTHLY_LABOR_COST&#45;&gt;MONTHLY_FIXED_COSTS -->
+<g id="edge39" class="edge">
+<title>MONTHLY_LABOR_COST-&gt;MONTHLY_FIXED_COSTS</title>
+<path fill="none" stroke="#000000" d="M1014.6071,-269.9875C1026.0532,-267.233 1037.5475,-264.2227 1048.4056,-261 1078.7284,-252 1111.7987,-239.5424 1138.347,-228.8602"/>
+<polygon fill="#000000" stroke="#000000" points="1139.8676,-232.0204 1147.8157,-225.0147 1137.2336,-225.5348 1139.8676,-232.0204"/>
+</g>
+<!-- MONTHLY_RENT -->
+<g id="node30" class="node">
+<title>MONTHLY_RENT</title>
+<polygon fill="none" stroke="#000000" points="987.8932,-252 858.8422,-252 858.8422,-216 987.8932,-216 987.8932,-252"/>
+<text text-anchor="middle" x="923.3677" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_RENT</text>
+</g>
+<!-- MONTHLY_RENT&#45;&gt;MONTHLY_FIXED_COSTS -->
+<g id="edge40" class="edge">
+<title>MONTHLY_RENT-&gt;MONTHLY_FIXED_COSTS</title>
+<path fill="none" stroke="#000000" d="M987.9086,-227.4641C1017.7273,-224.4444 1053.8674,-220.7845 1087.2928,-217.3996"/>
+<polygon fill="#000000" stroke="#000000" points="1087.9725,-220.8487 1097.569,-216.3589 1087.2672,-213.8844 1087.9725,-220.8487"/>
+</g>
+<!-- MONTHLY_UTILITIES -->
+<g id="node31" class="node">
+<title>MONTHLY_UTILITIES</title>
+<polygon fill="none" stroke="#000000" points="1002.9253,-198 843.8101,-198 843.8101,-162 1002.9253,-162 1002.9253,-198"/>
+<text text-anchor="middle" x="923.3677" y="-175.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_UTILITIES</text>
+</g>
+<!-- MONTHLY_UTILITIES&#45;&gt;MONTHLY_FIXED_COSTS -->
+<g id="edge41" class="edge">
+<title>MONTHLY_UTILITIES-&gt;MONTHLY_FIXED_COSTS</title>
+<path fill="none" stroke="#000000" d="M1003.0009,-188.0643C1029.5132,-190.7492 1059.4259,-193.7784 1087.4246,-196.6138"/>
+<polygon fill="#000000" stroke="#000000" points="1087.3417,-200.1232 1097.6434,-197.6486 1088.047,-193.1588 1087.3417,-200.1232"/>
+</g>
+<!-- MONTHLY_MARKETING -->
+<g id="node32" class="node">
+<title>MONTHLY_MARKETING</title>
+<polygon fill="none" stroke="#000000" points="1011.8173,-144 834.9181,-144 834.9181,-108 1011.8173,-108 1011.8173,-144"/>
+<text text-anchor="middle" x="923.3677" y="-121.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_MARKETING</text>
+</g>
+<!-- MONTHLY_MARKETING&#45;&gt;MONTHLY_FIXED_COSTS -->
+<g id="edge42" class="edge">
+<title>MONTHLY_MARKETING-&gt;MONTHLY_FIXED_COSTS</title>
+<path fill="none" stroke="#000000" d="M1011.9151,-143.3691C1024.2463,-146.2961 1036.6959,-149.5245 1048.4056,-153 1078.7284,-162 1111.7987,-174.4576 1138.347,-185.1398"/>
+<polygon fill="#000000" stroke="#000000" points="1137.2336,-188.4652 1147.8157,-188.9853 1139.8676,-181.9796 1137.2336,-188.4652"/>
+</g>
+<!-- MONTHLY_INSURANCE -->
+<g id="node33" class="node">
+<title>MONTHLY_INSURANCE</title>
+<polygon fill="none" stroke="#000000" points="1009.9393,-90 836.7961,-90 836.7961,-54 1009.9393,-54 1009.9393,-90"/>
+<text text-anchor="middle" x="923.3677" y="-67.8" font-family="Times,serif" font-size="14.00" fill="#000000">MONTHLY_INSURANCE</text>
+</g>
+<!-- MONTHLY_INSURANCE&#45;&gt;MONTHLY_FIXED_COSTS -->
+<g id="edge43" class="edge">
+<title>MONTHLY_INSURANCE-&gt;MONTHLY_FIXED_COSTS</title>
+<path fill="none" stroke="#000000" d="M1010.0731,-85.5201C1023.2306,-89.0452 1036.4065,-93.4656 1048.4056,-99 1093.3747,-119.7415 1137.5012,-156.8122 1164.2323,-181.6555"/>
+<polygon fill="#000000" stroke="#000000" points="1161.9479,-184.3121 1171.624,-188.6276 1166.7511,-179.2199 1161.9479,-184.3121"/>
+</g>
+</g>
+</svg>
