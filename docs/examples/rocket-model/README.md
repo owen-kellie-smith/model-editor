@@ -51,54 +51,19 @@ $$
 \beta = \frac{8}{3}
 $$
 
-Export to Python, add [plotting](#3-plotting-numerical-output) and run for 50000 steps i.e. in this case
-`python3 lorenz_with_3d_plot.py --steps 50000`
+Export to Python to output (to Downloads folder) `lorenz.py`.
+
+The static .gif below was output by running in bash (in Downloads folder)
+`python3 lorenz.py --steps 60000 --plot-static --plot-vars "lorenz:x,y,z" --gif lorenz60000_static.gif
+
  
-![Screenshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_50000steps.png)
+![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](lorenzXYZ_60000_static.gif)
 ------------------------------------------------------------------------
 
-# 3. Plotting numerical output
+The animated .gif below was output by running in bash (in Downloads folder) 
+`python3 lorenz.py --steps 60000 --plot-traj --fps 30 --plot-vars "lorenz:x,y,z" --gif lorenz60000_trajFPS30.gif
 
-I found it much quicker to generate the numerical results via the exported Python script than via the exported spreadsheet.
-The exported Python script does not contain any plot command but you can manually add it.
-For example, by loading [lorenz-difference.xml](lorenz-difference.xml), exporting its model.py Python script, and comparing that with [lorenz_with_3d_plot.py](lorenz_with_3d_plot.py) (which produced the graphic below) you can see that all that was added was
-```
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  
-```
-(near the top of model.py) and
-```
-        # ---- 3D Plot of x,y,z ----
-        ts = list(range(0, TEMP_MAX + 1))
 
-        xs, ys, zs = [], [], []
-        for tval in ts:
-            xs.append(CACHE.get(("x", (tval,)), float("nan")))
-            ys.append(CACHE.get(("y", (tval,)), float("nan")))
-            zs.append(CACHE.get(("z", (tval,)), float("nan")))
-
-        # Filter out NaNs so matplotlib doesn't silently plot nothing
-        pts = [(x, y, z) for x, y, z in zip(xs, ys, zs)
-               if not (math.isnan(x) or math.isnan(y) or math.isnan(z))]
-
-        if not pts:
-            print("No finite (x,y,z) points found to plot. "
-                  "Try running with --strict to see why values are NaN.")
-        else:
-            xs, ys, zs = zip(*pts)
-
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection="3d")
-            ax.plot(xs, ys, zs)
-
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-            ax.set_zlabel("z")
-            ax.set_title("Lorenz Attractor")
-            plt.show()
-```
-(near the bottom)
-
-------------------------------------------------------------------------
+![Animation of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_trajFPS30.gif)
 
 

@@ -31,14 +31,16 @@
     <variable id="tli_accel"><unit>KM_PER_S2</unit><definition type="constant">0.0025</definition></variable>
 
     <!-- LOI trigger distance: when to latch into LOI mode -->
-    <variable id="loi_trigger_dist"><unit>KM</unit><definition type="constant">200000</definition></variable>
+    <variable id="loi_trigger_dist"><unit>KM</unit><definition type="constant">300000</definition></variable>
 
     <!-- Desired lunar orbit altitude -->
     <variable id="orbit_altitude_target"><unit>KM</unit><definition type="constant">100</definition></variable>
+    <variable id="moon_safe_altitude"><unit>KM</unit><definition type="constant">50</definition></variable>
+    <variable id="moon_avoid_accel"><unit>KM_PER_S2</unit><definition type="constant">0.05</definition></variable>
 
     <!-- LOI controller -->
     <variable id="loi_accel_max"><unit>KM_PER_S2</unit><definition type="constant">0.004</definition></variable>
-    <variable id="loi_gain"><definition type="constant">0.003</definition></variable>
+    <variable id="loi_gain"><definition type="constant">0.0025</definition></variable>
     <variable id="loi_radial_gain"><definition type="constant">0.00001</definition></variable>
 
     <!-- dt controls -->
@@ -49,6 +51,8 @@
     
     <variable id="perigee_gate_factor"><definition type="constant">1.05</definition></variable>
     <variable id="tli_dt_cap"><unit>S</unit><definition type="constant">5</definition></variable>
+    <variable id="loi_dt_cap"><unit>S</unit><definition type="constant">2</definition></variable>
+    <variable id="loi_dt_near_radius"><unit>KM</unit><definition type="constant">50000</definition></variable>
 
     <!-- ===================================================== -->
     <!-- ================= PHYSICAL CONSTANTS ================ -->
@@ -184,6 +188,7 @@
       <definition type="expression">(rel_vx(t)^2+rel_vy(t)^2)^(1/2)</definition>
     </variable>
 
+
     <!-- ===================================================== -->
     <!-- ================= TLI LATCH ========================= -->
     <!-- ===================================================== -->
@@ -312,6 +317,29 @@
     <!-- ======= CIRCULAR ORBIT TARGET (Moon-centered) ========= -->
     <!-- ===================================================== -->
 
+    <variable id="a_avoid_x">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_avoid_accel * moon_avoid_on(t) * rhat_x(t)</definition>
+    </variable>
+
+    <variable id="a_avoid_y">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_avoid_accel * moon_avoid_on(t) * rhat_y(t)</definition>
+    </variable>
+
+    <variable id="moon_avoid_on">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">r_moon_prev(t) &lt; moon_safe_radius</when><value type="constant">1</value></case>
+        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+      </definition>
+    </variable>
+
+    <variable id="moon_safe_radius">
+      <unit>KM</unit>
+      <definition type="expression">moon_radius + moon_safe_altitude</definition>
+    </variable>
+
     <variable id="r_orbit_target">
       <unit>KM</unit>
       <definition type="expression">moon_radius + orbit_altitude_target</definition>
@@ -364,7 +392,7 @@
     <!-- LOI acceleration command:
          - velocity term drives rel_v toward circular tangential rel_v_des
          - radial term drives r toward r_orbit_target along rhat -->
-    <variable id="a_loi_x"><arguments><arg indexSet="t"/></arguments>
+    <variable id="a_loi_cmd_x"><arguments><arg indexSet="t"/></arguments>
       <definition type="expression">
         min(
           loi_accel_max,
@@ -376,7 +404,13 @@
       </definition>
     </variable>
 
-    <variable id="a_loi_y"><arguments><arg indexSet="t"/></arguments>
+    <variable id="a_loi_x"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        a_loi_cmd_x(t) + a_avoid_x(t)
+      </definition>
+    </variable>
+
+    <variable id="a_loi_cmd_y"><arguments><arg indexSet="t"/></arguments>
       <definition type="expression">
         min(
           loi_accel_max,
@@ -385,6 +419,12 @@
             loi_gain*(rel_vy_des(t)-rel_vy_prev(t)) + loi_radial_gain*(r_orbit_target - r_moon_prev(t))*rhat_y(t)
           )
         )
+      </definition>
+    </variable>
+
+    <variable id="a_loi_y"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        a_loi_cmd_y(t) + a_avoid_y(t)
       </definition>
     </variable>
 
@@ -469,17 +509,23 @@
       </definition>
     </variable>
 
-    <!-- dt uses previous-step values to avoid same-t loops -->
     <variable id="dt"><arguments><arg indexSet="t"/></arguments>
       <definition type="piecewise">
         <case><when type="expression">t=0</when><value type="expression">dt0</value></case>
 
-        <!-- Smaller dt during burn -->
+        <!-- Smaller dt during TLI burn -->
         <case>
           <when type="expression">tli_burn_on(t)=1</when>
           <value type="expression">min(tli_dt_cap, dt_max)</value>
         </case>
 
+        <!-- Smaller dt during LOI only when actually near the Moon -->
+        <case>
+          <when type="expression">r_moon_prev(t) &lt; loi_dt_near_radius</when>
+          <value type="expression">min(loi_dt_cap, dt_max)</value>
+        </case>
+
+        <!-- Default adaptive dt (uses t-1 to stay acyclic) -->
         <case><when type="expression">t&gt;0</when>
           <value type="expression">
             min(dt_max, max(dt_min, dt_factor*(radius(t-1)/max(0.001,speed(t-1)))))
@@ -487,6 +533,7 @@
         </case>
       </definition>
     </variable>
+
     <!-- Optional: diagnostics -->
     <variable id="moon_orbit_error"><unit>KM</unit><arguments><arg indexSet="t"/></arguments>
       <definition type="expression">dist_to_moon(t)-r_orbit_target</definition>
