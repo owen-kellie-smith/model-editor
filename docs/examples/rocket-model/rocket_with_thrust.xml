@@ -3,6 +3,7 @@
 
   <units>
     <unit id="S">s</unit>
+    <unit id="days">days</unit>
     <unit id="KM">km</unit>
     <unit id="KM_PER_S">km/s</unit>
     <unit id="KM_PER_S2">km/s^2</unit>
@@ -35,7 +36,7 @@
 
     <!-- Desired lunar orbit altitude -->
     <variable id="orbit_altitude_target"><unit>KM</unit><definition type="constant">100</definition></variable>
-    <variable id="moon_safe_altitude"><unit>KM</unit><definition type="constant">50</definition></variable>
+    <variable id="moon_safe_altitude"><unit>KM</unit><definition type="constant">500</definition></variable>
     <variable id="moon_avoid_accel"><unit>KM_PER_S2</unit><definition type="constant">0.05</definition></variable>
 
     <!-- LOI controller -->
@@ -52,7 +53,7 @@
     <variable id="perigee_gate_factor"><definition type="constant">1.05</definition></variable>
     <variable id="tli_dt_cap"><unit>S</unit><definition type="constant">5</definition></variable>
     <variable id="loi_dt_cap"><unit>S</unit><definition type="constant">2</definition></variable>
-    <variable id="loi_dt_near_radius"><unit>KM</unit><definition type="constant">50000</definition></variable>
+    <variable id="loi_dt_near_radius"><unit>KM</unit><definition type="constant">75000</definition></variable>
 
     <!-- ===================================================== -->
     <!-- ================= PHYSICAL CONSTANTS ================ -->
@@ -89,6 +90,17 @@
         <case><when type="expression">t&gt;0</when><value type="expression">tau(t-1)+dt(t-1)</value></case>
       </definition>
     </variable>
+
+    <variable id="day">
+      <unit>days</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+         floor(100*tau(t)/(60*60*24))/100
+      </definition>
+    </variable>
+
 
     <variable id="moon_angle">
       <arguments><arg indexSet="t"/></arguments>
@@ -236,7 +248,7 @@
       <definition type="piecewise">
         <case><when type="expression">t=0</when><value type="constant">0</value></case>
         <case><when type="expression">loi_latched(t-1)=1</when><value type="constant">1</value></case>
-        <case><when type="expression">dist_to_moon(t)&lt;loi_trigger_dist</when><value type="constant">1</value></case>
+        <case><when type="expression">r_moon_prev(t)&lt;loi_trigger_dist</when><value type="constant">1</value></case>
         <case><when type="expression">1=1</when><value type="constant">0</value></case>
       </definition>
     </variable>
@@ -436,11 +448,15 @@
           <value type="expression">tli_accel*vhat_x(t)</value>
         </case>
         <case><when type="expression">loi_latched(t)=1</when>
-          <value type="expression">a_loi_x(t)</value>
+          <value type="expression">a_loi_x(t) + a_avoid_x(t)</value>
         </case>
-        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+        <case>
+          <when type="expression">1=1</when>
+          <value type="expression">a_avoid_x(t)</value>
+        </case>
       </definition>
     </variable>
+
 
     <variable id="a_thrust_y">
       <arguments><arg indexSet="t"/></arguments>
@@ -450,9 +466,12 @@
           <value type="expression">tli_accel*vhat_y(t)</value>
         </case>
         <case><when type="expression">loi_latched(t)=1</when>
-          <value type="expression">a_loi_y(t)</value>
+          <value type="expression">a_loi_y(t) + a_avoid_y(t)</value>
         </case>
-        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+        <case>
+          <when type="expression">1=1</when>
+          <value type="expression">a_avoid_y(t)</value>
+        </case>
       </definition>
     </variable>
 
