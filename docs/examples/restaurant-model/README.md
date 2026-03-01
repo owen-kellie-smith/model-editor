@@ -4,8 +4,9 @@ This directory contains a **declarative financial model** for projecting restaur
 
 ## Purpose
 
-The model exists to:
-- Demonstrate the model editor's capabilities with a real-world business domain
+The model 
+- demonstrates the model editor's capabilities with a real-world business domain
+- provides a simple enough example to validate by hand.
 
 ## Model Description
 
