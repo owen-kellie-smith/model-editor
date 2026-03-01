@@ -3,19 +3,284 @@
 This folder contains non-financial example models demonstrating how the
 declarative system can represent time-stepped dynamical systems.
 
-The first example models a spacecraft orbiting Earth, perturbed by
+The [first example](#spacecraft) models a spacecraft orbiting Earth, perturbed by
 the Moon. Thrust controls represent an optional TLI in order to attempt to achieve low lunar orbit.
 
-The second example is a numerical integration of the [Lorenz Equations (1963)](https://en.wikipedia.org/wiki/Lorenz_system).
+The [second example](#2-lorenz-equations-1963) is a numerical integration of the [Lorenz Equations (1963)](https://en.wikipedia.org/wiki/Lorenz_system).
 
 These examples demonstrate that the declarative modelling system can
-express nonlinear dynamics, indexed recursion, and adaptive stepping.
+express nonlinear dynamics, indexed recursion, and [adaptive stepping](#adaptive-timestep).
 
 ------------------------------------------------------------------------
 
-# 1. Spacecraft orbiting Earth
+# Spacecraft
 
 Using [rocket_with_thrust.xml](rocket_with_thrust.xml) 
+
+This model implements a **planar circular restricted three-body problem with thrust**.
+
+- Earth is static.
+- Moon moves in circular orbits about Earth.
+- The spacecraft's mass is negligible - it does not affect Earth or Moon.
+- All motion is planar (2D).
+- The spacecraft can accelerate in any direction.
+
+
+---
+## Constants (Mapped to XML)
+
+### Physical Constants
+
+| Physical meaning | Symbol | XML variable | Value | Units |
+|---|---|---|---|---|
+| Earth gravitational parameter | $$\mu$$ | `mu_earth` | 398600.4418 | km^3/s^2 |
+| Moon gravitational parameter | $$\nu$$ | `mu_moon` | 4902.800066 | km^3/s^2 |
+| Earth radius | $$\rho$$ | `earth_radius` | 6378 | km |
+| Moon radius | $$\sigma$$ | `moon_radius` | 1737.4 | km |
+| Moon orbital radius | $$\lambda$$ | `moon_orbit_radius` | 384400 | km |
+| Moon orbital period | $$\tau$$ | `moon_period_s` | 2360591.51 | s |
+
+### Initial conditions assumed 
+
+| Meaning | Symbol | XML Variable | Value | Units |
+|---|---|---|---|---|
+| Initial Moon phase angle | $$P$$  | `moon_phase0` | 1.93 | rad   |
+| Initial height of spacecraft above surface of Earth  | $$H$$  | `x0` | 200 | km  |
+| Initial speed of spacecraft (for circular orbit of Earth) | $$\sqrt{\frac{\mu}{\rho + H}}$$  | `vy0` | 1.93 | km^3/s^2  |
+
+### Spacecraft Control Constants for Trans Lunar Injection (TLI) 
+
+| Meaning | Symbol | XML Variable | Value | Units |
+|---|---|---|---|---|
+| TLI acceleration magnitude | $$L$$ | `tli_accel` | 0.0025 | km/s^2 |
+| TLI burn duration | $$B$$ | `tli_burn_s` | 1400 | s |
+| TLI required nearness to perigee | $$E$$ | `perigee_gate_factor` | 1.05 | --- |
+
+
+### Spacecraft Control Constants for Lunar Orbit Insertion (LOI) 
+
+| Meaning | Symbol | XML Variable | Value | Units |
+|---|---|---|---|---|
+| Target orbit altitude | $$A$$ | `orbit_altitude_target` | 100 | km |
+| Velocity gain | $$Y$$ | `loi_gain` | 0.0025 | — |
+| Radial gain | $$R$$ | `loi_radial_gain` | 0.00001 | — |
+| Maximum LOI acceleration | $$X$$ | `loi_accel_max` | 0.004 | km/s^2 |
+| LOI trigger distance | $$G$$ | `loi_trigger_dist` | 300000 | km |
+
+### Spacecraft Control Constants for Crash Avoidance 
+
+| Meaning | Symbol | XML Variable | Value | Units |
+|---|---|---|---|---|
+| Safe altitude above Moon | $$S$$ | `moon_safe_altitude` | 500 | km |
+| Avoidance acceleration magnitude | $$V$$ | `moon_avoid_accel` | 0.05 | km/s^2 |
+
+---
+## State Definition
+
+Spacecraft position (Earth-centred inertial frame):
+
+$$
+\mathbf r(t) = \begin{bmatrix}x(t) \\ y(t)\end{bmatrix}
+$$
+
+Spacecraft Velocity:
+
+$$
+\mathbf v(t) = \dot{\mathbf r}(t)
+$$
+
+Spacecraft Distance to Earth:
+
+$$
+d_E(t) = \|\mathbf r(t)\|
+$$
+
+Moon phase:
+
+$$
+\theta(t) = P + \frac{2\pi}{\tau} t
+$$
+
+Moon position (circular orbit of radius $\lambda$):
+
+$$
+\mathbf r_M(t) =
+\lambda \begin{bmatrix}
+ \cos(\theta(t)) \\
+ \sin(\theta(t))
+\end{bmatrix}
+$$
+
+Spacecraft distance to Moon:
+
+$$
+d_M = \|\mathbf r - \mathbf r_M\|
+$$
+
+---
+## Continuous-Time Equations of Motion
+
+Velocity:
+
+$$
+\mathbf v = \dot{\mathbf r}
+$$
+
+Acceleration:
+
+$$
+\dot{\mathbf v} =
+- \mu \frac{\mathbf r}{d_E^3}
+- \nu \frac{\mathbf r - \mathbf r_M}{d_M^3}
++ \mathbf a_T
+$$
+
+Interpretation:
+
+- First term: Earth gravitational acceleration in direction of a unit vector from spacecraft to Earth  
+- Second term: Moon gravitational acceleration in direction of a unit vector from spacecraft to Moon  
+- Third term: Control-provided thrust acceleration  
+
+## Thrust Definitions
+
+The thrust acceleration $\mathbf a_T$ depends on control mode.
+Three acceleration components are defined.
+1. [Trans-Lunar Injection (TLI)](#trans-lunar-injection-tli)
+2. [Lunar Orbit Insertion (LOI)](#lunar-orbit-insertion-loi)
+3. [Moon Avoidance](#moon-avoidance)
+
+The control system selects which thrust components are active:
+
+- During the [TLI burn times](#tli-burn-times)  $\mathbf a_T = \mathbf a_{TLI}$.
+- When the spacecraft is a [safe distance from moon surface](#moon-avoidance) but within LOI trigger distance $d_S < d_M < G$, then $\mathbf a_T = \mathbf a_{LOI}$.
+- When the spacecraft is an [unsafe distance from moon surface](#moon-avoidance) $d_M < d_S$, then $\mathbf a_T = \mathbf a_{LOI} + \mathbf a_{avoid}$.
+- Otherwise  $\mathbf a_T = 0$.
+
+The thrust term is therefore a piecewise-defined control acceleration
+superimposed on gravitational motion.
+
+---
+
+### Trans-Lunar Injection (TLI)
+
+During the TLI burn times:
+$$
+\mathbf a_{TLI} =
+L \frac{\mathbf v}{\|\mathbf v\|}
+$$
+
+
+#### TLI burn times 
+
+The TLI burn times are a series of intervals in the near-perigree parts of the orbit totalling $B$ s at most.  The required "nearness" to perigee is defined by $E$.
+
+---
+
+### Lunar Orbit Insertion (LOI)
+
+#### Unit Radial Vector from Moon
+
+The outward radial unit vector from the Moon to the spacecraft is:
+
+$$
+\hat{\mathbf u} =
+\frac{\mathbf r - \mathbf r_M}{\|\mathbf r - \mathbf r_M\|} = \frac{\mathbf r - \mathbf r_M}{d_M}. 
+$$
+
+#### Relative Velocity (spacecraft relative to Moon)
+
+Moon velocity relative to Earth (time derivative of Moon position):
+
+$$
+\dot{\mathbf r}_M =
+\frac{2 \pi \lambda}{\tau}
+\begin{bmatrix}
+-\sin(\theta) \\
+ \cos(\theta)
+\end{bmatrix}
+$$
+
+Velocity of spacecraft relative to Moon:
+
+$$
+\mathbf v_{rel} =
+\mathbf v - \dot{\mathbf r}_M
+$$
+
+#### Desired Circular Velocity around Moon
+
+Target orbit radius:
+
+$$
+r_T = \sigma + A
+$$
+
+Required speed to maintain target circular orbit of Moon:
+
+$$
+v_c = \sqrt{\frac{\nu}{r_T}}
+$$
+
+Tangential unit vector in counter-clockwise direction of desired orbit:
+
+$$
+\hat{\mathbf t} =
+\begin{bmatrix}
+-\hat u_y \\
+\hat u_x
+\end{bmatrix}
+$$
+
+Target velocity:
+
+$$
+\mathbf v_{des} = v_c \hat{\mathbf t}
+$$
+
+Applied acceleration towards target velocity and orbit radius:
+$$
+\mathbf a_{LOI} =
+Y (\mathbf v_{des} - \mathbf v_{rel})
++ R (r_T - d_M) \hat{\mathbf u}
+$$
+
+Acceleration is limited by:
+
+$$
+\|\mathbf a_{LOI}\| \le X
+$$
+
+
+---
+### Moon Avoidance
+
+Safe radius:
+
+$$
+d_S = \sigma + S
+$$
+
+Avoidance acceleration, when $d_M \lt d_S$
+
+$$
+\mathbf a_{avoid} = V \hat{\mathbf u}
+$$
+
+## Adaptive timestep
+
+The model uses an adaptive timestep that is explicitly capped to small values during active TLI burns and whenever the spacecraft is within 75,000 km of the Moon, which is why the simulation visibly slows down near LOI.
+
+## Running the rocket model
+
+Load [rocket_with_thrust.xml](rocket_with_thrust.xml) into the model-editor.
+Export to Python to output (to Downloads folder) `rocket_with_thrust.py`.
+
+The animated .gif below was output by running in bash (in the Downloads folder) 
+
+`python3 rocket_with_thrust.py   --steps 60000   --plot-traj   --plot-vars "rocket:x,y;moon:moon_x,moon_y"   --plot-t tau   --plot-title day --plot-head-colors "rocket=red,moon=silver" --plot-tail-colors "rocket=blue,moon=dimgray"  --plot-step 10   --fps 30   --gif rocket60000.gif`
+
+![Animation of a numerical integration of spacecraft equations output by Python rendering.](rocket60000.gif)
+
 
 ------------------------------------------------------------------------
 
@@ -59,13 +324,4 @@ The static .gif below was output by running in bash (in Downloads folder)
 
  
 ![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_static.gif)
-------------------------------------------------------------------------
-
-An animated .gif can be output by running in bash (in Downloads folder) 
-
-`python3 lorenz.py --steps 60000 --plot-traj --fps 30 --plot-vars "lorenz:x,y,z" --gif lorenz60000_trajFPS30.gif`
-
-
-![Animation of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_trajFPS30.gif)
-
 
