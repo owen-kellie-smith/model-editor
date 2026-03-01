@@ -54,14 +54,14 @@ $$
 Export to Python to output (to Downloads folder) `lorenz.py`.
 
 The static .gif below was output by running in bash (in Downloads folder)
-`python3 lorenz.py --steps 60000 --plot-static --plot-vars "lorenz:x,y,z" --gif lorenz60000_static.gif
+`python3 lorenz.py --steps 60000 --plot-static --plot-vars "lorenz:x,y,z" --gif lorenz60000_static.gif`
 
  
 ![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_static.gif)
 ------------------------------------------------------------------------
 
 The animated .gif below was output by running in bash (in Downloads folder) 
-`python3 lorenz.py --steps 60000 --plot-traj --fps 30 --plot-vars "lorenz:x,y,z" --gif lorenz60000_trajFPS30.gif
+`python3 lorenz.py --steps 60000 --plot-traj --fps 30 --plot-vars "lorenz:x,y,z" --gif lorenz60000_trajFPS30.gif`
 
 
 ![Animation of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_trajFPS30.gif)
