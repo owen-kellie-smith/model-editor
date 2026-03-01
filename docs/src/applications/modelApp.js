@@ -6,7 +6,7 @@ import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
 import { renderModelAsExcel, renderModelAsHTMLPreview } from "../domain/spreadsheetRenderer.js";
 import { renderModelAsPython } from "../domain/pythonRenderer.js";
-import { setElementContent } from "../utils/helpers.js";
+import { setElementContent, sanitizeFilename } from "../utils/helpers.js";
 
 
 let modelEnv = null;
@@ -222,11 +222,13 @@ export function wireModelHandlers() {
   ui.downloadPython.addEventListener("click", () => {
     if (!modelEnv) return;
     try {
-      const py = renderModelAsPython(modelEnv.obj, modelEnv.features);
-      exportFile(py, "model.py", "text/x-python");
+      const code = renderModelAsPython(modelEnv.obj, modelEnv.features);
+      const modelId = sanitizeFilename(modelEnv.obj?.model?.id);
+      const pyPath = `${modelId}.py`;
+      exportFile(code, pyPath, "text/x-python");
     } catch (error) {
       alert("Error exporting Python: " + error.message + ". See console for stack trace.");
-      console.error("Python export error:", error);
+      console.error("Python   export error:", error);
     }
   });
   

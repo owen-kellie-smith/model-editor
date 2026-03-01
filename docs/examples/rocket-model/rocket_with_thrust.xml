@@ -1,0 +1,562 @@
+<?xml version="1.0"?>
+<model id="rocket_with_thrust">
+
+  <units>
+    <unit id="S">s</unit>
+    <unit id="days">days</unit>
+    <unit id="KM">km</unit>
+    <unit id="KM_PER_S">km/s</unit>
+    <unit id="KM_PER_S2">km/s^2</unit>
+    <unit id="KM3_PER_S2">km^3/s^2</unit>
+    <unit id="RAD">rad</unit>
+  </units>
+
+  <indexSets>
+    <indexSet id="t" role="temporal" dataType="integer" min="0" max="20"/>
+  </indexSets>
+
+  <variables>
+
+    <!-- ===================================================== -->
+    <!-- ================= CONTROL VARIABLES ================= -->
+    <!-- ===================================================== -->
+
+    <!-- Initial orbit -->
+    <variable id="altitude0"><unit>KM</unit><definition type="constant">200</definition></variable>
+
+    <!-- Moon phase at t=0 (radians). Tune for encounter geometry -->
+    <variable id="moon_phase0"><unit>RAD</unit><definition type="constant">1.93</definition></variable>
+
+    <!-- TLI burn: prograde for fixed time -->
+    <variable id="tli_burn_s"><unit>S</unit><definition type="constant">1400</definition></variable>
+    <variable id="tli_accel"><unit>KM_PER_S2</unit><definition type="constant">0.0025</definition></variable>
+
+    <!-- LOI trigger distance: when to latch into LOI mode -->
+    <variable id="loi_trigger_dist"><unit>KM</unit><definition type="constant">300000</definition></variable>
+
+    <!-- Desired lunar orbit altitude -->
+    <variable id="orbit_altitude_target"><unit>KM</unit><definition type="constant">100</definition></variable>
+    <variable id="moon_safe_altitude"><unit>KM</unit><definition type="constant">500</definition></variable>
+    <variable id="moon_avoid_accel"><unit>KM_PER_S2</unit><definition type="constant">0.05</definition></variable>
+
+    <!-- LOI controller -->
+    <variable id="loi_accel_max"><unit>KM_PER_S2</unit><definition type="constant">0.004</definition></variable>
+    <variable id="loi_gain"><definition type="constant">0.0025</definition></variable>
+    <variable id="loi_radial_gain"><definition type="constant">0.00001</definition></variable>
+
+    <!-- dt controls -->
+    <variable id="dt0"><unit>S</unit><definition type="constant">10</definition></variable>
+    <variable id="dt_min"><unit>S</unit><definition type="constant">1</definition></variable>
+    <variable id="dt_max"><unit>S</unit><definition type="constant">60</definition></variable>
+    <variable id="dt_factor"><unit>S</unit><definition type="constant">30</definition></variable>
+    
+    <variable id="perigee_gate_factor"><definition type="constant">1.05</definition></variable>
+    <variable id="tli_dt_cap"><unit>S</unit><definition type="constant">5</definition></variable>
+    <variable id="loi_dt_cap"><unit>S</unit><definition type="constant">2</definition></variable>
+    <variable id="loi_dt_near_radius"><unit>KM</unit><definition type="constant">75000</definition></variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= PHYSICAL CONSTANTS ================ -->
+    <!-- ===================================================== -->
+
+    <variable id="mu_earth"><unit>KM3_PER_S2</unit><definition type="constant">398600.4418</definition></variable>
+    <variable id="mu_moon"><unit>KM3_PER_S2</unit><definition type="constant">4902.800066</definition></variable>
+
+    <variable id="earth_radius"><unit>KM</unit><definition type="constant">6378</definition></variable>
+    <variable id="moon_radius"><unit>KM</unit><definition type="constant">1737.4</definition></variable>
+
+    <variable id="moon_orbit_radius"><unit>KM</unit><definition type="constant">384400</definition></variable>
+    <variable id="moon_period_s"><unit>S</unit><definition type="constant">2360591.51</definition></variable>
+    <variable id="moon_n"><definition type="expression">2*3.141592653589793 / moon_period_s</definition></variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= INITIAL CONDITIONS ================ -->
+    <!-- ===================================================== -->
+
+    <variable id="x0"><unit>KM</unit><definition type="expression">earth_radius + altitude0</definition></variable>
+    <variable id="y0"><unit>KM</unit><definition type="constant">0</definition></variable>
+    <variable id="vx0"><unit>KM_PER_S</unit><definition type="constant">0</definition></variable>
+    <variable id="vy0"><unit>KM_PER_S</unit><definition type="expression">(mu_earth / x0)^(1/2)</definition></variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= TIME / EPHEMERIS ================== -->
+    <!-- ===================================================== -->
+
+    <variable id="tau">
+      <unit>S</unit>
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="constant">0</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">tau(t-1)+dt(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <variable id="day">
+      <unit>days</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+         floor(100*tau(t)/(60*60*24))/100
+      </definition>
+    </variable>
+
+
+    <variable id="moon_angle">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_phase0 + moon_n*tau(t)</definition>
+    </variable>
+
+    <variable id="moon_x"><unit>KM</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_orbit_radius*cos(moon_angle(t))</definition>
+    </variable>
+
+    <variable id="moon_y"><unit>KM</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_orbit_radius*sin(moon_angle(t))</definition>
+    </variable>
+
+    <variable id="moon_vx"><unit>KM_PER_S</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">-moon_orbit_radius*moon_n*sin(moon_angle(t))</definition>
+    </variable>
+
+    <variable id="moon_vy"><unit>KM_PER_S</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_orbit_radius*moon_n*cos(moon_angle(t))</definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= ROCKET STATE ====================== -->
+    <!-- ===================================================== -->
+
+    <variable id="x"><unit>KM</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">x0</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">x(t-1)+vx_half(t-1)*dt(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <variable id="y"><unit>KM</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">y0</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">y(t-1)+vy_half(t-1)*dt(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <variable id="radius"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">(x(t)^2+y(t)^2)^(1/2)</definition>
+    </variable>
+    
+    <variable id="perigee_ref">
+      <unit>KM</unit>
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">radius(0)</value></case>
+        <case><when type="expression">t&gt;0</when>
+          <value type="expression">min(perigee_ref(t-1), radius(t))</value>
+        </case>
+      </definition>
+    </variable>
+
+    <variable id="near_perigee">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="constant">1</value></case>
+        <case>
+          <when type="expression">radius(t-1) &lt;= perigee_gate_factor * perigee_ref(t-1)</when>
+          <value type="constant">1</value>
+        </case>
+        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+      </definition>
+    </variable>
+
+    <variable id="speed"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">(vx(t)^2+vy(t)^2)^(1/2)</definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= MOON-RELATIVE ===================== -->
+    <!-- ===================================================== -->
+
+    <variable id="dxm"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">x(t)-moon_x(t)</definition>
+    </variable>
+
+    <variable id="dym"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">y(t)-moon_y(t)</definition>
+    </variable>
+
+    <variable id="dist_to_moon"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">(dxm(t)^2+dym(t)^2)^(1/2)</definition>
+    </variable>
+
+    <variable id="rel_vx"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">vx(t)-moon_vx(t)</definition>
+    </variable>
+
+    <variable id="rel_vy"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">vy(t)-moon_vy(t)</definition>
+    </variable>
+
+    <variable id="rel_speed"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">(rel_vx(t)^2+rel_vy(t)^2)^(1/2)</definition>
+    </variable>
+
+
+    <!-- ===================================================== -->
+    <!-- ================= TLI LATCH ========================= -->
+    <!-- ===================================================== -->
+
+    <variable id="tli_burn_used">
+      <unit>S</unit>
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="constant">0</value></case>
+
+        <case><when type="expression">t&gt;0</when>
+          <value type="expression">tli_burn_used(t-1) + tli_burn_on(t)*dt(t-1)</value>
+        </case>
+      </definition>
+    </variable>
+
+
+    <variable id="tli_burn_on">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="constant">1</value></case>
+
+        <!-- Stop once we've used enough burn time as of last step -->
+        <case>
+          <when type="expression">tli_burn_used(t-1) &gt;= tli_burn_s</when>
+          <value type="constant">0</value>
+        </case>
+
+        <!-- Otherwise burn when near perigee -->
+        <case>
+          <when type="expression">near_perigee(t)=1</when>
+          <value type="constant">1</value>
+        </case>
+
+        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+      </definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= LOI LATCH ========================= -->
+    <!-- ===================================================== -->
+
+    <variable id="loi_latched">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="constant">0</value></case>
+        <case><when type="expression">loi_latched(t-1)=1</when><value type="constant">1</value></case>
+        <case><when type="expression">r_moon_prev(t)&lt;loi_trigger_dist</when><value type="constant">1</value></case>
+        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+      </definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ======== BREAK ALGEBRAIC LOOPS (t-1 SENSING) ========= -->
+    <!-- ===================================================== -->
+
+    <!-- Prograde direction uses previous-step velocity -->
+    <variable id="vhat_x">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">t=0</when>
+          <value type="expression">vx0/max(0.000001,(vx0^2+vy0^2)^(1/2))</value>
+        </case>
+        <case>
+          <when type="expression">t&gt;0</when>
+          <value type="expression">vx(t-1)/max(0.000001,speed(t-1))</value>
+        </case>
+      </definition>
+    </variable>
+
+    <variable id="vhat_y">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">t=0</when>
+          <value type="expression">vy0/max(0.000001,(vx0^2+vy0^2)^(1/2))</value>
+        </case>
+        <case>
+          <when type="expression">t&gt;0</when>
+          <value type="expression">vy(t-1)/max(0.000001,speed(t-1))</value>
+        </case>
+      </definition>
+    </variable>
+
+    <!-- Previous-step moon-relative position -->
+    <variable id="dxm_prev"><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">x0-moon_x(0)</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">dxm(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <variable id="dym_prev"><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">y0-moon_y(0)</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">dym(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <variable id="r_moon_prev"><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">((x0-moon_x(0))^2+(y0-moon_y(0))^2)^(1/2)</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">dist_to_moon(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <!-- LOI uses previous-step relative velocity -->
+    <variable id="rel_vx_prev">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">vx0-moon_vx(0)</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">rel_vx(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <variable id="rel_vy_prev">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">vy0-moon_vy(0)</value></case>
+        <case><when type="expression">t&gt;0</when><value type="expression">rel_vy(t-1)</value></case>
+      </definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ======= CIRCULAR ORBIT TARGET (Moon-centered) ========= -->
+    <!-- ===================================================== -->
+
+    <variable id="a_avoid_x">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_avoid_accel * moon_avoid_on(t) * rhat_x(t)</definition>
+    </variable>
+
+    <variable id="a_avoid_y">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">moon_avoid_accel * moon_avoid_on(t) * rhat_y(t)</definition>
+    </variable>
+
+    <variable id="moon_avoid_on">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">r_moon_prev(t) &lt; moon_safe_radius</when><value type="constant">1</value></case>
+        <case><when type="expression">1=1</when><value type="constant">0</value></case>
+      </definition>
+    </variable>
+
+    <variable id="moon_safe_radius">
+      <unit>KM</unit>
+      <definition type="expression">moon_radius + moon_safe_altitude</definition>
+    </variable>
+
+    <variable id="r_orbit_target">
+      <unit>KM</unit>
+      <definition type="expression">moon_radius + orbit_altitude_target</definition>
+    </variable>
+
+    <variable id="v_circ_target">
+      <unit>KM_PER_S</unit>
+      <definition type="expression">(mu_moon / r_orbit_target)^(1/2)</definition>
+    </variable>
+
+    <!-- Radial / tangential unit vectors in moon frame -->
+    <variable id="rhat_x"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">dxm_prev(t)/max(0.000001,r_moon_prev(t))</definition>
+    </variable>
+    <variable id="rhat_y"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">dym_prev(t)/max(0.000001,r_moon_prev(t))</definition>
+    </variable>
+
+    <variable id="that_x"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">-rhat_y(t)</definition>
+    </variable>
+    <variable id="that_y"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">rhat_x(t)</definition>
+    </variable>
+
+    <!-- Choose tangential direction consistent with current motion -->
+    <variable id="v_tan_prev">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">rel_vx_prev(t)*that_x(t) + rel_vy_prev(t)*that_y(t)</definition>
+    </variable>
+
+    <variable id="tan_sign">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">v_tan_prev(t)/max(0.000001,abs(v_tan_prev(t)))</definition>
+    </variable>
+
+    <!-- Desired moon-relative velocity for circular orbit (purely tangential) -->
+    <variable id="rel_vx_des"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">v_circ_target * tan_sign(t) * that_x(t)</definition>
+    </variable>
+
+    <variable id="rel_vy_des"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">v_circ_target * tan_sign(t) * that_y(t)</definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= THRUST ============================ -->
+    <!-- ===================================================== -->
+
+    <!-- LOI acceleration command:
+         - velocity term drives rel_v toward circular tangential rel_v_des
+         - radial term drives r toward r_orbit_target along rhat -->
+    <variable id="a_loi_cmd_x"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        min(
+          loi_accel_max,
+          max(
+            -loi_accel_max,
+            loi_gain*(rel_vx_des(t)-rel_vx_prev(t)) + loi_radial_gain*(r_orbit_target - r_moon_prev(t))*rhat_x(t)
+          )
+        )
+      </definition>
+    </variable>
+
+    <variable id="a_loi_x"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        a_loi_cmd_x(t) + a_avoid_x(t)
+      </definition>
+    </variable>
+
+    <variable id="a_loi_cmd_y"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        min(
+          loi_accel_max,
+          max(
+            -loi_accel_max,
+            loi_gain*(rel_vy_des(t)-rel_vy_prev(t)) + loi_radial_gain*(r_orbit_target - r_moon_prev(t))*rhat_y(t)
+          )
+        )
+      </definition>
+    </variable>
+
+    <variable id="a_loi_y"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        a_loi_cmd_y(t) + a_avoid_y(t)
+      </definition>
+    </variable>
+
+    <variable id="a_thrust_x">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">tli_burn_on(t)=1</when>
+          <value type="expression">tli_accel*vhat_x(t)</value>
+        </case>
+        <case><when type="expression">loi_latched(t)=1</when>
+          <value type="expression">a_loi_x(t) + a_avoid_x(t)</value>
+        </case>
+        <case>
+          <when type="expression">1=1</when>
+          <value type="expression">a_avoid_x(t)</value>
+        </case>
+      </definition>
+    </variable>
+
+
+    <variable id="a_thrust_y">
+      <arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">tli_burn_on(t)=1</when>
+          <value type="expression">tli_accel*vhat_y(t)</value>
+        </case>
+        <case><when type="expression">loi_latched(t)=1</when>
+          <value type="expression">a_loi_y(t) + a_avoid_y(t)</value>
+        </case>
+        <case>
+          <when type="expression">1=1</when>
+          <value type="expression">a_avoid_y(t)</value>
+        </case>
+      </definition>
+    </variable>
+
+    <variable id="is_burning"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">tli_burn_on(t)</definition>
+    </variable>
+
+    <variable id="tli_remaining"><unit>S</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">tli_burn_s - tli_burn_used(t)</definition>
+    </variable>
+
+    <!-- ===================================================== -->
+    <!-- ================= DYNAMICS ========================== -->
+    <!-- ===================================================== -->
+
+    <variable id="ax"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        -mu_earth*x(t)/((x(t)^2+y(t)^2)^(3/2))
+        -mu_moon*(x(t)-moon_x(t))/(((x(t)-moon_x(t))^2+(y(t)-moon_y(t))^2)^(3/2))
+        + a_thrust_x(t)
+      </definition>
+    </variable>
+
+    <variable id="ay"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">
+        -mu_earth*y(t)/((x(t)^2+y(t)^2)^(3/2))
+        -mu_moon*(y(t)-moon_y(t))/(((x(t)-moon_x(t))^2+(y(t)-moon_y(t))^2)^(3/2))
+        + a_thrust_y(t)
+      </definition>
+    </variable>
+
+    <variable id="vx_half"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">vx(t)+0.5*ax(t)*dt(t)</definition>
+    </variable>
+    <variable id="vy_half"><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">vy(t)+0.5*ay(t)*dt(t)</definition>
+    </variable>
+
+    <variable id="vx"><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">vx0</value></case>
+        <case><when type="expression">t&gt;0</when>
+          <value type="expression">vx_half(t-1)+0.5*ax(t)*dt(t-1)</value>
+        </case>
+      </definition>
+    </variable>
+
+    <variable id="vy"><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">vy0</value></case>
+        <case><when type="expression">t&gt;0</when>
+          <value type="expression">vy_half(t-1)+0.5*ay(t)*dt(t-1)</value>
+        </case>
+      </definition>
+    </variable>
+
+    <variable id="dt"><arguments><arg indexSet="t"/></arguments>
+      <definition type="piecewise">
+        <case><when type="expression">t=0</when><value type="expression">dt0</value></case>
+
+        <!-- Smaller dt during TLI burn -->
+        <case>
+          <when type="expression">tli_burn_on(t)=1</when>
+          <value type="expression">min(tli_dt_cap, dt_max)</value>
+        </case>
+
+        <!-- Smaller dt during LOI only when actually near the Moon -->
+        <case>
+          <when type="expression">r_moon_prev(t) &lt; loi_dt_near_radius</when>
+          <value type="expression">min(loi_dt_cap, dt_max)</value>
+        </case>
+
+        <!-- Default adaptive dt (uses t-1 to stay acyclic) -->
+        <case><when type="expression">t&gt;0</when>
+          <value type="expression">
+            min(dt_max, max(dt_min, dt_factor*(radius(t-1)/max(0.001,speed(t-1)))))
+          </value>
+        </case>
+      </definition>
+    </variable>
+
+    <!-- Optional: diagnostics -->
+    <variable id="moon_orbit_error"><unit>KM</unit><arguments><arg indexSet="t"/></arguments>
+      <definition type="expression">dist_to_moon(t)-r_orbit_target</definition>
+    </variable>
+
+  </variables>
+</model>

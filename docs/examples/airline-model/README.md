@@ -15,5 +15,5 @@ This model projects the financial performance of a small airline. It calculates 
 
 ## Usage
 
-See the [repo README](../../../README.md#how-to-run)
+See [How to run](../../../README.md#how-to-run)
 
