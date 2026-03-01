@@ -38,6 +38,6 @@ MONTHLY_TOTAL_COSTS = 54,000 fixed costs (MONTHLY_LABOR_COST + MONTHLY_RENT + MO
  = 46%, which is a slight underestimate of the 49.815% calculated by each of 
  - the Sample Evaluation ![Sample Evaluation fragment](RestaurantNoIndices_Preview.png),
  - the exported spreadsheet ![exported spreadsheet fragment](RestaurantNoIndices_Spreadsheet.png) and
- - the exported Python script ![exported Python output shown in libreoffice](RestaurantNoIndices_Python.png)
+ - the exported Python script, which when run outputs a .csv file ![exported Python output shown in libreoffice](RestaurantNoIndices_Python.png)
  
  
