@@ -1,0 +1,1271 @@
+<?xml version="1.0"?>
+<model id="restaurant-profitability-v8-3statement-reconciled">
+  <indexSets>
+    <indexSet id="month" role="temporal" min="1" max="36">
+      <description>Projection month (1..36)</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+  <units>
+    <unit id="USD"></unit>
+    <unit id="USD_per_month"></unit>
+    <unit id="percent"></unit>
+    <unit id="customers"></unit>
+    <unit id="tables"></unit>
+    <unit id="hours"></unit>
+  </units>
+  <variables>
+    <variable id="seating_capacity">
+      <dataType>integer</dataType>
+      <unit>tables</unit>
+      <definition type="constant">
+        25
+      </definition>
+    </variable>
+    <variable id="avg_party_size">
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="constant">
+        3.5
+      </definition>
+    </variable>
+    <variable id="hours_open_per_day">
+      <dataType>real</dataType>
+      <unit>hours</unit>
+      <definition type="constant">
+        12
+      </definition>
+    </variable>
+    <variable id="table_turnover_rate">
+      <dataType>real</dataType>
+      <definition type="constant">
+        2.5
+      </definition>
+    </variable>
+    <variable id="weekdays_per_month">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        21
+      </definition>
+    </variable>
+    <variable id="weekend_days_per_month">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        9
+      </definition>
+    </variable>
+    <variable id="baseline_occupancy_weekday">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.62
+      </definition>
+    </variable>
+    <variable id="baseline_occupancy_weekend">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.88
+      </definition>
+    </variable>
+    <variable id="max_effective_occupancy">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.92
+      </definition>
+    </variable>
+    <variable id="max_customers_per_day">
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        seating_capacity * avg_party_size * table_turnover_rate
+      </definition>
+    </variable>
+    <variable id="seasonality_amplitude">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.10
+      </definition>
+    </variable>
+    <variable id="seasonality_phase_shift_months">
+      <dataType>real</dataType>
+      <definition type="constant">
+        -2
+      </definition>
+    </variable>
+    <variable id="seasonality_multiplier">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        1 + seasonality_amplitude * sin(2 * 3.14159265358979 * (month + seasonality_phase_shift_months) / 12)
+      </definition>
+    </variable>
+    <variable id="food_unit_cost_base">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        14
+      </definition>
+    </variable>
+    <variable id="beverage_unit_cost_base">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        2.50
+      </definition>
+    </variable>
+    <variable id="monthly_cost_inflation">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.004
+      </definition>
+    </variable>
+    <variable id="food_unit_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>food_unit_cost_base</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>food_unit_cost(month - 1) * (1 + monthly_cost_inflation)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="beverage_unit_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>beverage_unit_cost_base</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>beverage_unit_cost(month - 1) * (1 + monthly_cost_inflation)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="food_markup">
+      <dataType>real</dataType>
+      <definition type="constant">
+        3.0
+      </definition>
+    </variable>
+    <variable id="beverage_markup">
+      <dataType>real</dataType>
+      <definition type="constant">
+        5.0
+      </definition>
+    </variable>
+    <variable id="avg_meal_price">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        food_unit_cost(month) * food_markup
+      </definition>
+    </variable>
+    <variable id="avg_beverage_price">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        beverage_unit_cost(month) * beverage_markup
+      </definition>
+    </variable>
+    <variable id="beverage_attach_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.75
+      </definition>
+    </variable>
+    <variable id="reference_meal_price">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        42
+      </definition>
+    </variable>
+    <variable id="reference_beverage_price">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        11
+      </definition>
+    </variable>
+    <variable id="meal_price_elasticity">
+      <dataType>real</dataType>
+      <definition type="constant">
+        1.3
+      </definition>
+    </variable>
+    <variable id="beverage_price_elasticity">
+      <dataType>real</dataType>
+      <definition type="constant">
+        1.0
+      </definition>
+    </variable>
+    <variable id="demand_multiplier_meal_price">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        (avg_meal_price(month) / reference_meal_price) ^ (-meal_price_elasticity)
+      </definition>
+    </variable>
+    <variable id="demand_multiplier_beverage_price">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        (avg_beverage_price(month) / reference_beverage_price) ^ (-beverage_price_elasticity)
+      </definition>
+    </variable>
+    <variable id="monthly_marketing">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>2000</value>
+        </case>
+        <case>
+          <when>month = 2</when>
+          <value>2200</value>
+        </case>
+        <case>
+          <when>month = 3</when>
+          <value>2600</value>
+        </case>
+        <case>
+          <when>month = 4</when>
+          <value>3000</value>
+        </case>
+        <case>
+          <when>month = 5</when>
+          <value>3200</value>
+        </case>
+        <case>
+          <when>month = 6</when>
+          <value>3000</value>
+        </case>
+        <case>
+          <when>month &gt;= 7</when>
+          <value>2400</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="marketing_decay">
+      <dataType>real</dataType>
+      <definition type="constant">
+        0.60
+      </definition>
+    </variable>
+    <variable id="marketing_stock">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>monthly_marketing(1)</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>marketing_decay * marketing_stock(month - 1) + monthly_marketing(month)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="marketing_lift_per_1000">
+      <dataType>real</dataType>
+      <definition type="constant">
+        0.010
+      </definition>
+    </variable>
+    <variable id="demand_multiplier_marketing">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        1 + marketing_lift_per_1000 * (marketing_stock(month) / 1000)
+      </definition>
+    </variable>
+    <variable id="demand_multiplier_total">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        demand_multiplier_meal_price(month)
+        * (0.85 + 0.15 * demand_multiplier_beverage_price(month))
+        * demand_multiplier_marketing(month)
+        * seasonality_multiplier(month)
+      </definition>
+    </variable>
+    <variable id="raw_occupancy_weekday">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        baseline_occupancy_weekday * demand_multiplier_total(month)
+      </definition>
+    </variable>
+    <variable id="raw_occupancy_weekend">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        baseline_occupancy_weekend * demand_multiplier_total(month)
+      </definition>
+    </variable>
+    <variable id="effective_occupancy_weekday">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        min(max_effective_occupancy, raw_occupancy_weekday(month))
+      </definition>
+    </variable>
+    <variable id="effective_occupancy_weekend">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        min(max_effective_occupancy, raw_occupancy_weekend(month))
+      </definition>
+    </variable>
+    <variable id="customers_weekday">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        max_customers_per_day * effective_occupancy_weekday(month)
+      </definition>
+    </variable>
+    <variable id="customers_weekend">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        max_customers_per_day * effective_occupancy_weekend(month)
+      </definition>
+    </variable>
+    <variable id="monthly_total_customers">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>customers</unit>
+      <definition type="expression">
+        customers_weekday(month) * weekdays_per_month + customers_weekend(month) * weekend_days_per_month
+      </definition>
+    </variable>
+    <variable id="monthly_total_revenue">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_customers(month) * (avg_meal_price(month) + avg_beverage_price(month) * beverage_attach_rate)
+      </definition>
+    </variable>
+    <variable id="waste_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.08
+      </definition>
+    </variable>
+    <variable id="monthly_food_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        (monthly_total_customers(month) * food_unit_cost(month)) * (1 + waste_rate)
+      </definition>
+    </variable>
+    <variable id="monthly_beverage_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        (monthly_total_customers(month) * beverage_attach_rate * beverage_unit_cost(month)) * (1 + waste_rate)
+      </definition>
+    </variable>
+    <variable id="monthly_cogs">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_food_cost(month) + monthly_beverage_cost(month)
+      </definition>
+    </variable>
+    <variable id="labor_cost_per_customer">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        11.5
+      </definition>
+    </variable>
+    <variable id="base_labor_cost">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        32000
+      </definition>
+    </variable>
+    <variable id="labor_strain_multiplier">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="expression">
+        1 + max(0, effective_occupancy_weekday(month) - 0.85) * 1.2
+      </definition>
+    </variable>
+    <variable id="monthly_labor_cost">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        base_labor_cost + labor_cost_per_customer * monthly_total_customers(month) * labor_strain_multiplier(month)
+      </definition>
+    </variable>
+    <variable id="payroll_tax_benefits_percent">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.15
+      </definition>
+    </variable>
+    <variable id="monthly_payroll_taxes_benefits">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_labor_cost(month) * payroll_tax_benefits_percent
+      </definition>
+    </variable>
+    <variable id="rent_base">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        12000
+      </definition>
+    </variable>
+    <variable id="rent_escalation_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.05
+      </definition>
+    </variable>
+    <variable id="monthly_rent">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month &lt;= 12</when>
+          <value>rent_base</value>
+        </case>
+        <case>
+          <when>month &gt; 12</when>
+          <value>rent_base * (1 + rent_escalation_rate)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="monthly_insurance">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        1500
+      </definition>
+    </variable>
+    <variable id="utilities_base">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        2200
+      </definition>
+    </variable>
+    <variable id="utilities_per_customer">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        0.95
+      </definition>
+    </variable>
+    <variable id="monthly_utilities">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        utilities_base + utilities_per_customer * monthly_total_customers(month)
+      </definition>
+    </variable>
+    <variable id="overhead_base">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        1400
+      </definition>
+    </variable>
+    <variable id="overhead_per_customer">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        0.95
+      </definition>
+    </variable>
+    <variable id="monthly_overhead">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        overhead_base + overhead_per_customer * monthly_total_customers(month)
+      </definition>
+    </variable>
+    <variable id="card_fee_percent">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.032
+      </definition>
+    </variable>
+    <variable id="monthly_card_fees">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_revenue(month) * card_fee_percent
+      </definition>
+    </variable>
+    <variable id="comp_discount_percent">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.025
+      </definition>
+    </variable>
+    <variable id="monthly_comp_discounts">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_revenue(month) * comp_discount_percent
+      </definition>
+    </variable>
+    <variable id="wear_cost_per_customer">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        0.45
+      </definition>
+    </variable>
+    <variable id="maintenance_base_spend">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        900
+      </definition>
+    </variable>
+    <variable id="maintenance_catchup_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.18
+      </definition>
+    </variable>
+    <variable id="maintenance_backlog">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>0</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>max(0,
+              maintenance_backlog(month - 1)
+              + wear_cost_per_customer * monthly_total_customers(month - 1)
+              - monthly_maintenance_spend(month - 1)
+            )</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="monthly_maintenance_spend">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>maintenance_base_spend</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>maintenance_base_spend + maintenance_catchup_rate * maintenance_backlog(month)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="initial_capex">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        250000
+      </definition>
+    </variable>
+    <variable id="equipment_life_months">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        30
+      </definition>
+    </variable>
+    <variable id="capex_spend">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>initial_capex</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>0</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="ppe_gross_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>capex_spend(1)</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>ppe_gross_end(month - 1) + capex_spend(month)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="scheduled_monthly_depreciation">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        initial_capex / equipment_life_months
+      </definition>
+    </variable>
+    <variable id="net_ppe_begin">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>ppe_gross_end(1)</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>net_ppe_end(month - 1)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="depreciation_expense">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        min(scheduled_monthly_depreciation, max(0, net_ppe_begin(month)))
+      </definition>
+    </variable>
+    <variable id="accumulated_depreciation_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>min(ppe_gross_end(1), depreciation_expense(1))</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>min(
+              ppe_gross_end(month),
+              accumulated_depreciation_end(month - 1) + depreciation_expense(month)
+            )</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="net_ppe_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        ppe_gross_end(month) - accumulated_depreciation_end(month)
+      </definition>
+    </variable>
+    <variable id="monthly_operating_costs">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_food_cost(month)
+        + monthly_beverage_cost(month)
+        + monthly_labor_cost(month)
+        + monthly_payroll_taxes_benefits(month)
+        + monthly_rent(month)
+        + monthly_utilities(month)
+        + monthly_insurance
+        + monthly_overhead(month)
+        + monthly_marketing(month)
+        + monthly_card_fees(month)
+        + monthly_comp_discounts(month)
+        + monthly_maintenance_spend(month)
+      </definition>
+    </variable>
+    <variable id="monthly_operating_profit">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_revenue(month) - monthly_operating_costs(month)
+      </definition>
+    </variable>
+    <variable id="monthly_operating_profit_after_depr">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_operating_profit(month) - depreciation_expense(month)
+      </definition>
+    </variable>
+    <variable id="initial_loan_amount">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        250000
+      </definition>
+    </variable>
+    <variable id="annual_interest_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.09
+      </definition>
+    </variable>
+    <variable id="monthly_interest_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        annual_interest_rate / 12
+      </definition>
+    </variable>
+    <variable id="principal_paydown_start_month">
+      <dataType>integer</dataType>
+      <definition type="constant">
+        7
+      </definition>
+    </variable>
+    <variable id="principal_paydown_rate">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.25
+      </definition>
+    </variable>
+    <variable id="max_principal_payment">
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="constant">
+        15000
+      </definition>
+    </variable>
+    <variable id="loan_proceeds">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>initial_loan_amount</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>0</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="loan_balance_begin">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>loan_proceeds(1)</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>loan_balance_end(month - 1)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="monthly_interest_expense">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        loan_balance_begin(month) * monthly_interest_rate
+      </definition>
+    </variable>
+    <variable id="monthly_profit_after_interest">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_operating_profit(month) - monthly_interest_expense(month)
+      </definition>
+    </variable>
+    <variable id="principal_payment">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month &lt; principal_paydown_start_month</when>
+          <value>0</value>
+        </case>
+        <case>
+          <when>month &gt;= principal_paydown_start_month</when>
+          <value>min(
+              max_principal_payment,
+              max(0, monthly_profit_after_interest(month - 1)) * principal_paydown_rate,
+              loan_balance_begin(month)
+            )</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="loan_balance_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        max(0, loan_balance_begin(month) - principal_payment(month))
+      </definition>
+    </variable>
+    <variable id="dividend_payout_ratio">
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="constant">
+        0.35
+      </definition>
+    </variable>
+    <variable id="monthly_dividends">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 6</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(5))</value>
+        </case>
+        <case>
+          <when>month = 9</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(8))</value>
+        </case>
+        <case>
+          <when>month = 12</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(11))</value>
+        </case>
+        <case>
+          <when>month = 15</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(14))</value>
+        </case>
+        <case>
+          <when>month = 18</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(17))</value>
+        </case>
+        <case>
+          <when>month = 21</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(20))</value>
+        </case>
+        <case>
+          <when>month = 24</when>
+          <value>dividend_payout_ratio * max(0, monthly_profit_after_interest(23))</value>
+        </case>
+        <case>
+          <when>month &gt;= 1</when>
+          <value>0</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="monthly_gross_profit">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_total_revenue(month) - monthly_cogs(month)
+      </definition>
+    </variable>
+    <variable id="monthly_opex_excl_depr">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_labor_cost(month)
+        + monthly_payroll_taxes_benefits(month)
+        + monthly_rent(month)
+        + monthly_utilities(month)
+        + monthly_insurance
+        + monthly_overhead(month)
+        + monthly_marketing(month)
+        + monthly_card_fees(month)
+        + monthly_comp_discounts(month)
+        + monthly_maintenance_spend(month)
+      </definition>
+    </variable>
+    <variable id="monthly_ebitda">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_gross_profit(month) - monthly_opex_excl_depr(month)
+      </definition>
+    </variable>
+    <variable id="monthly_ebit">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_ebitda(month) - depreciation_expense(month)
+      </definition>
+    </variable>
+    <variable id="monthly_net_income">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_ebit(month) - monthly_interest_expense(month)
+      </definition>
+    </variable>
+    <variable id="monthly_accounting_profit_after_interest">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_net_income(month)
+      </definition>
+    </variable>
+    <variable id="monthly_profit_margin_after_interest">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>percent</unit>
+      <definition type="expression">
+        monthly_profit_after_interest(month) / monthly_total_revenue(month)
+      </definition>
+    </variable>
+    <variable id="initial_cash">
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="constant">
+        25000
+      </definition>
+    </variable>
+    <variable id="equity_contribution">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>initial_cash</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>0</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="cashflow_cfo">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        monthly_net_income(month) + depreciation_expense(month)
+      </definition>
+    </variable>
+    <variable id="cashflow_cfi">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        -capex_spend(month)
+      </definition>
+    </variable>
+    <variable id="cashflow_cff">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        equity_contribution(month)
+        + loan_proceeds(month)
+        - principal_payment(month)
+        - monthly_dividends(month)
+      </definition>
+    </variable>
+    <variable id="net_change_in_cash">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD_per_month</unit>
+      <definition type="expression">
+        cashflow_cfo(month) + cashflow_cfi(month) + cashflow_cff(month)
+      </definition>
+    </variable>
+    <variable id="cash_begin">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>0</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>cash_end(month - 1)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="cash_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        cash_begin(month) + net_change_in_cash(month)
+      </definition>
+    </variable>
+    <variable id="retained_earnings_begin">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>0</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>retained_earnings_end(month - 1)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="retained_earnings_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        retained_earnings_begin(month) + monthly_net_income(month) - monthly_dividends(month)
+      </definition>
+    </variable>
+    <variable id="contributed_capital_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="piecewise">
+        <case>
+          <when>month = 1</when>
+          <value>equity_contribution(1)</value>
+        </case>
+        <case>
+          <when>month &gt; 1</when>
+          <value>contributed_capital_end(month - 1) + equity_contribution(month)</value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="total_equity_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        contributed_capital_end(month) + retained_earnings_end(month)
+      </definition>
+    </variable>
+    <variable id="total_assets_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        cash_end(month) + net_ppe_end(month)
+      </definition>
+    </variable>
+    <variable id="total_liabilities_end">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        loan_balance_end(month)
+      </definition>
+    </variable>
+    <variable id="balance_sheet_check">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        total_assets_end(month) - total_liabilities_end(month) - total_equity_end(month)
+      </definition>
+    </variable>
+    <variable id="cash_rollforward_check">
+      <arguments>
+        <arg indexSet="month"></arg>
+      </arguments>
+      <dataType>currency</dataType>
+      <unit>USD</unit>
+      <definition type="expression">
+        cash_end(month) - (cash_begin(month) + net_change_in_cash(month))
+      </definition>
+    </variable>
+  </variables>
+</model>

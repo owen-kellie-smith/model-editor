@@ -196,7 +196,7 @@ describe('Dynamic Table Generation', () => {
 
   it('should handle vendor-format-model.xml with full annuity table definitions', () => {
     // Load the actual vendor format model directly
-    const modelPath = path.join(process.cwd(), 'docs', 'examples', 'annuity-model', 'vendor-format-model.xml')
+    const modelPath = getFixture('vendor-format-model.xml')
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
     
     const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang)

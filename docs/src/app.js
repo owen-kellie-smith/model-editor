@@ -78,6 +78,14 @@ window.addEventListener('unhandledrejection', function(event) {
   event.preventDefault();
 });
 
+/**
+ * Global resizer for e.g. use on small screens
+ */
+const params = new URLSearchParams(window.location.search);
+if (params.has("large")) {
+  document.documentElement.classList.add("large-ui");
+}
+
 wireLanguageHandlers();
 wireModelHandlers();
 wireGraphHandlers();

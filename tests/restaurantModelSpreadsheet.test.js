@@ -18,7 +18,7 @@ describe('Restaurant Model Spreadsheet Rendering', () => {
     lang = getFunctionsFromLanguage(languageXml, 'test')
     
     // Load restaurant model
-    const restaurantModelPath = path.join(process.cwd(), 'docs', 'examples', 'restaurant-model', 'model.xml')
+    const restaurantModelPath = getFixture('restaurant/model.xml')
     const restaurantModelXml = fs.readFileSync(restaurantModelPath, 'utf-8')
     restaurantModel = validateModelCore(restaurantModelXml, 'restaurant-model.xml', lang)
   })

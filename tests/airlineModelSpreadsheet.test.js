@@ -18,7 +18,7 @@ describe('Airline Model Spreadsheet Rendering', () => {
     lang = getFunctionsFromLanguage(languageXml, 'test')
     
     // Load airline model
-    const airlineModelPath = path.join(process.cwd(), 'docs', 'examples', 'airline-model', 'model.xml')
+    const airlineModelPath = getFixture('airline/model.xml')
     const airlineModelXml = fs.readFileSync(airlineModelPath, 'utf-8')
     airlineModel = validateModelCore(airlineModelXml, 'airline-model.xml', lang)
   })

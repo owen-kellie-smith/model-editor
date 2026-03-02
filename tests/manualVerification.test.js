@@ -14,7 +14,7 @@ describe('Manual Verification of Sample Data Generation', () => {
     const lang = getFunctionsFromLanguage(langXml, 'test')
 
     // Load vendor format model
-    const modelPath = path.join(process.cwd(), 'docs', 'examples', 'annuity-model', 'vendor-format-model.xml')
+    const modelPath = getFixture('vendor-format-model.xml')
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
 
     // Validate model
