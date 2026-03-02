@@ -114,11 +114,18 @@ $$
 \end{bmatrix}
 $$
 
-Spacecraft distance to Moon:
+Spacecraft distance to (centre of) Moon:
 
 $$
 d_M = \|\mathbf r - \mathbf r_M\|
 $$
+
+Spacecraft safe distance from (centre of) Moon:
+
+$$
+d_S = \sigma + S
+$$
+
 
 ---
 ## Continuous-Time Equations of Motion
@@ -253,12 +260,6 @@ $$
 
 ---
 ### Moon Avoidance
-
-Safe radius:
-
-$$
-d_S = \sigma + S
-$$
 
 Avoidance acceleration, when $d_M \lt d_S$
 
