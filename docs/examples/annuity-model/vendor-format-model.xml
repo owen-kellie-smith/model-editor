@@ -49,7 +49,7 @@
       <rowIndex ref="cohort"/>
       <columns>
         <column id="annual_annuity_amount" dataType="currency" unit="GBP_per_year" min="10000" max="50000"/>
-        <column id="annuity_start_age" dataType="real" unit="years" min="55" max="75"/>
+        <column id="annuity_start_age" dataType="real" unit="years" min="62" max="62"/>
         <column id="current_age" dataType="real" unit="years" min="30" max="80"/>
         <column id="mortality_table" dataType="string"/>
       </columns>
