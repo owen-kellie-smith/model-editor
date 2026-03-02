@@ -189,7 +189,7 @@ The outward radial unit vector from the Moon to the spacecraft is:
 
 $$
 \hat{\boldsymbol u} =
-\frac{\boldsymbol r - \boldsymbol r_M}{\|\boldsymbol r - \boldsymbol r_M\|} = \frac{\boldsymbol r - \boldsymbol r_M}{d_M}. 
+\frac{\boldsymbol r - \boldsymbol r_M}{\|\boldsymbol r - \boldsymbol r_M\|} = \frac{\boldsymbol r - \boldsymbol r_M}{d_M}
 $$
 
 #### Relative Velocity (spacecraft relative to Moon)
