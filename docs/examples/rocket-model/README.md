@@ -120,7 +120,7 @@ $$
 d_M = \|\mathbf r - \mathbf r_M\|
 $$
 
-Spacecraft safe distance from (centre of) Moon:
+Safe distance from (centre of) Moon:
 
 $$
 d_S = \sigma + S
