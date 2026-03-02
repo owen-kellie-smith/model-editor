@@ -8,10 +8,10 @@
 
 
 .large-ui {
-  --base-font-size: 20px;
+  --base-font-size: 24px;
 }
 
-body {
+html {
   font-size: var(--base-font-size);
   font-family: sans-serif;
   margin: 0;
