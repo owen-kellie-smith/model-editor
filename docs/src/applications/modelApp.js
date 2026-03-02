@@ -4,7 +4,7 @@ import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../domain/model.js";
 import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
-import { renderModelAsExcel, renderModelAsHTMLPreview } from "../domain/spreadsheetRenderer.js";
+import { renderModelAsExcel, renderModelAsHTMLPreview, makeRenderContext } from "../domain/spreadsheetRenderer.js";
 import { renderModelAsPython } from "../domain/pythonRenderer.js";
 import { setElementContent, sanitizeFilename } from "../utils/helpers.js";
 
@@ -14,6 +14,8 @@ let modelValidationTimeout = null;
 let validationTimeout = null;
 let modelCommitTime = null;
 let lastCommittedText = null;
+let activePreviewCohortId = 1;
+
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
@@ -80,7 +82,8 @@ export function validateModel(text, filename, lang) {
     
     // Render HTML spreadsheet preview
     try {
-      ui.spreadsheetPreview.innerHTML = renderModelAsHTMLPreview(result.obj, result.features);
+      const ctx = makeRenderContext({ cohortId: activePreviewCohortId });
+      ui.spreadsheetPreview.innerHTML = renderModelAsHTMLPreview(result.obj, result.features, ctx);
       ui.spreadsheetPreviewDetails.open = true;
     } catch (previewErr) {
       ui.spreadsheetPreview.innerHTML = '';
@@ -189,6 +192,30 @@ export function wireModelHandlers() {
     if (!languageEnvIsSet()) return;
     debouncedValidateModel(e.target.value,getLanguageEnv());
   });
+
+
+  // Spreadsheet preview: click a cohort ID in input_cohort_data to switch the active cohort (single-cohort eval)
+  ui.spreadsheetPreview.addEventListener('click', (e) => {
+    const link = e.target.closest?.('[data-cohort]')
+    if (!link) return
+    e.preventDefault()
+
+    const next = Number(link.getAttribute('data-cohort'))
+    if (!Number.isFinite(next)) return
+
+    activePreviewCohortId = next
+
+    // Re-render preview for the selected cohort (do not revalidate)
+    if (!modelEnv) return
+    try {
+      const ctx = makeRenderContext({ cohortId: activePreviewCohortId })
+      ui.spreadsheetPreview.innerHTML = renderModelAsHTMLPreview(modelEnv.obj, modelEnv.features, ctx)
+      ui.spreadsheetPreviewDetails.open = true
+    } catch (err) {
+      console.warn('Spreadsheet preview re-render failed:', err)
+    }
+  })
+ 
 
   ui.downloadModel.addEventListener("click", () => {
     if (!modelEnv) return;

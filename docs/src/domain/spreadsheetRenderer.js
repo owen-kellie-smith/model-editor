@@ -137,7 +137,7 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   return blob
 }
 
-function makeRenderContext({ cohortId = 1 } = {}) {
+export function makeRenderContext({ cohortId = 1 } = {}) {
   return { cohortId }
 }
 
@@ -1645,7 +1645,7 @@ function escapeHtml(str) {
 /**
  * Renders a single sheet as an HTML <details>/<table> block.
  */
-function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'step' } = {}) {
+function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'step', activeCohortId } = {}) {
   // --- Display-layer formatting (keep model precision; format only in preview) ---
   const locale = 'en-GB'
   const currency = 'GBP'
@@ -1719,8 +1719,20 @@ function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'st
   const kindByCol = headers.map(getColKind)
 
   const headerHtml = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')
+  const isCohortSheet =
+    String(name ?? '').toLowerCase() === 'input_cohort_data' ||
+    (String(name ?? '').toLowerCase().startsWith('input_') && headerKey(headers?.[0]) === 'cohort')
+
+  const isNumeric = (v) => typeof v === 'number' || isNumericString(v)
+
+
   const rowsHtml = rows.map(row => {
-    return `<tr>${row.map((cell, i) => {
+    const rowCohortId = isCohortSheet && isNumeric(row?.[0]) ? Number(row[0]) : null
+    const trClass = rowCohortId != null && activeCohortId != null && Number(activeCohortId) === rowCohortId
+      ? ' class="active-cohort"'
+      : ''
+    return `<tr${trClass}>${row.map((cell, i) => {
+
       const kind = kindByCol[i] ?? 'text'
       const formatted = formatCell(cell, kind)
 
@@ -1731,7 +1743,14 @@ function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'st
 
       // keep raw numeric for future sorting/debugging
       const raw = cell == null ? '' : String(cell)
+      // Cohort pickers in HTML preview: make cohort column clickable for data rows only
+      if (isCohortSheet && i === 0 && isNumeric(cell)) {
+        const cohortId = Number(cell)
+        return `<td class="cell${alignClass}" data-raw="${escapeHtml(raw)}"><a href="#" data-cohort="${cohortId}" class="cohort-link">${escapeHtml(formatted)}</a></td>`
+      }
+
       return `<td class="cell${alignClass}" data-raw="${escapeHtml(raw)}">${escapeHtml(formatted)}</td>`
+
     }).join('')}</tr>`
   }).join('')
 
@@ -1756,7 +1775,8 @@ function renderSheetAsHtml(name, headers, rows, dataTypeById, { temporalId = 'st
  * @param {Object} modelFeatures - The model features (from validateModelCore)
  * @returns {string} HTML string containing all preview tables
  */
-export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
+export function renderModelAsHTMLPreview(modelObj, modelFeatures, ctx = makeRenderContext()) {
+
   if (!modelObj?.model) throw new Error("Invalid model object")
   if (!modelFeatures?.variables) throw new Error("Invalid model features")
 
@@ -1771,31 +1791,33 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
 
   const parts = []
 
-  // constant sheet
-  if (categorized.constants.length > 0) {
-    const rows = evaluateConstantsForPreview(modelObj, modelFeatures, variableMap, categorized, temporalId)
-    parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows, dataTypeById, { temporalId }))
-  }
-
-  // input_config sheet — reuse buildInputConfigData
-  const ctx = makeRenderContext()
-  const cfg = buildInputConfigData(ctx)
-  parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows, dataTypeById, { temporalId }))
-
-  // input_{tableId} sheets — reuse buildTableSheetsData
-  for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
-    parts.push(renderSheetAsHtml(name, headers, [...metadataRows, ...dataRows]))
-  }
-
   // calc_cohort and calc_cohort_step sheets — evaluated values
   const { cohortHeaders, cohortRows, stepHeaders, stepRows } =
     evaluateModelForPreview(modelObj, modelFeatures, ctx)
 
-  if (cohortRows.length > 0)
-    parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows, dataTypeById, { temporalId }))
-
   if (stepRows.length > 0)
-    parts.push(renderSheetAsHtml('calc_cohort_step', stepHeaders, stepRows, dataTypeById, { temporalId }))
+    parts.push(renderSheetAsHtml('calc_cohort_step', stepHeaders, stepRows, dataTypeById, { temporalId, activeCohortId: ctx.cohortId }))
+
+  if (cohortRows.length > 0)
+    parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows, dataTypeById, { temporalId, activeCohortId: ctx.cohortId }))
+
+  // input_{tableId} sheets — reuse buildTableSheetsData
+  for (const { name, headers, metadataRows, dataRows } of buildTableSheetsData(modelObj)) {
+    parts.push(renderSheetAsHtml(name, headers, [...metadataRows, ...dataRows], dataTypeById, { temporalId, activeCohortId: ctx.cohortId }))
+  }
+
+  // input_config sheet — reuse buildInputConfigData
+  const cfg = buildInputConfigData(ctx)
+  parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows, dataTypeById, { temporalId, activeCohortId: ctx.cohortId }))
+
+  // constant sheet
+  if (categorized.constants.length > 0) {
+    const rows = evaluateConstantsForPreview(modelObj, modelFeatures, variableMap, categorized, temporalId)
+    parts.push(renderSheetAsHtml('constant', ['id', 'value'], rows, dataTypeById, { temporalId, activeCohortId: ctx.cohortId }))
+  }
+
+
+
 
   const style = `
 <style>
@@ -1808,6 +1830,9 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
   .preview-table thead th { position: sticky; top: 0; background: #f9fafb; z-index: 1; text-align: left; }
   .preview-table td.cell.right { text-align: right; }
   .preview-table td.cell.center { text-align: center; }
+  .preview-table tr.active-cohort td { background: #eef6ff; }
+  .cohort-link { color: #2563eb; text-decoration: underline; }
+
 </style>`
 
 return `<div class="spreadsheet-preview">
