@@ -246,9 +246,7 @@ $$
 
 Applied acceleration towards target velocity and orbit radius:
 $$
-\mathbf a_{LOI} =
-Y (\mathbf v_{des} - \mathbf v_{rel})
-+ R (r_T - d_M) \hat{\mathbf u}
+\mathbf a_{LOI} = Y (\mathbf v_{des} - \mathbf v_{rel}) + R (r_T - d_M) \hat{\mathbf u}
 $$
 
 Acceleration is limited by:
