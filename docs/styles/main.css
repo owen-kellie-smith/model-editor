@@ -2,7 +2,17 @@
   box-sizing: border-box;
 }
 
+:root {
+  --base-font-size: 14px;
+}
+
+
+.large-ui {
+  --base-font-size: 20px;
+}
+
 body {
+  font-size: var(--base-font-size);
   font-family: sans-serif;
   margin: 0;
   padding: 1rem;
