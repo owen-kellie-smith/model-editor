@@ -80,7 +80,10 @@ This model implements a **planar circular restricted three-body problem with thr
 Spacecraft position (Earth-centred inertial frame):
 
 $$
-\mathbf r(t) = \begin{bmatrix}x(t) \\ y(t)\end{bmatrix}
+\mathbf r(t) = \begin{bmatrix}
+x(t) \\ 
+y(t)
+\end{bmatrix}
 $$
 
 Spacecraft Velocity:
