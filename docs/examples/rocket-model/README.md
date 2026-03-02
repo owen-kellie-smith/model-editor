@@ -129,6 +129,13 @@ $$
 \mathbf v = \dot{\mathbf r}
 $$
 
+$$
+\dot{\mathbf v} =
+- \mu \frac{\mathbf r}{d_E^3}
+- \nu \frac{\mathbf r - \mathbf r_M}{d_M^3}
++ \mathbf a_T
+$$
+
 Acceleration:
 
 $$
