@@ -46,7 +46,7 @@
   <tables>
 
     <table id="cohort_data">
-      <rowIndex ref="cohort" min="1" max="3"/>
+      <rowIndex ref="cohort" min="1" max="5"/>
       <columns>
         <column id="annual_annuity_amount" dataType="currency" unit="GBP_per_year" min="12000" max="12000"/>
         <column id="annuity_start_age" dataType="real" unit="years" min="62" max="62"/>
