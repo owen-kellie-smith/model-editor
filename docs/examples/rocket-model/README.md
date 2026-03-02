@@ -242,7 +242,8 @@ $$
 \boldsymbol v_{des} = v_c \hat{\boldsymbol t}
 $$
 
-Applied acceleration towards target velocity and orbit radius:
+Applied acceleration towards target velocity and target orbit radius:
+
 $$\boldsymbol a_{LOI} = Y (\boldsymbol v_{des} - \boldsymbol v_{rel}) + R (r_T - d_M) \hat{\boldsymbol u}$$
 
 Acceleration is limited by:
