@@ -1,0 +1,359 @@
+<?xml version="1.0"?>
+<model id="rocket">
+  <units>
+    <unit id="S">
+      s
+    </unit>
+    <unit id="KM">
+      km
+    </unit>
+    <unit id="KM_PER_S">
+      km/s
+    </unit>
+    <unit id="KM_PER_S2">
+      km/s^2
+    </unit>
+    <unit id="KM2_PER_S2">
+      km^2/s^2
+    </unit>
+    <unit id="KM3_PER_S2">
+      km^3/s^2
+    </unit>
+    <unit id="RAD_PER_S">
+      rad/s
+    </unit>
+  </units>
+  <indexSets>
+    <indexSet id="t" role="temporal" dataType="integer" min="0" max="1000"></indexSet>
+  </indexSets>
+  <variables>
+    <variable id="mu_earth">
+      <unit>KM3_PER_S2</unit>
+      <definition type="constant">
+        398600.4418
+      </definition>
+    </variable>
+    <variable id="mu_moon">
+      <unit>KM3_PER_S2</unit>
+      <definition type="constant">
+        4902.800066
+      </definition>
+    </variable>
+    <variable id="earth_radius">
+      <unit>KM</unit>
+      <definition type="constant">
+        6378
+      </definition>
+    </variable>
+    <variable id="altitude0">
+      <unit>KM</unit>
+      <definition type="constant">
+        200
+      </definition>
+    </variable>
+    <variable id="moon_orbit_radius">
+      <unit>KM</unit>
+      <definition type="constant">
+        384400
+      </definition>
+    </variable>
+    <variable id="moon_period_s">
+      <unit>S</unit>
+      <definition type="constant">
+        2360591.51
+      </definition>
+    </variable>
+    <variable id="moon_n">
+      <unit>RAD_PER_S</unit>
+      <definition type="expression">
+        2*3.141592653589793 / moon_period_s
+      </definition>
+    </variable>
+    <variable id="x0">
+      <unit>KM</unit>
+      <definition type="expression">
+        earth_radius + altitude0
+      </definition>
+    </variable>
+    <variable id="y0">
+      <unit>KM</unit>
+      <definition type="constant">
+        0
+      </definition>
+    </variable>
+    <variable id="vx0">
+      <unit>KM_PER_S</unit>
+      <definition type="constant">
+        0
+      </definition>
+    </variable>
+    <variable id="vy0">
+      <unit>KM_PER_S</unit>
+      <definition type="expression">
+        (mu_earth / x0)^(1/2)
+      </definition>
+    </variable>
+    <variable id="dt_min">
+      <unit>S</unit>
+      <definition type="constant">
+        1
+      </definition>
+    </variable>
+    <variable id="dt_max">
+      <unit>S</unit>
+      <definition type="constant">
+        30
+      </definition>
+    </variable>
+    <variable id="dt_factor">
+      <unit>S</unit>
+      <definition type="constant">
+        20
+      </definition>
+    </variable>
+    <variable id="tau">
+      <unit>S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="constant">
+            0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            tau(t-1) + dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="moon_x">
+      <unit>KM</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        moon_orbit_radius * cos(moon_n * tau(t))
+      </definition>
+    </variable>
+    <variable id="moon_y">
+      <unit>KM</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        moon_orbit_radius * sin(moon_n * tau(t))
+      </definition>
+    </variable>
+    <variable id="x">
+      <unit>KM</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            x0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            x(t-1) + vx_half(t-1) * dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="y">
+      <unit>KM</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            y0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            y(t-1) + vy_half(t-1) * dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="radius">
+      <unit>KM</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        (x(t)^2 + y(t)^2)^(1/2)
+      </definition>
+    </variable>
+    <variable id="speed">
+      <unit>KM_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        (vx(t)^2 + vy(t)^2)^(1/2)
+      </definition>
+    </variable>
+    <variable id="altitude">
+      <unit>KM</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        radius(t) - earth_radius
+      </definition>
+    </variable>
+    <variable id="dt">
+      <unit>S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            10
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            min(
+              dt_max,
+              max(
+                dt_min,
+                dt_factor * (radius(t) / max(0.001, speed(t)))
+              )
+            )
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="ax">
+      <unit>KM_PER_S2</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        -mu_earth * x(t) / ((x(t)^2 + y(t)^2)^(3/2))
+        -mu_moon  * (x(t) - moon_x(t)) /
+        (((x(t) - moon_x(t))^2 + (y(t) - moon_y(t))^2)^(3/2))
+      </definition>
+    </variable>
+    <variable id="ay">
+      <unit>KM_PER_S2</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        -mu_earth * y(t) / ((x(t)^2 + y(t)^2)^(3/2))
+        -mu_moon  * (y(t) - moon_y(t)) /
+        (((x(t) - moon_x(t))^2 + (y(t) - moon_y(t))^2)^(3/2))
+      </definition>
+    </variable>
+    <variable id="vx_half">
+      <unit>KM_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        vx(t) + 0.5*ax(t)*dt(t)
+      </definition>
+    </variable>
+    <variable id="vy_half">
+      <unit>KM_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        vy(t) + 0.5*ay(t)*dt(t)
+      </definition>
+    </variable>
+    <variable id="vx">
+      <unit>KM_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            vx0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            vx_half(t-1) + 0.5*ax(t)*dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="vy">
+      <unit>KM_PER_S</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="piecewise">
+        <case>
+          <when type="expression">
+            t = 0
+          </when>
+          <value type="expression">
+            vy0
+          </value>
+        </case>
+        <case>
+          <when type="expression">
+            t &gt; 0
+          </when>
+          <value type="expression">
+            vy_half(t-1) + 0.5*ay(t)*dt(t-1)
+          </value>
+        </case>
+      </definition>
+    </variable>
+    <variable id="energy">
+      <unit>KM2_PER_S2</unit>
+      <arguments>
+        <arg indexSet="t"></arg>
+      </arguments>
+      <definition type="expression">
+        0.5*(vx(t)^2 + vy(t)^2) - mu_earth / radius(t)
+      </definition>
+    </variable>
+  </variables>
+</model>

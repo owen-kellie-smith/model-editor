@@ -19,7 +19,7 @@ describe('renderModelAsHTMLPreview', () => {
     lang = getFunctionsFromLanguage(languageXml, 'test')
 
     const restaurantXml = fs.readFileSync(
-      path.join(process.cwd(), 'docs', 'examples', 'restaurant-model', 'model.xml'), 'utf-8'
+      getFixture('restaurant/model.xml'), 'utf-8'
     )
     restaurantModel = validateModelCore(restaurantXml, 'restaurant-model.xml', lang)
 
@@ -27,12 +27,12 @@ describe('renderModelAsHTMLPreview', () => {
     restaurantNoIndicesModel = validateModelCore(restaurantNoIdxXml, 'restaurantNoIndices.xml', lang)
 
     const airlineXml = fs.readFileSync(
-      path.join(process.cwd(), 'docs', 'examples', 'airline-model', 'model.xml'), 'utf-8'
+      getFixture('airline/model.xml'), 'utf-8'
     )
     airlineModel = validateModelCore(airlineXml, 'airline-model.xml', lang)
 
     const annuityXml = fs.readFileSync(
-      path.join(process.cwd(), 'docs', 'examples', 'annuity-model', 'vendor-format-model.xml'), 'utf-8'
+      getFixture('vendor-format-model.xml'), 'utf-8'
     )
     annuityModel = validateModelCore(annuityXml, 'vendor-format-model.xml', lang)
   })

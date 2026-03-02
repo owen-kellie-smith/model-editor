@@ -3,11 +3,22 @@ import { validateModelCore } from '@/domain/model.js'
 import { renderModelAsPython } from '@/domain/pythonRenderer.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
 import { loadXml, loadXmlFromText } from './helpers/xml.js'
+import { getFixture } from './helpers/fixtures.js'
 
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import child_process from 'child_process'
+
+  const examples = [
+    ['rocket', getFixture('rocket/moon-rocket.xml')],
+    ['annuity vendor format', getFixture('vendor-format-model.xml')],
+    ['restaurant model', getFixture( 'restaurant/model.xml')],
+    ['restaurant seasonal', getFixture('restaurant/seasonal.xml')],
+    ['airline model', getFixture('airline/model.xml')],
+    ['airline dividends', getFixture('airline/Dividends.xml')],
+  ]
+  const exampleMap = Object.fromEntries(examples);
 
 function writeTempPython(code) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-editor-py-'))
@@ -35,26 +46,16 @@ describe('Python Export', () => {
   let lang
 
   beforeAll(() => {
-    // Use the docs/examples language file. The fixtures language.xml is intentionally minimal
-    // and does not cover all functions/identifiers used by docs/examples.
-    const langPath = path.join(process.cwd(), 'docs', 'examples', 'language.xml')
+    const langPath = getFixture('exLanguage/language.xml')
     const languageText = fs.readFileSync(langPath, 'utf-8')
     const languageXml = loadXmlFromText(languageText)
     lang = getFunctionsFromLanguage(languageXml, 'examples')
   })
 
-  const examples = [
-    ['rocket', path.join('docs', 'examples', 'rocket-model', 'moon-rocket.xml')],
-    ['annuity vendor format', path.join('docs', 'examples', 'annuity-model', 'vendor-format-model.xml')],
-    ['restaurant model', path.join('docs', 'examples', 'restaurant-model', 'model.xml')],
-    ['restaurant seasonal', path.join('docs', 'examples', 'restaurant-model', 'seasonal.xml')],
-    ['airline model', path.join('docs', 'examples', 'airline-model', 'model.xml')],
-    ['airline dividends', path.join('docs', 'examples', 'airline-model', 'Dividends.xml')],
-  ]
 
   it('renders and runs for all example models', () => {
     for (const [name, rel] of examples) {
-      const modelPath = path.join(process.cwd(), rel)
+      const modelPath = exampleMap[name]
       const xml = fs.readFileSync(modelPath, 'utf-8')
       const { obj, features } = validateModelCore(xml, rel, lang)
       const py = renderModelAsPython(obj, features)
@@ -76,8 +77,8 @@ describe('Python Export', () => {
   })
 
   it('translates vendor not-equal operator <> to != (Dividends.xml regression)', () => {
-    const rel = path.join('docs', 'examples', 'airline-model', 'Dividends.xml')
-    const modelPath = path.join(process.cwd(), rel)
+    const rel = exampleMap["airline dividends"]
+    const modelPath = rel;
     const xml = fs.readFileSync(modelPath, 'utf-8')
     const { obj, features } = validateModelCore(xml, rel, lang)
     const py = renderModelAsPython(obj, features)
@@ -86,8 +87,8 @@ describe('Python Export', () => {
   })
 
   it('loads annuity vendor-format model without table column KeyError', () => {
-    const rel = path.join('docs', 'examples', 'annuity-model', 'vendor-format-model.xml')
-    const modelPath = path.join(process.cwd(), rel)
+    const rel = exampleMap["annuity vendor format"];
+    const modelPath = rel;
     const xml = fs.readFileSync(modelPath, 'utf-8')
     const { obj, features } = validateModelCore(xml, rel, lang)
     const py = renderModelAsPython(obj, features)
@@ -99,9 +100,8 @@ describe('Python Export', () => {
   })
 
   it('is non-crashing but error-visible: seasonal.xml should report issues and produce NaNs', () => {
-    const rel = path.join('docs', 'examples', 'restaurant-model', 'seasonal.xml')
-    const modelPath = path.join(process.cwd(), rel)
-    const xml = fs.readFileSync(modelPath, 'utf-8')
+    const rel = exampleMap["restaurant seasonal"];
+    const xml = fs.readFileSync(rel, 'utf-8')
     const { obj, features } = validateModelCore(xml, rel, lang)
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
