@@ -282,6 +282,16 @@
       </definition>
     </variable>
 
+    <variable id="years_since_start">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="expression">
+        step * step_length
+      </definition>
+    </variable>
   </variables>
 
 </model>
