@@ -171,10 +171,7 @@ superimposed on gravitational motion.
 ### Trans-Lunar Injection (TLI)
 
 During the TLI burn times:
-$$
-\mathbf a_{TLI} =
-L \frac{\mathbf v}{\|\mathbf v\|}
-$$
+$$\mathbf a_{TLI} = L \frac{\mathbf v}{\|\mathbf v\|}$$
 
 
 #### TLI burn times 
