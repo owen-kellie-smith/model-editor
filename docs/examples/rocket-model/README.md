@@ -271,7 +271,7 @@ The model uses an adaptive timestep that is explicitly capped to small values du
 Load [rocket_with_thrust.xml](rocket_with_thrust.xml) into the model-editor.
 Export to Python to output (to Downloads folder) `rocket_with_thrust.py`.
 
-The animated .gif below was output by running in bash (in the Downloads folder) 
+The animated .gif below was output by running in the command line (in the Downloads folder) 
 
 `python3 rocket_with_thrust.py   --steps 60000   --plot-traj   --plot-vars "rocket:x,y;moon:moon_x,moon_y"   --plot-t tau   --plot-title day --plot-head-colors "rocket=red,moon=silver" --plot-tail-colors "rocket=blue,moon=dimgray"  --plot-step 10   --fps 30   --gif rocket60000.gif`
 
@@ -314,7 +314,7 @@ $$
 
 Export to Python to output (to Downloads folder) `lorenz.py`.
 
-The static .gif below was output by running in bash (in Downloads folder)
+The static .gif below was output by running in the command line (in Downloads folder)
 
 `python3 lorenz.py --steps 60000 --plot-static --plot-vars "lorenz:x,y,z" --gif lorenz60000_static.gif`
 
