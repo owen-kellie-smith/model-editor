@@ -80,7 +80,7 @@ This model implements a **planar circular restricted three-body problem with thr
 Spacecraft position (Earth-centred inertial frame):
 
 $$
-\mathbf r(t) = \begin{bmatrix}
+\boldsymbol r(t) = \begin{bmatrix}
 x(t) \\ 
 y(t)
 \end{bmatrix}
@@ -89,13 +89,13 @@ $$
 Spacecraft Velocity:
 
 $$
-\mathbf v(t) = \dot{\mathbf r}(t)
+\boldsymbol v(t) = \dot{\boldsymbol r}(t)
 $$
 
 Spacecraft Distance to Earth:
 
 $$
-d_E(t) = \|\mathbf r(t)\|
+d_E(t) = \|\boldsymbol r(t)\|
 $$
 
 Moon phase:
@@ -107,7 +107,7 @@ $$
 Moon position (circular orbit of radius $\lambda$):
 
 $$
-\mathbf r_M(t) =
+\boldsymbol r_M(t) =
 \lambda \begin{bmatrix}
  \cos(\theta(t)) \\
  \sin(\theta(t))
@@ -117,7 +117,7 @@ $$
 Spacecraft distance to (centre of) Moon:
 
 $$
-d_M = \|\mathbf r - \mathbf r_M\|
+d_M = \|\boldsymbol r - \boldsymbol r_M\|
 $$
 
 Safe distance from (centre of) Moon:
@@ -133,13 +133,13 @@ $$
 Velocity:
 
 $$
-\mathbf v = \dot{\mathbf r}
+\boldsymbol v = \dot{\boldsymbol r}
 $$
 
 Acceleration:
 
 $$
-\dot{\mathbf v} = - \mu \frac{\mathbf r}{d_E^3} - \nu \frac{\mathbf r - \mathbf r_M}{d_M^3} + \mathbf a_T
+\dot{\boldsymbol v} = - \mu \frac{\boldsymbol r}{d_E^3} - \nu \frac{\boldsymbol r - \boldsymbol r_M}{d_M^3} + \boldsymbol a_T
 $$
 
 Interpretation:
@@ -150,7 +150,7 @@ Interpretation:
 
 ## Thrust Definitions
 
-The thrust acceleration $\mathbf a_T$ depends on control mode.
+The thrust acceleration $\boldsymbol a_T$ depends on control mode.
 Three acceleration components are defined.
 1. [Trans-Lunar Injection (TLI)](#trans-lunar-injection-tli)
 2. [Lunar Orbit Insertion (LOI)](#lunar-orbit-insertion-loi)
@@ -158,10 +158,10 @@ Three acceleration components are defined.
 
 The control system selects which thrust components are active:
 
-- During the [TLI burn times](#tli-burn-times)  $\mathbf a_T = \mathbf a_{TLI}$.
-- When the spacecraft is a [safe distance from moon surface](#moon-avoidance) but within LOI trigger distance $d_S < d_M < G$, then $\mathbf a_T = \mathbf a_{LOI}$.
-- When the spacecraft is an [unsafe distance from moon surface](#moon-avoidance) $d_M < d_S$, then $\mathbf a_T = \mathbf a_{LOI} + \mathbf a_{avoid}$.
-- Otherwise  $\mathbf a_T = 0$.
+- During the [TLI burn times](#tli-burn-times)  $\boldsymbol a_T = \boldsymbol a_{TLI}$.
+- When the spacecraft is a [safe distance from moon surface](#moon-avoidance) but within LOI trigger distance $d_S < d_M < G$, then $\boldsymbol a_T = \boldsymbol a_{LOI}$.
+- When the spacecraft is an [unsafe distance from moon surface](#moon-avoidance) $d_M < d_S$, then $\boldsymbol a_T = \boldsymbol a_{LOI} + \boldsymbol a_{avoid}$.
+- Otherwise  $\boldsymbol a_T = 0$.
 
 The thrust term is therefore a piecewise-defined control acceleration
 superimposed on gravitational motion.
@@ -171,7 +171,7 @@ superimposed on gravitational motion.
 ### Trans-Lunar Injection (TLI)
 
 During the TLI burn times:
-$$\mathbf a_{TLI} = L \frac{\mathbf v}{\|\mathbf v\|}$$
+$$\boldsymbol a_{TLI} = L \frac{\boldsymbol v}{\|\boldsymbol v\|}$$
 
 
 #### TLI burn times 
@@ -187,8 +187,8 @@ The TLI burn times are a series of intervals in the near-perigree parts of the o
 The outward radial unit vector from the Moon to the spacecraft is:
 
 $$
-\hat{\mathbf u} =
-\frac{\mathbf r - \mathbf r_M}{\|\mathbf r - \mathbf r_M\|} = \frac{\mathbf r - \mathbf r_M}{d_M}. 
+\hat{\boldsymbol u} =
+\frac{\boldsymbol r - \boldsymbol r_M}{\|\boldsymbol r - \boldsymbol r_M\|} = \frac{\boldsymbol r - \boldsymbol r_M}{d_M}. 
 $$
 
 #### Relative Velocity (spacecraft relative to Moon)
@@ -196,7 +196,7 @@ $$
 Moon velocity relative to Earth (time derivative of Moon position):
 
 $$
-\dot{\mathbf r}_M =
+\dot{\boldsymbol r}_M =
 \frac{2 \pi \lambda}{\tau}
 \begin{bmatrix}
 -\sin(\theta) \\
@@ -207,8 +207,8 @@ $$
 Velocity of spacecraft relative to Moon:
 
 $$
-\mathbf v_{rel} =
-\mathbf v - \dot{\mathbf r}_M
+\boldsymbol v_{rel} =
+\boldsymbol v - \dot{\boldsymbol r}_M
 $$
 
 #### Desired Circular Velocity around Moon
@@ -228,7 +228,7 @@ $$
 Tangential unit vector in counter-clockwise direction of desired orbit:
 
 $$
-\hat{\mathbf t} =
+\hat{\boldsymbol t} =
 \begin{bmatrix}
 -\hat u_y \\
 \hat u_x
@@ -238,7 +238,7 @@ $$
 Target velocity:
 
 $$
-\mathbf v_{des} = v_c \hat{\mathbf t}
+\boldsymbol v_{des} = v_c \hat{\boldsymbol t}
 $$
 
 Applied acceleration towards target velocity and orbit radius:
@@ -247,7 +247,7 @@ $$\boldsymbol a_{LOI} = Y (\boldsymbol v_{des} - \boldsymbol v_{rel}) + R (r_T -
 Acceleration is limited by:
 
 $$
-\|\mathbf a_{LOI}\| \le X
+\|\boldsymbol a_{LOI}\| \le X
 $$
 
 
@@ -257,7 +257,7 @@ $$
 Avoidance acceleration, when $d_M \lt d_S$
 
 $$
-\mathbf a_{avoid} = V \hat{\mathbf u}
+\boldsymbol a_{avoid} = V \hat{\boldsymbol u}
 $$
 
 ## Adaptive timestep
