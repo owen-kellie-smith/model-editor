@@ -194,7 +194,7 @@ $$
 
 #### Relative Velocity (spacecraft relative to Moon)
 
-Moon velocity relative to Earth (time derivative of Moon position):
+Moon velocity relative to Earth:
 
 $$
 \dot{\boldsymbol r}_M =
