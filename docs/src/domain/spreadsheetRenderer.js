@@ -137,6 +137,10 @@ export async function renderModelAsExcel(modelObj, modelFeatures) {
   return blob
 }
 
+function makeRenderContext({ cohortId = 1 } = {}) {
+  return { cohortId }
+}
+
 /**
  * Categorize variables by their argument structure
  */
@@ -265,7 +269,8 @@ function applyExcelColumnFormats(sheet, headers, dataTypeById, { currencySymbol 
  */
 function addInputConfigSheet(workbook, dataTypeById) {
   const sheet = workbook.addWorksheet('input_config')
-  const { headers, rows } = buildInputConfigData()
+  const ctx = makeRenderContext()  
+  const { headers, rows } = buildInputConfigData(ctx)
   sheet.addRow(headers)
   applyExcelColumnFormats(sheet, headers, dataTypeById)
   for (const row of rows) sheet.addRow(row)
@@ -1333,7 +1338,7 @@ function evaluateConstantsForPreview(modelObj, modelFeatures, variableMap, categ
  * @param {Object} modelFeatures
  * @returns {{ cohortHeaders, cohortRows, stepHeaders, stepRows }}
  */
-function evaluateModelForPreview(modelObj, modelFeatures) {
+function evaluateModelForPreview(modelObj, modelFeatures, ctx) {
   // Determine which indexSet acts as the temporal axis for preview.
   // Prefer an explicit role=\"temporal\" marker, then fall back to legacy \"step\".
   const temporalId = getTemporalIndexSetId(modelObj) ?? 'step'
@@ -1349,7 +1354,7 @@ function evaluateModelForPreview(modelObj, modelFeatures) {
   const { resolvedVarsWithArguments } = modelFeatures
     const categorized = categorizeVariables(variableMap, resolvedVarsWithArguments, temporalId)
   const { min: stepMin, max: stepMax } = getStepRange(modelObj, temporalId)
-  const cohortId = 1  // matches input_config cohort value
+  const cohortId = ctx.cohortId  // matches input_config cohort value
 
   // Variable ids sorted longest-first to prevent shorter names from
   // partially substituting inside longer ones (e.g. "attained_age" inside
@@ -1773,7 +1778,8 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
   }
 
   // input_config sheet — reuse buildInputConfigData
-  const cfg = buildInputConfigData()
+  const ctx = makeRenderContext()
+  const cfg = buildInputConfigData(ctx)
   parts.push(renderSheetAsHtml('input_config', cfg.headers, cfg.rows, dataTypeById, { temporalId }))
 
   // input_{tableId} sheets — reuse buildTableSheetsData
@@ -1783,7 +1789,7 @@ export function renderModelAsHTMLPreview(modelObj, modelFeatures) {
 
   // calc_cohort and calc_cohort_step sheets — evaluated values
   const { cohortHeaders, cohortRows, stepHeaders, stepRows } =
-    evaluateModelForPreview(modelObj, modelFeatures)
+    evaluateModelForPreview(modelObj, modelFeatures, ctx)
 
   if (cohortRows.length > 0)
     parts.push(renderSheetAsHtml('calc_cohort', cohortHeaders, cohortRows, dataTypeById, { temporalId }))

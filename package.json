@@ -1,6 +1,6 @@
 {
   "name": "model-editor",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "A single web page for parsing, validating, and representing declarative models stored in XML.",
   "main": "index.js",
   "directories": {

@@ -101,10 +101,10 @@ export function kindFromDataType(dataType) {
 }
 
 /** Static data for the input_config sheet. */
-export function buildInputConfigData() {
+export function buildInputConfigData(ctx) {
   return {
     headers: ['parameter', 'value', 'description'],
-    rows: [['cohort', 1, 'Cohort identifier for calculations']]
+    rows: [['cohort', ctx.cohortId, 'Cohort identifier for calculations']]
   }
 }
 
