@@ -8,16 +8,9 @@ A single web page for parsing, validating, and editing declarative models stored
 
 ---
 
-<p align="center">
-  <video src="overview_final.mp4" width="800" controls></video>
-</p>
+## Demo (35s)
 
-## Features
-
-- **XML Model Parsing & Validation** - Load and validate declarative models with immediate error feedback
-- **Graph Visualization** - Render dependency graphs with configurable depth (using Viz.js/DOT format)
-- **Export/Download** - Export models and languages as XML; download graphs as SVG or PNG; render models as Excel spreadsheets or Python scripts
-
+[![Demo](demo.gif)](overview_final.mp4)
 
 
 ---
