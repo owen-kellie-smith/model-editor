@@ -5,7 +5,6 @@
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
 ---
-# Model Editor
 
 Structured system modeling tool with dependency derivation, validation, and executable export.
 
