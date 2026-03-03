@@ -7,10 +7,14 @@ A single web page for parsing, validating, and editing declarative models stored
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
 ---
+# Model Editor
 
-<p align="center">
-  <video src="overview_final.mp4" width="800" controls></video>
-</p>
+Structured system modeling tool with dependency derivation, validation, and executable export.
+
+## Demo (35s)
+
+[▶ Watch Demo](overview_final.mp4)
+
 
 ## Features
 
