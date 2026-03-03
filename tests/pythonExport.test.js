@@ -115,4 +115,63 @@ describe('Python Export', () => {
     const csv = fs.readFileSync(csvPath, 'utf-8')
     expect(csv.toLowerCase()).toContain('nan')
   })
+
+  it('reports embedded table usage when no input CSV files are present', () => {
+    const rel = exampleMap["annuity vendor format"];
+    const xml = fs.readFileSync(rel, 'utf-8')
+    const { obj, features } = validateModelCore(xml, rel, lang)
+    const py = renderModelAsPython(obj, features)
+    const { dir, pyPath } = writeTempPython(py)
+    const csvPath = path.join(dir, 'out.csv')
+    const r = runPython(pyPath, ['--steps', '1', '--csv', csvPath])
+    expect(r.status, r.stderr || r.stdout).toBe(0)
+    // Should report that embedded sample data is used for each table (no input_*.csv files present)
+    expect(r.stdout).toMatch(/using embedded sample data/)
+  })
+
+  it('reports csv-loaded table when input CSV file is present', () => {
+    const rel = exampleMap["annuity vendor format"];
+    const xml = fs.readFileSync(rel, 'utf-8')
+    const { obj, features } = validateModelCore(xml, rel, lang)
+    const py = renderModelAsPython(obj, features)
+    const { dir, pyPath } = writeTempPython(py)
+    const csvPath = path.join(dir, 'out.csv')
+
+    // Determine a table name from DEFAULT_TABLES in the generated Python
+    const dtStart = py.indexOf('DEFAULT_TABLES')
+    const jsonStart = py.indexOf('{', dtStart)
+    const tableMatch = jsonStart >= 0 ? py.slice(jsonStart).match(/"([^"]+)"\s*:\s*\{/) : null
+    expect(tableMatch, 'expected at least one table in the annuity model').toBeTruthy()
+    const tableId = tableMatch[1]
+    const inputCsvPath = path.join(dir, `input_${tableId}.csv`)
+    // Write a minimal CSV matching the embedded headers
+    const headersMatch = py.match(new RegExp(`"${tableId}"\\s*:\\s*\\{[^}]*"headers"\\s*:\\s*(\\[[^\\]]+\\])`))
+    const headers = headersMatch ? JSON.parse(headersMatch[1]) : ['row', 'col1']
+    fs.writeFileSync(inputCsvPath, headers.join(',') + '\n1,' + headers.slice(1).map(() => '0').join(',') + '\n', 'utf-8')
+
+    const r = runPython(pyPath, ['--steps', '1', '--csv', csvPath])
+    expect(r.status, r.stderr || r.stdout).toBe(0)
+    // Should report that the table was loaded from a CSV file
+    expect(r.stdout).toMatch(/loaded from/)
+    expect(r.stdout).toContain(`input_${tableId}.csv`)
+  })
+
+  it('writes a .log file containing the screen output', () => {
+    const rel = exampleMap["annuity vendor format"];
+    const xml = fs.readFileSync(rel, 'utf-8')
+    const { obj, features } = validateModelCore(xml, rel, lang)
+    const py = renderModelAsPython(obj, features)
+    const { dir, pyPath } = writeTempPython(py)
+    const csvPath = path.join(dir, 'out.csv')
+    const logPath = path.join(dir, 'out.log')
+    const r = runPython(pyPath, ['--steps', '1', '--csv', csvPath])
+    expect(r.status, r.stderr || r.stdout).toBe(0)
+    // Log file should be created next to the CSV
+    expect(fs.existsSync(logPath), 'log file should be created').toBe(true)
+    const log = fs.readFileSync(logPath, 'utf-8')
+    // Log should contain the table source and issue summary
+    expect(log).toMatch(/Input tables:/)
+    expect(log).toMatch(/Encountered \d+ evaluation issue\(s\)/)
+    expect(log).toContain('Wrote')
+  })
 })

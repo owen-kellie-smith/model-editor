@@ -353,8 +353,9 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("        return s");
   lines.push("");
 
-  lines.push("def load_tables_from_csv(base_dir: str, default_tables: Dict[str, Any]) -> Dict[str, Any]:");
+  lines.push("def load_tables_from_csv(base_dir: str, default_tables: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, str]]:");
   lines.push("    tables = {k: {'headers': v['headers'][:], 'rows': [r[:] for r in v['rows']]} for k, v in default_tables.items()}");
+  lines.push("    sources: Dict[str, str] = {k: 'embedded' for k in tables}");
   lines.push("    for table_id in list(tables.keys()):");
   lines.push("        path = os.path.join(base_dir, f'input_{table_id}.csv')");
   lines.push("        if not os.path.exists(path):");
@@ -371,7 +372,8 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("                continue");
   lines.push("            data.append([_coerce_cell(c) for c in r])");
   lines.push("        tables[table_id] = {'headers': headers, 'rows': data}");
-  lines.push("    return tables");
+  lines.push("        sources[table_id] = f'csv:{path}'");
+  lines.push("    return tables, sources");
   lines.push("");
 
   lines.push("def table_get(table: Dict[str, Any], row_key: Any, col_name: str) -> Any:");
@@ -406,6 +408,11 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("ERRORS: List[Dict[str, Any]] = []" );
   lines.push("SEEN_ERRORS = set()" );
   lines.push("STRICT = False" );
+  lines.push("_LOG_LINES: List[str] = []" );
+  lines.push("");
+  lines.push("def _log(msg: str) -> None:");
+  lines.push("    print(msg)");
+  lines.push("    _LOG_LINES.append(str(msg))");
   lines.push("");
 
   lines.push("BASE_ENV: Dict[str, Any] = {'math': math, 'G': None, 'min': min, 'max': max, 'abs': abs, 'round': round, 'pow': pow, 'int': int, 'float': float}" );
@@ -646,7 +653,14 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("");
   lines.push("    base_dir = os.path.dirname(os.path.abspath(__file__))" );
   lines.push("    global TABLES" );
-  lines.push("    TABLES = load_tables_from_csv(base_dir, DEFAULT_TABLES)" );
+  lines.push("    TABLES, _table_sources = load_tables_from_csv(base_dir, DEFAULT_TABLES)" );
+  lines.push("    if _table_sources:" );
+  lines.push("        _log('Input tables:')");
+  lines.push("        for _tid, _src in sorted(_table_sources.items()):");
+  lines.push("            if _src == 'embedded':");
+  lines.push("                _log(f'  {_tid}: using embedded sample data (no input_{_tid}.csv found)')");
+  lines.push("            else:");
+  lines.push("                _log(f'  {_tid}: loaded from {_src}')");
   lines.push("    global STRICT" );
   lines.push("    STRICT = bool(args.strict)" );
   lines.push("    TEMP_MAX = int(args.steps)" );
@@ -706,15 +720,22 @@ export function renderModelAsPython(modelObj, features) {
 
   lines.push("        rec(0, {})" );
   lines.push("");
-  lines.push("    print('Encountered 0 evaluation issue(s)'); print(f'Wrote {args.csv}')" );
+  lines.push("    _log(f'Encountered {len(ERRORS)} evaluation issue(s)')");
+  lines.push("    _log(f'Wrote {args.csv}')" );
   lines.push("    if ERRORS:" );
   lines.push("        # Emit a compact error report to stderr" );
   lines.push("        import sys" );
-  lines.push("        sys.stderr.write(f'\\nEncountered {len(ERRORS)} evaluation issue(s). Showing first 20:\\n')" );
+  lines.push("        _err_hdr = f'\\nEncountered {len(ERRORS)} evaluation issue(s). Showing first 20:'");
+  lines.push("        sys.stderr.write(_err_hdr + '\\n')" );
+  lines.push("        _LOG_LINES.append(_err_hdr.strip())" );
   lines.push("        for e in ERRORS[:20]:" );
-  lines.push("            sys.stderr.write(" );
-  lines.push("                f\"- {e['kind']} var={e['var']} idx={e['idx']} expr={e['expr']} err={e['error']}\\n\"" );
-  lines.push("            )" );
+  lines.push("            _err_line = f\"- {e['kind']} var={e['var']} idx={e['idx']} expr={e['expr']} err={e['error']}\"" );
+  lines.push("            sys.stderr.write(_err_line + '\\n')" );
+  lines.push("            _LOG_LINES.append(_err_line)" );
+  lines.push("    log_path = os.path.splitext(args.csv)[0] + '.log'" );
+  lines.push("    _log(f'Log written to {log_path}')" );
+  lines.push("    with open(log_path, 'w') as _lf:" );
+  lines.push("        _lf.write('\\n'.join(_LOG_LINES) + '\\n')" );
   lines.push("");
   // ---- Trajectory GIF (generated Python) ----
 lines.push("    # ---- Plot GIF (optional) ----");
