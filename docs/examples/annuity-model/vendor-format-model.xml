@@ -324,7 +324,7 @@
     
         <case>
           <when>within_projection_limit(step)</when>
-          <value>discounted_cashflow_future(step+1) + discounted_cashflow(step)</value>
+          <value>discounted_cashflow_future(cohort, step+1) + discounted_cashflow(cohort, step)</value>
         </case>
     
         <case>
