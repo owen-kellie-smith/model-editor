@@ -8,6 +8,10 @@ A single web page for parsing, validating, and editing declarative models stored
 
 ---
 
+<p align="center">
+  <video src="overview_final.mp4" width="800" controls></video>
+</p>
+
 ## Features
 
 - **XML Model Parsing & Validation** - Load and validate declarative models with immediate error feedback
