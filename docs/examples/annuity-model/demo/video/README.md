@@ -1,4 +1,4 @@
-# demo
+# video
 
 The video clip demo.gif was produced from an .mp4 file which you can download raw and play on your own system.
 
