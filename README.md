@@ -9,7 +9,7 @@
 Structured system modeling tool with dependency derivation, validation, and executable export.
 
 
-[![Demo](demo.gif)](overview_final.mp4)
+[![Demo](./demo/demo.gif)](./demo/)
 
 
 
