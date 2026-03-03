@@ -6,7 +6,12 @@ declarative system can represent time-stepped dynamical systems.
 The [first example](#spacecraft) models a spacecraft orbiting Earth, perturbed by
 the Moon. Thrust controls represent an optional TLI in order to attempt to achieve low lunar orbit.
 
+![Animation of a numerical integration of spacecraft equations output by Python rendering.](rocket60000.gif)
+
 The [second example](#2-lorenz-equations-1963) is a numerical integration of the [Lorenz Equations (1963)](https://en.wikipedia.org/wiki/Lorenz_system).
+
+ 
+![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_static.gif)
 
 These examples demonstrate that the declarative modelling system can
 express nonlinear dynamics, indexed recursion, and [adaptive stepping](#adaptive-timestep).
@@ -271,11 +276,11 @@ The model uses an adaptive timestep that is explicitly capped to small values du
 Load [rocket_with_thrust.xml](rocket_with_thrust.xml) into the model-editor.
 Export to Python to output (to Downloads folder) `rocket_with_thrust.py`.
 
-The animated .gif below was output by running in the command line (in the Downloads folder) 
+The animated .gif above was output by running in the command line (in the Downloads folder) 
 
 `python3 rocket_with_thrust.py   --steps 60000   --plot-traj   --plot-vars "rocket:x,y;moon:moon_x,moon_y"   --plot-t tau   --plot-title day --plot-head-colors "rocket=red,moon=silver" --plot-tail-colors "rocket=blue,moon=dimgray"  --plot-step 10   --fps 30   --gif rocket60000.gif`
 
-![Animation of a numerical integration of spacecraft equations output by Python rendering.](rocket60000.gif)
+
 
 
 ------------------------------------------------------------------------
@@ -314,10 +319,9 @@ $$
 
 Export to Python to output (to Downloads folder) `lorenz.py`.
 
-The static .gif below was output by running in the command line (in Downloads folder)
+The static .gif above was output by running in the command line (in Downloads folder)
 
 `python3 lorenz.py --steps 60000 --plot-static --plot-vars "lorenz:x,y,z" --gif lorenz60000_static.gif`
 
- 
-![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](lorenz60000_static.gif)
+
 
