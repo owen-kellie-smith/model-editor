@@ -18,6 +18,115 @@ import {
 // JS-side helpers for emitting Python
 // ------------------------------------------------------------
 
+function emitCacheOnlyEvaluator(lines) {
+  // Cache-only lookup for *any* var (no lazy compute)
+  lines.push("def G_cache_only(var_id: str, *args: Any) -> Any:");
+  lines.push("    dom = VAR_DOMAINS.get(var_id, [])");
+  lines.push("    idx = dict(zip(dom, args))");
+  lines.push("    kt = tuple(idx.get(d) for d in dom)");
+  lines.push("    key = (var_id, kt)");
+  lines.push("    if key in CACHE:");
+  lines.push("        return CACHE[key]");
+  lines.push("    return _nan()");
+  lines.push("");
+
+  // Compute value while preventing *self* recursion only:
+  // - if expression calls G(var_id, ...) -> use cache-only (no recursion)
+  // - if expression calls G(other_var, ...) -> use normal G (can compute lazily)
+  lines.push("def compute_value_no_self(var_id: str, idx: Dict[str, Any]) -> Any:");
+  lines.push("    d = VAR_DEFS.get(var_id) or {}");
+  lines.push("    t = d.get('type')");
+  lines.push("    key_tuple = _key_tuple(var_id, idx)");
+  lines.push("");
+  lines.push("    env = dict(BASE_ENV)");
+  lines.push("    env.update(idx)");
+  lines.push("");
+  lines.push("    def _G(v: str, *a: Any) -> Any:");
+  lines.push("        if v == var_id:");
+  lines.push("            return G_cache_only(v, *a)");
+  lines.push("        return G(v, *a)");
+  lines.push("    env['G'] = _G");
+  lines.push("");
+  lines.push("    if t in ('constant', 'expression'):");
+  lines.push("        expr = d.get('py') or '0'");
+  lines.push("        return safe_eval(expr, env, kind='expr', var_id=var_id, key=key_tuple)");
+  lines.push("");
+  lines.push("    if t == 'piecewise':");
+  lines.push("        for c in d.get('cases', []):");
+  lines.push("            cond = c.get('when_py') or 'False'");
+  lines.push("            ok = bool(safe_eval(cond, env, kind='pw_cond', var_id=var_id, key=key_tuple))");
+  lines.push("            if ok:");
+  lines.push("                rhs = c.get('value_py') or '0'");
+  lines.push("                return safe_eval(rhs, env, kind='pw_rhs', var_id=var_id, key=key_tuple)");
+  lines.push("        return _nan()");
+  lines.push("");
+  // table / tableLookup are safe to compute normally
+  lines.push("    return compute_value(var_id, idx)");
+  lines.push("");
+}
+
+ 
+function emitIterativeTemporalRecursions(lines) {
+  // This block must be indented inside main() (4 spaces).
+  const L = (s = "") => lines.push(`    ${s}`);
+
+  L("# ---- Precompute temporal self-recursive variables iteratively (avoid Python recursion) ----");
+  L("# A var is 'temporal self-recursive' if it depends on itself with a non-zero temporal shift.");
+  L("temporal_self_vars = []");
+  L("for _vid, _deps in (VAR_DEPS or {}).items():");
+  L("    _self = None");
+  L("    for _d in (_deps or []):");
+  L("        if _d.get('name') == _vid and int(_d.get('shift') or 0) != 0:");
+  L("            _self = _d");
+  L("            break");
+  L("    if _self is not None and TEMPORAL_ID in (VAR_DOMAINS.get(_vid, []) or []):");
+  L("        temporal_self_vars.append((_vid, int(_self.get('shift') or 0)))");
+  L("");
+  L("if temporal_self_vars:");
+  L("    _steps = idx_vals.get(TEMPORAL_ID, [])");
+  L("    # For each such variable, iterate over all combinations of its *non-temporal* domain axes,");
+  L("    # and compute across step in the correct direction:");
+  L("    #   shift < 0  (uses step-1) => compute forward in time");
+  L("    #   shift > 0  (uses step+1) => compute backward in time");
+  L("    def _iter_combos(_axes, _vals, _i, _cur, _out):");
+  L("        if _i >= len(_axes):");
+  L("            _out.append(dict(_cur))");
+  L("            return");
+  L("        _a = _axes[_i]");
+  L("        for _v in _vals.get(_a, []):");
+  L("            _cur[_a] = _v");
+  L("            _iter_combos(_axes, _vals, _i + 1, _cur, _out)");
+  L("        _cur.pop(_a, None)");
+  L("");
+  L("    for _vid, _shift in temporal_self_vars:");
+  L("        _dom = VAR_DOMAINS.get(_vid, []) or []");
+  L("        _axes = [d for d in _dom if d != TEMPORAL_ID]");
+  L("        _combos = []");
+  L("        _iter_combos(_axes, idx_vals, 0, {}, _combos)");
+  L("        _ordered_steps = _steps if _shift < 0 else list(reversed(_steps))");
+  L("        for _base in _combos:");
+  L("            # Seed boundary for forward recursion (shift > 0):");
+  L("            # If model wants step+shift but our run horizon stops at TEMP_MAX,");
+  L("            # assume the value just beyond the horizon is 0 (no future beyond run).");
+  L("            if _shift > 0:");
+  L("                for _k in range(1, _shift + 1):");
+  L("                    _seed = dict(_base)");
+  L("                    _seed[TEMPORAL_ID] = TEMP_MAX + _k");
+  L("                    _seed_kt = tuple(_seed.get(d) for d in _dom)");
+  L("                    _seed_key = (_vid, _seed_kt)");
+  L("                    if _seed_key not in CACHE:");
+  L("                        CACHE[_seed_key] = 0");
+  L("");
+  L("            for _t in _ordered_steps:");
+  L("                _idx = dict(_base)");
+  L("                _idx[TEMPORAL_ID] = _t");
+  L("                _kt = tuple(_idx.get(d) for d in _dom)");
+  L("                _key = (_vid, _kt)");
+  L("                if _key not in CACHE:");
+  L("                    CACHE[_key] = compute_value_no_self(_vid, _idx)");
+  L("");
+}
+
 function normalize(s) {
   return String(s ?? "").replace(/\s+/g, " ").trim();
 }
@@ -55,7 +164,7 @@ function convertTernary(expr) {
   return `(${a} if ${cond} else ${b})`;
 }
 
-function translateExprToPython(expr, varIdsLongestFirst) {
+function translateExprToPython(expr, varIdsLongestFirst, domains, temporalId) {
   let s = normalize(expr);
   if (!s) return "0";
 
@@ -87,6 +196,31 @@ function translateExprToPython(expr, varIdsLongestFirst) {
     .replace(/\bacos\s*\(/gi, "math.acos(")
     .replace(/\batan\s*\(/gi, "math.atan(")
     .replace(/\bsqrt\s*\(/gi, "math.sqrt(");
+
+  // --- Vendor-format normalizations (before rewriting calls to G(...)) ---
+  for (const vid of varIdsLongestFirst) {
+    const dom = Array.isArray(domains?.[vid]) ? domains[vid].map(String) : [];
+    const esc = vid.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // 1) 0-arg variables/constants sometimes appear as vid(anything): treat as just G("vid")
+    if (dom.length === 0) {
+      // vid( step + 1 )  -> G("vid")
+      s = s.replace(new RegExp(`\\b${esc}\\s*\\(\\s*[^)]*\\)`, "g"), `G(${escapePyString(vid)})`);
+      continue;
+    }
+
+    // 2) (cohort, step) vars sometimes called as vid(step +/- N): inject missing cohort
+    //    vid(step+1) -> vid(cohort, step+1)
+    const d0 = (dom[0] || "").toLowerCase();
+    const d1 = String(dom[1] || "");
+    if (dom.length === 2 && d0 === "cohort" && d1 === temporalId) {
+      // only when there's no comma inside the parens
+      s = s.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*([^,)]*)\\)`, "g"),
+        (m, arg) => `${vid}(cohort, ${arg.trim()})`
+      );
+    }
+  }
 
   // Replace variable calls foo(...) → G('foo', ...) (non-recursive cache lookup)
   for (const vid of varIdsLongestFirst) {
@@ -275,11 +409,11 @@ export function renderModelAsPython(modelObj, features) {
   // Pre-translate expressions to Python expressions that call V('var', ...)
   for (const [id, def] of Object.entries(defs)) {
     if (def.type === "constant" || def.type === "expression") {
-      def.py = translateExprToPython(def.text ?? "", varIdsLongestFirst);
+      def.py = translateExprToPython(def.text ?? "", varIdsLongestFirst, domains, temporalId);
     } else if (def.type === "piecewise") {
       def.cases = (def.cases ?? []).map(c => ({
-        when_py: translateExprToPython(c.when ?? "", varIdsLongestFirst),
-        value_py: translateExprToPython(c.value ?? "", varIdsLongestFirst),
+        when_py: translateExprToPython(c.when ?? "", varIdsLongestFirst, domains, temporalId),
+        value_py: translateExprToPython(c.value ?? "", varIdsLongestFirst, domains, temporalId),
       }));
     }
   }
@@ -490,6 +624,7 @@ export function renderModelAsPython(modelObj, features) {
 
   lines.push("BASE_ENV['G'] = G" );
   lines.push("");
+emitCacheOnlyEvaluator(lines);
 
   lines.push("def compute_value(var_id: str, idx: Dict[str, Any]) -> Any:");
   lines.push("    \"\"\"Compute one value for (var_id, idx) WITHOUT recursion.\"\"\"");
@@ -565,12 +700,15 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("                    continue" );
   lines.push("                dep_idx[TEMPORAL_ID] = tval + shift" );
   lines.push("                if dep_idx[TEMPORAL_ID] < TEMP_MIN or dep_idx[TEMPORAL_ID] > TEMP_MAX:" );
-  lines.push("                    dep_kt = tuple(dep_idx.get(d) for d in dep_dom)" );
-  lines.push("                    dep_key = (dep_id, dep_kt)" );
-  lines.push("                    if dep_key not in CACHE:" );
-  lines.push("                        if not STRICT:" );
-  lines.push("                            _record_error('dep_oob', dep_id, dep_kt, 'out of range', ValueError('temporal index out of bounds'))" );
-  lines.push("                        CACHE[dep_key] = _nan()" );
+  lines.push("                    dep_type = (VAR_DEFS.get(dep_id) or {}).get('type')" );
+  lines.push("                    if dep_type in ('table', 'tableLookup'):" );
+  lines.push("                        dep_kt = tuple(dep_idx.get(d) for d in dep_dom)" );
+  lines.push("                        dep_key = (dep_id, dep_kt)" );
+  lines.push("                        if dep_key not in CACHE:" );
+  lines.push("                            if not STRICT:" );
+  lines.push("                                _record_error('dep_oob', dep_id, dep_kt, 'out of range', ValueError('temporal index out of bounds'))" );
+  lines.push("                            CACHE[dep_key] = _nan()" );
+  lines.push("                    # For expression/piecewise/constant deps, allow lazy evaluation beyond TEMP_MAX if requested." );    
   lines.push("        val = compute_value(var_id, idx)" );
   lines.push("        if val is None:" );
   lines.push("            val = _nan()" );
@@ -666,8 +804,15 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("            else:");
   lines.push("                _log(f'  {_tid}: loaded from {_src}')");
   lines.push("    global STRICT" );
+  lines.push("    global TEMP_MAX" );
   lines.push("    STRICT = bool(args.strict)" );
   lines.push("    TEMP_MAX = int(args.steps)" );
+  lines.push("    # Increase recursion limit for forward/backward temporal recursions  ");
+  lines.push("    import sys  ");
+  lines.push("    try: ");
+  lines.push("        sys.setrecursionlimit(max(10000, int(TEMP_MAX) + 5000)) ");
+  lines.push("    except Exception: ");
+  lines.push("        pass ");
   lines.push("    if TEMP_MAX < 0: raise SystemExit('steps must be >= 0')" );
   lines.push("");
 
@@ -678,6 +823,7 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("            used_indexsets.add(d)" );
   lines.push("    idx_vals: Dict[str, List[Any]] = {d: index_values(d, TEMP_MAX, overrides) for d in used_indexsets}" );
   lines.push("");
+  emitIterativeTemporalRecursions(lines);
 
   lines.push("    # Build output columns: all variables (scalar first), then indexed" );
   lines.push("    # IMPORTANT: compute scalars in deterministic topo order to avoid missing_dep due to alpha ordering" );
