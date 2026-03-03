@@ -2,15 +2,18 @@
 
 ![Tests](https://github.com/owen-kellie-smith/model-editor/actions/workflows/tests.yml/badge.svg)
 
-A single web page for parsing, validating, and editing declarative models stored in XML with built-in constraints to preserve model validity.
-
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
 ---
+# Model Editor
+
+Structured system modeling tool with dependency derivation, validation, and executable export.
 
 ## Demo (35s)
 
 [![Demo](demo.gif)](overview_final.mp4)
+
+
 
 
 ---
