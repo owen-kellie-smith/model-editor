@@ -8,7 +8,6 @@
 
 Structured system modeling tool with dependency derivation, validation, and executable export.
 
-## Demo (35s)
 
 [![Demo](demo.gif)](overview_final.mp4)
 
