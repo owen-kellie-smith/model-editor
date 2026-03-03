@@ -100,7 +100,7 @@
       <dataType>boolean</dataType>
       <description>True while there are further projection steps remaining (step + 1 is within projection_limit)</description>
       <definition type="expression">
-        step_length ( step + 1)  &lt;= projection_limit
+        step_length * ( step + 1)  &lt;= projection_limit
       </definition>
     </variable>
 
