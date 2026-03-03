@@ -983,6 +983,13 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
         return `${colLetter}${targetRow}`
       })
 
+      // Pattern 1+: Handle cohort-step variable with forward temporal shift
+      // Example: variable(cohort, step + 1) -> K{row+1}
+      const patternWithForwardOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*cohort\\s*,\\s*${tEsc}\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi')
+      formula = formula.replace(patternWithForwardOffset, (match, offset) => {
+        return `${colLetter}${currentRow + parseInt(offset, 10)}`
+      })
+
       // Pattern 1b: Handle single temporal-arg variables with offset
       // Example: outstanding_debt(month - 1) -> O2, variable(step - 2) -> K{row-2}
       const patternSingleArgWithOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*-\\s*(\\d+)\\s*\\)`, 'gi')
@@ -992,6 +999,13 @@ function convertExpressionToFormula(expression, currentRow, colIndexMap, cohortS
           return `${colLetter}2`
         }
         return `${colLetter}${targetRow}`
+      })
+
+      // Pattern 1b+: Handle single temporal-arg variable with forward shift
+      // Example: variable(step + 1) -> K{row+1}
+      const patternSingleArgWithForwardOffset = new RegExp(`\\b${escapedVarName}\\s*\\(\\s*${tEsc}\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi')
+      formula = formula.replace(patternSingleArgWithForwardOffset, (match, offset) => {
+        return `${colLetter}${currentRow + parseInt(offset, 10)}`
       })
 
       // Pattern 1c: Handle variable with literal integer argument
@@ -1452,6 +1466,12 @@ function evaluateModelForPreview(modelObj, modelFeatures, ctx) {
       e = e.replace(
         new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*-\\s*(\\d+)\\s*\\)`, 'gi'),
         (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) - +n))
+      )
+
+      // varname(<temporal> + N)
+      e = e.replace(
+        new RegExp(`\\b${esc}\\s*\\(\\s*${idxPat}\\s*\\+\\s*(\\d+)\\s*\\)`, 'gi'),
+        (_, n) => numStr(evalVar(varId, cohort, (step ?? 0) + +n))
       )
 
       // varname(<temporal>)  ← change cohort null -> cohort

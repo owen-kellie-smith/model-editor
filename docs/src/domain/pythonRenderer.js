@@ -405,6 +405,7 @@ export function renderModelAsPython(modelObj, features) {
 
   lines.push("# Evaluation cache: (var_id, idx_tuple) -> value");
   lines.push("CACHE: Dict[Tuple[str, Tuple[Any, ...]], Any] = {}");
+  lines.push("_G_COMPUTING: set = set()  # re-entrancy guard for circular dep detection");
   lines.push("ERRORS: List[Dict[str, Any]] = []" );
   lines.push("SEEN_ERRORS = set()" );
   lines.push("STRICT = False" );
@@ -457,10 +458,10 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("");
 
   lines.push("def G(var_id: str, *args: Any) -> Any:");
-  lines.push("    \"\"\"Non-recursive lookup of a variable value from CACHE.\n\n");
-  lines.push("    Expressions are generated to call G(...). The main loop computes values\n");
-  lines.push("    in deterministic topo order per index-point (and per temporal step).\n");
-  lines.push("    If a referenced value has not been computed yet, return NaN (and record).\n\"\"\"");
+  lines.push("    \"\"\"Lookup a variable value from CACHE, computing lazily if needed.\n\n");
+  lines.push("    Expressions call G(...) for variable references. Values are computed in\n");
+  lines.push("    topo order per index-point; shifted deps (step+N / step-N) are resolved\n");
+  lines.push("    lazily on demand. A re-entrancy guard catches circular dependencies.\n\"\"\"");
   lines.push("    dom = VAR_DOMAINS.get(var_id, [])");
   lines.push("    if len(args) > len(dom):");
   lines.push("        raise TypeError(f'{var_id} expects {len(dom)} args, got {len(args)}')");
@@ -469,19 +470,22 @@ export function renderModelAsPython(modelObj, features) {
   lines.push("    key = (var_id, kt)");
   lines.push("    if key in CACHE:");
   lines.push("        return CACHE[key]");
-  lines.push("    # If a scalar (domainless) value is requested before it was computed, compute it lazily.");
-  lines.push("    if len(dom) == 0:");
-  lines.push("        val = compute_value(var_id, {})");
+  lines.push("    # Guard against circular dependencies (would otherwise cause infinite recursion).");
+  lines.push("    if key in _G_COMPUTING:");
+  lines.push("        if not STRICT:");
+  lines.push("            _record_error('circular_dep', var_id, kt, 'circular dependency', ValueError('circular dependency detected'))");
+  lines.push("        return _nan()");
+  lines.push("    _G_COMPUTING.add(key)");
+  lines.push("    try:");
+  lines.push("        val = compute_value(var_id, idx)");
   lines.push("        if val is None:");
   lines.push("            val = _nan()");
-  lines.push("        # If scalar computed to NaN, record it for visibility.");
   lines.push("        if isinstance(val, float) and math.isnan(val):");
-  lines.push("            _record_error('nan_result', var_id, kt, 'nan', ValueError('scalar evaluated to NaN'))");
+  lines.push("            _record_error('nan_result', var_id, kt, 'nan', ValueError('expression evaluated to NaN'))");
   lines.push("        CACHE[key] = val");
   lines.push("        return val");
-  lines.push("    if not STRICT:");
-  lines.push("        _record_error('missing_dep', var_id, kt, 'missing dependency', KeyError('value not computed yet'))");
-  lines.push("    return _nan()");
+  lines.push("    finally:");
+  lines.push("        _G_COMPUTING.discard(key)");
   lines.push("");
 
   lines.push("BASE_ENV['G'] = G" );

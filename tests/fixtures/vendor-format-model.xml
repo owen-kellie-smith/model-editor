@@ -84,6 +84,25 @@
       </definition>
     </variable>
 
+    <variable id="projection_limit">
+      <dataType>integer</dataType>
+      <description>Number of steps in a projection run (sets the end-point for recursive formulas)</description>
+      <definition type="constant">
+        120
+      </definition>
+    </variable>
+
+    <variable id="within_projection">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>boolean</dataType>
+      <description>True while there are further projection steps remaining (step + 1 is within projection_limit)</description>
+      <definition type="expression">
+        step + 1 &lt;= projection_limit
+      </definition>
+    </variable>
+
     <variable id="annual_annuity_amount">
       <arguments>
         <arg indexSet="cohort"/>
