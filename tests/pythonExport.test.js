@@ -156,6 +156,97 @@ describe('Python Export', () => {
     expect(r.stdout).toContain(`input_${tableId}.csv`)
   })
 
+  it('correctly evaluates step + 1 forward reference expression in generated Python', () => {
+    // Regression test: a variable like within_projection(step) = step + 1 <= projection_limit
+    // uses step + 1 as a bare arithmetic expression.  The generated Python must evaluate it
+    // correctly (not produce NaN) because step is in the env dict and + is plain arithmetic.
+    const modelXml = `<?xml version="1.0"?>
+<model id="step_plus_one_test">
+  <indexSets>
+    <indexSet id="step" role="temporal"><dataType>integer</dataType></indexSet>
+  </indexSets>
+  <variables>
+    <variable id="projection_limit">
+      <dataType>integer</dataType>
+      <definition type="constant">5</definition>
+    </variable>
+    <variable id="within_projection">
+      <arguments><arg indexSet="step"/></arguments>
+      <dataType>boolean</dataType>
+      <definition type="expression">step + 1 &lt;= projection_limit</definition>
+    </variable>
+  </variables>
+</model>`
+    const { obj, features } = validateModelCore(modelXml, 'test.xml', lang)
+    const py = renderModelAsPython(obj, features)
+    const { dir, pyPath } = writeTempPython(py)
+    const csvPath = path.join(dir, 'out.csv')
+    const r = runPython(pyPath, ['--steps', '6', '--csv', csvPath])
+    expect(r.status, r.stderr || r.stdout).toBe(0)
+    const csv = fs.readFileSync(csvPath, 'utf-8')
+    // within_projection should be 1 for steps 0-4 and 0 for step 5
+    const lines = csv.split(/\r?\n/).filter(Boolean)
+    const header = lines[0].split(',')
+    const wpIdx = header.indexOf('within_projection')
+    expect(wpIdx, 'within_projection column missing').toBeGreaterThanOrEqual(0)
+    const stepIdx = header.indexOf('step')
+    const rows = lines.slice(1).map(l => l.split(','))
+    for (const row of rows) {
+      const s = parseInt(row[stepIdx], 10)
+      const wp = row[wpIdx]  // may be '1'/'0', 'True'/'False', or a float string
+      const wpBool = wp === 'True' || wp === 'true' || parseFloat(wp) !== 0
+      if (s < 5) {
+        expect(wpBool, `within_projection at step ${s} should be truthy`).toBe(true)
+      } else {
+        expect(wp === 'False' || wp === 'false' || parseFloat(wp) === 0, `within_projection at step ${s} should be falsy`).toBe(true)
+      }
+    }
+  })
+
+  it('correctly evaluates a variable that references another variable at step + 1 (forward reference)', () => {
+    // Regression test for forward temporal references: next_value(step) = base(step + 1)
+    // where base(step) = step * 10 (a simple step-dependent formula).
+    // At step 2, next_value should be base(3) = 30.
+    const modelXml = `<?xml version="1.0"?>
+<model id="forward_ref_test">
+  <indexSets>
+    <indexSet id="step" role="temporal"><dataType>integer</dataType></indexSet>
+  </indexSets>
+  <variables>
+    <variable id="base">
+      <arguments><arg indexSet="step"/></arguments>
+      <dataType>real</dataType>
+      <definition type="expression">step * 10</definition>
+    </variable>
+    <variable id="next_value">
+      <arguments><arg indexSet="step"/></arguments>
+      <dataType>real</dataType>
+      <definition type="expression">base(step + 1)</definition>
+    </variable>
+  </variables>
+</model>`
+    const { obj, features } = validateModelCore(modelXml, 'test.xml', lang)
+    const py = renderModelAsPython(obj, features)
+    const { dir, pyPath } = writeTempPython(py)
+    const csvPath = path.join(dir, 'out.csv')
+    const r = runPython(pyPath, ['--steps', '4', '--csv', csvPath])
+    expect(r.status, r.stderr || r.stdout).toBe(0)
+    const csv = fs.readFileSync(csvPath, 'utf-8')
+    const lines = csv.split(/\r?\n/).filter(Boolean)
+    const header = lines[0].split(',')
+    const nvIdx = header.indexOf('next_value')
+    const stepIdx = header.indexOf('step')
+    expect(nvIdx, 'next_value column missing').toBeGreaterThanOrEqual(0)
+    const rows = lines.slice(1).map(l => l.split(','))
+    // next_value(step) = base(step + 1) = (step + 1) * 10
+    // Even at the last step (step=4), the lazy G function can compute base(5) = 50.
+    for (const row of rows) {
+      const s = parseInt(row[stepIdx], 10)
+      const nv = parseFloat(row[nvIdx])
+      expect(nv, `next_value at step ${s} should be ${(s + 1) * 10}`).toBe((s + 1) * 10)
+    }
+  })
+
   it('writes a .log file containing the screen output', () => {
     const rel = exampleMap["annuity vendor format"];
     const xml = fs.readFileSync(rel, 'utf-8')
@@ -175,3 +266,4 @@ describe('Python Export', () => {
     expect(log).toContain('Wrote')
   })
 })
+

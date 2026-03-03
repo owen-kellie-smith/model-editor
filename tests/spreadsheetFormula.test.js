@@ -426,6 +426,65 @@ describe('Spreadsheet Formula Conversion', () => {
     expect(result).toBe('O2')
     expect(result).not.toContain('outstanding_debt')
   })
+
+  it('should convert variable(step + 1) to the next row cell reference', () => {
+    // Forward reference: variable(step + 1) at row 3 should reference row 4
+    const colIndexMap = new Map([['NEXT_VALUE', 2]]) // col B
+    const cohortStepVars = ['NEXT_VALUE']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3 // step=1, row 3
+
+    const result = convertExpressionToFormula('next_value(step + 1)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).toBe('B4')
+    expect(result).not.toContain('next_value')
+  })
+
+  it('should convert variable(step + 2) to two rows ahead', () => {
+    const colIndexMap = new Map([['FUTURE_VAL', 3]]) // col C
+    const cohortStepVars = ['FUTURE_VAL']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 2 // step=0, row 2
+
+    const result = convertExpressionToFormula('future_val(step + 2)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).toBe('C4')
+    expect(result).not.toContain('future_val')
+  })
+
+  it('should convert variable(cohort, step + 1) to the next row cell reference', () => {
+    // Forward reference with cohort arg: variable(cohort, step + 1) at row 3 -> row 4
+    const colIndexMap = new Map([['SURVIVAL', 4]]) // col D
+    const cohortStepVars = ['SURVIVAL']
+    const constantVars = []
+    const variableMap = new Map()
+    const currentRow = 3 // step=1, row 3
+
+    const result = convertExpressionToFormula('survival(cohort, step + 1)', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    expect(result).toBe('D4')
+    expect(result).not.toContain('survival')
+  })
+
+  it('should convert within_projection step+1 expression to correct Excel formula', () => {
+    // Regression test: within_projection(step) = step + 1 <= projection_limit
+    // step + 1 is a bare arithmetic expression (not a variable call), so step is replaced by A{row}
+    const colIndexMap = new Map()
+    const cohortStepVars = []
+    const constantVars = ['PROJECTION_LIMIT']
+    const variableMap = new Map([['PROJECTION_LIMIT', { definition: { type: 'constant', '#text': '120' } }]])
+    const currentRow = 3
+
+    const result = convertExpressionToFormula('step + 1 <= projection_limit', currentRow, colIndexMap, cohortStepVars, constantVars, variableMap)
+
+    // step replaced by A3, projection_limit replaced by constant sheet reference
+    expect(result).toContain('A3 + 1')
+    expect(result).toContain('constant!')
+    expect(result).not.toContain('step')
+    expect(result).not.toContain('projection_limit')
+  })
 })
 
 describe('generatePiecewiseFormula', () => {
