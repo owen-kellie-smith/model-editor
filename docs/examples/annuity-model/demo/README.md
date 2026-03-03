@@ -26,7 +26,7 @@ input_<table_name>.csv
 
 in the same folder as the exported `.py` script.
 
-If present, these files automatically override the embedded sample tables at runtime.
+If present, these `input_<table_name>.csv` files automatically override the embedded sample tables at runtime.
 
 For example:
 
