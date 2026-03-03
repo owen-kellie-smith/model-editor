@@ -86,20 +86,21 @@
 
     <variable id="projection_limit">
       <dataType>integer</dataType>
-      <description>Number of steps in a projection run (sets the end-point for recursive formulas)</description>
+      <description>Maximum number of years in a projection run (sets the end-point for recursive formulas)</description>
+      <unit>years</unit>
       <definition type="constant">
         120
       </definition>
     </variable>
 
-    <variable id="within_projection">
+    <variable id="within_projection_limit">
       <arguments>
         <arg indexSet="step"/>
       </arguments>
       <dataType>boolean</dataType>
       <description>True while there are further projection steps remaining (step + 1 is within projection_limit)</description>
       <definition type="expression">
-        step + 1 &lt;= projection_limit
+        step_length ( step + 1)  &lt;= projection_limit
       </definition>
     </variable>
 
@@ -309,6 +310,30 @@
       <unit>years</unit>
       <definition type="expression">
         step * step_length
+      </definition>
+    </variable>
+
+    <variable id="discounted_cashflow_future">
+      <arguments>
+        <arg indexSet="cohort"/>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+    
+      <definition type="piecewise">
+    
+        <case>
+          <when>within_projection_limit(step)</when>
+          <value>discounted_cashflow_future(step+1) + discounted_cashflow(step)</value>
+        </case>
+    
+        <case>
+	  <when>1=1</when>
+	<value>
+            0
+          </value>
+        </case>
+    
       </definition>
     </variable>
   </variables>
