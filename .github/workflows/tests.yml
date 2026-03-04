@@ -26,5 +26,6 @@ jobs:
       - run: npx vitest run --coverage
 
       - uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/lcov.info
+  	with:
+    	  token: ${{ secrets.CODECOV_TOKEN }}
+    	  files: ./coverage/lcov.info
