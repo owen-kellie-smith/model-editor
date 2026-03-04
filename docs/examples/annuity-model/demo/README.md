@@ -28,7 +28,7 @@ in the same folder as the exported `.py` script.
 
 If present, these `input_<table_name>.csv` files automatically override the embedded sample tables at runtime.
 
-For example:
+For example, for the model in `../vendor-format-model.xml`
 
 ```
 input_cohort_data.csv
