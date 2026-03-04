@@ -44,7 +44,7 @@ options:
                         Per-trajectory tail colors: label=color,label2=color
   --no-model-id-title   Suppress model id in plot title (saves space)
 ```
-```
+
 ## Example Python command lines and output
 ### Run with embedded sample inputs (referring to no other files)
 #### Running all cohorts and sending output to standard filenames
