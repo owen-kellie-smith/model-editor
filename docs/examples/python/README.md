@@ -5,6 +5,7 @@
 2. Export as Python, which creates, say model.py in your Downloads folder. From the command line in your Downloads folder see what command line arguments are available in the Python script 
 ```bash
 python3 model.py --help
+```
 which returns something like
 ```bash
 usage: annuity-model.py [-h] [--steps STEPS] [--csv CSV] [--index INDEX] [--strict] [--plot-traj | --plot-static] [--gif GIF] [--fps FPS] [--dpi DPI]
