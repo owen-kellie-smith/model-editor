@@ -88,6 +88,16 @@ describe("validateModelCore", () => {
     });
   });
 
+  describe("when model contains a variable with same name as a table", () => {
+    it("throws a 'conflicts with table' error", () => {
+      const text = readFixture("modelVariableTableNameConflict.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelVariableTableNameConflict.xml", lang);
+      }).toThrow(/conflicts with table/i);
+    });
+  });
+
   describe("when model contains duplicate index set identifiers", () => {
     it("throws a 'Duplicate index set' error", () => {
       const text = readFixture("modelDuplicateIndexSet.xml");

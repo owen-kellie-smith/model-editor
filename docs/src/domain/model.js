@@ -34,6 +34,9 @@ export function getMapsOfModelProperties(xml) {
       if (variables.has(v.id.toUpperCase())) {
         throwModelError("Duplicate variable", { id: v.id.toUpperCase() });
       }
+      if (tables.has(v.id.toUpperCase())) {
+        throwModelError("Variable identifier conflicts with table identifier", { id: v.id });
+      }
       variables.set(v.id.toUpperCase(), v);
     }
     // ------------------------------------------------------

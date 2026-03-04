@@ -60,7 +60,7 @@
       <!-- columns unconstrained -->
     </table>
 
-    <table id="spot_rate">
+    <table id="spot_rate_table">
       <rowIndex ref="step" min="0" max="120"/>
       <columns>
         <column id="rate" dataType="real" min="0.01" max="0.08"/>
@@ -273,7 +273,7 @@
       </arguments>
       <dataType>real</dataType>
       <definition type="table">
-        <table ref="spot_rate"/>
+        <table ref="spot_rate_table"/>
         <column ref="rate"/>
       </definition>
     </variable>
