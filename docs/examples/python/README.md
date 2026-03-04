@@ -5,14 +5,6 @@
 2. Export as Python, which creates, say model.py in your Downloads folder. From the command line in your Downloads folder see what command line arguments are available in the Python script 
 ```bash
 python3 model.py --help
-```
-## Example Python command lines and output
-### Run with embedded sample inputs (referring to no other files)
-#### Running all cohorts and sending output to standard filenames
-
-```bash
-python3 annuity-model.py
-```
 which returns something like
 ```bash
 usage: annuity-model.py [-h] [--steps STEPS] [--csv CSV] [--index INDEX] [--strict] [--plot-traj | --plot-static] [--gif GIF] [--fps FPS] [--dpi DPI]
@@ -50,6 +42,14 @@ options:
   --plot-tail-colors PLOT_TAIL_COLORS
                         Per-trajectory tail colors: label=color,label2=color
   --no-model-id-title   Suppress model id in plot title (saves space)
+```
+```
+## Example Python command lines and output
+### Run with embedded sample inputs (referring to no other files)
+#### Running all cohorts and sending output to standard filenames
+
+```bash
+python3 annuity-model.py
 ```
 ![Spreadsheet loaded with output from Python - 3-cohorts.](../annuity-model/demo/pictures/Annuity_model_python_all_cohorts_embedded.png)
 
