@@ -42,7 +42,7 @@ Each CSV file must:
 * Match the expected column names exactly
 * Contain only data rows from row 2 onwards (no metadata rows in between the header and the data rows)
 
-If no CSV files are found, the model will use the embedded sample tables.
+For every table defined by the model .xml, if no CSV file is found then the Python script will use the embedded sample tables.
 
 ---
 
