@@ -23,9 +23,11 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - run: npx vitest run --coverage
+      - name: Run coverage
+        run: npx vitest run --coverage
 
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-  	with:
-    	  token: ${{ secrets.CODECOV_TOKEN }}
-    	  files: ./coverage/lcov.info
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
