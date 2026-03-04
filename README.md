@@ -6,7 +6,7 @@
 
 ---
 
-Structured system modeling tool with dependency derivation, validation, and executable export.
+Single webpage system modeling tool with dependency derivation, validation, and executable export.
 
 
 [![Demo](./docs/examples/annuity-model/demo/video/demo.gif)](./docs/examples/annuity-model/demo/video)
