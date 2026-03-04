@@ -1861,7 +1861,7 @@ ${parts.join('\n')}
 </div>`
 }
 
-function autoFitColumns(sheet, { minWidth = 8, maxWidth = 60 } = {}) {
+export function autoFitColumns(sheet, { minWidth = 8, maxWidth = 60 } = {}) {
   sheet.columns.forEach(column => {
     let maxLength = 0
 
