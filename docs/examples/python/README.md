@@ -14,6 +14,7 @@ python3 model.py --help
 
 #### Running first cohort only and specifying output filename
 `python3 annuity-model.py --index cohort=1 --csv annuity_model_out_cohort1_embedded.csv`
+
 ![Spreadsheet loaded with output from Python - table of projected ages etc.](../annuity-model/demo/pictures/Annuity_model_python_cohort1_embedded.png)
 
 ### Run with actual inputs
