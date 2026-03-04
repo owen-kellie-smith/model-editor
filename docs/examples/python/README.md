@@ -61,7 +61,7 @@ python3 annuity-model.py --index cohort=1 --csv annuity_model_out_cohort1_embedd
 
 ![Spreadsheet loaded with output from Python - table of projected ages etc.](../annuity-model/demo/pictures/Annuity_model_python_cohort1_embedded.png)
 
-### Run with actual inputs
+### Run with actual inputs in external files
 See [annuity model demo](../annuity-model/demo).
 
 
