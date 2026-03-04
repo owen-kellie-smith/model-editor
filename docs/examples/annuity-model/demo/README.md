@@ -46,15 +46,6 @@ If no CSV files are found, the model will use the embedded sample tables.
 
 ---
 
-## Contents of This Directory
-
-This directory contains:
-
-* The exported annuity model Python script
-* The exported annuity model spreadsheet with overwritten tables
-* Example CSV files to put in the Python folder to override the embedded data
-
----
 
 ## Usage
 
