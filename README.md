@@ -6,7 +6,7 @@
 
 ---
 
-Single webpage model-editor with dependency derivation, validation, and executable export.
+Single webpage model-editor with validation, dependency derivation and executable export.
 
 
 [![Demo](./docs/examples/annuity-model/demo/video/demo.gif)](./docs/examples/annuity-model/demo/video)
