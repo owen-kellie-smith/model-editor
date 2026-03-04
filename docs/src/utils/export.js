@@ -8,11 +8,6 @@ export function exportFile(content, filename, mime = "application/xml") {
     return;
   }
 
-  if (!content || !content.trim()) {
-    alert("Nothing to export");
-    return;
-  }
-
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
 
