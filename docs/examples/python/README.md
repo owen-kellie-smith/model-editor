@@ -29,6 +29,6 @@ See [annuity model demo](../annuity-model/demo).
 
 `python3 rocket_with_thrust.py   --steps 60000   --plot-traj   --plot-vars "rocket:x,y;moon:moon_x,moon_y"   --plot-t tau   --plot-title day --plot-head-colors "rocket=red,moon=silver" --plot-tail-colors "rocket=blue,moon=dimgray"  --plot-step 10   --fps 30   --gif rocket60000.gif`
 
-![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](../rocket-model/rocket60000_static.gif)
+![Snapshot of a numerical integration of Lorenz equations output by Python rendering.](../rocket-model/rocket60000.gif)
 
 
