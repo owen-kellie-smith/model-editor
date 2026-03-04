@@ -9,7 +9,9 @@ python3 model.py --help
 ## Example Python command lines and output
 ### Run with embedded sample inputs (referring to no other files)
 #### Running all cohorts and sending output to standard filenames
+
 ```python3 annuity-model.py```
+
 ![Spreadsheet loaded with output from Python - 3-cohorts.](../annuity-model/demo/pictures/Annuity_model_python_all_cohorts_embedded.png)
 
 #### Running first cohort only and specifying output filename
