@@ -51,9 +51,5 @@ For every table defined by the model .xml, if no CSV file is found then the Pyth
 
 See [How to run](../../../../README.md#how-to-run)
 
-Example:
 
-```
-python3 annuity-model.py --steps 24
-```
 
