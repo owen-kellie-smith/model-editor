@@ -14,6 +14,14 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["text", "json", "html","lcov"],
       reportsDirectory: "./coverage",
+      exclude: [
+        "**/modelApp.js",         // UI wiring / DOM heavy
+        "**/exampleApp.js",     
+        "**/graphApp.js",     
+        "**/languageApp.js",     
+        "**/ui.js",               // DOM refs
+        "**/*.d.ts",
+      ],
     },
   },
 })
