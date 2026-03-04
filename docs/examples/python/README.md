@@ -1,6 +1,7 @@
 # Python scripts
 
-1. Load an XML model.
+1. [Load an XML model](../../../README.md#how-to-run)
+
 2. Export as Python, which creates, say model.py in your Downloads folder. From the command line in your Downloads folder see what command line arguments are available in the Python script 
 ```bash
 python3 model.py --help
