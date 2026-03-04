@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+seconds_to_add=1
+
+# ---- hard-coded input list (order matters) ----
+clips=(
+loadXML.mp4
+validatestep.mp4
+depend.mp4
+preview.mp4
+excel.mp4
+exportpython.mp4
+pythonchart.mp4
+)
+
+concat_list="concat_list.txt"
+output_file="final_output.mp4"
+srt_file="final_output.srt"
+
+# clear concat list
+: > "$concat_list"
+
+# ---- create _ext clips + build concat list ----
+for vid in "${clips[@]}"; do
+  if [[ ! -f "$vid" ]]; then
+    echo "Missing input file: $vid" >&2
+    exit 1
+  fi
+
+  base="${vid%.mp4}"
+  ext="${base}_ext.mp4"
+
+  ffmpeg -y -i "$vid" \
+    -vf "fps=30,tpad=stop_mode=clone:stop_duration=$seconds_to_add" \
+    -an -c:v libx264 -pix_fmt yuv420p \
+    "$ext"
+
+  printf "file '%s'\n" "$ext" >> "$concat_list"
+done
+
+# ---- concatenate (fast, no re-encode) ----
+ffmpeg -y -f concat -safe 0 -i "$concat_list" -c copy "$output_file"
+
+# ---- generate SRT based on the durations of the _ext clips ----
+# Caption text = original filename (vid)
+python3 - "$srt_file" "${clips[@]}" <<'PY'
+import sys, subprocess, math
+
+out_srt = sys.argv[1]
+clips = sys.argv[2:]
+
+def ffprobe_duration(path: str) -> float:
+    # duration in seconds (float)
+    cmd = [
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        path
+    ]
+    s = subprocess.check_output(cmd, text=True).strip()
+    return float(s)
+
+def srt_time(t: float) -> str:
+    if t < 0: t = 0.0
+    # round to nearest millisecond
+    ms_total = int(round(t * 1000.0))
+    h = ms_total // 3600000
+    ms_total %= 3600000
+    m = ms_total // 60000
+    ms_total %= 60000
+    s = ms_total // 1000
+    ms = ms_total % 1000
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+timeline = 0.0
+lines = []
+idx = 1
+
+for vid in clips:
+    base = vid[:-4] if vid.lower().endswith(".mp4") else vid
+    ext = f"{base}_ext.mp4"
+
+    dur = ffprobe_duration(ext)
+
+    start = timeline + 0.1
+    end   = timeline + dur - 0.1
+
+    # guard: if clip is extremely short, ensure end > start by at least 1ms
+    if end <= start:
+        end = start + 0.001
+
+    lines.append(str(idx))
+    lines.append(f"{srt_time(start)} --> {srt_time(end)}")
+    lines.append(vid)  # caption text
+    lines.append("")   # blank line
+
+    timeline += dur
+    idx += 1
+
+with open(out_srt, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines))
+
+print(f"Wrote {out_srt} with {len(clips)} cues.")
+PY
+rm *_ext.mp4
+
