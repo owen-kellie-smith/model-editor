@@ -9,6 +9,11 @@ export default defineConfig({
   },
   test: {
     setupFiles: ["./tests/setup.js"],
+    coverage: {
+      provider: "istanbul",
+      reporter: ["text", "json", "html","lcov"],
+      reportsDirectory: "./coverage",
+    },
   },
 })
 
