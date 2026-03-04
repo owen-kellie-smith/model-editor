@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model id="test-variable-table-name-conflict">
+
+  <indexSets>
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+  <tables>
+    <table id="spot_rate">
+      <rowIndex ref="step" min="0" max="120"/>
+      <columns>
+        <column id="rate" dataType="real" min="0.01" max="0.08"/>
+      </columns>
+    </table>
+  </tables>
+
+  <variables>
+    <!-- Variable with same id as table - should raise an error -->
+    <variable id="spot_rate">
+      <arguments>
+        <arg indexSet="step"/>
+      </arguments>
+      <dataType>real</dataType>
+      <definition type="table">
+        <table ref="spot_rate"/>
+        <column ref="rate"/>
+      </definition>
+    </variable>
+  </variables>
+
+</model>

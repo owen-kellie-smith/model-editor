@@ -213,7 +213,7 @@ describe('Dynamic Table Generation', () => {
     const tableIds = tables.map(t => t.id)
     expect(tableIds).toContain('cohort_data')
     expect(tableIds).toContain('mortality_rate')
-    expect(tableIds).toContain('spot_rate')
+    expect(tableIds).toContain('spot_rate_table')
     
     // Verify cohort_data has 4 columns
     const cohortTable = tables.find(t => t.id === 'cohort_data')
@@ -233,8 +233,8 @@ describe('Dynamic Table Generation', () => {
     const mortalityTable = tables.find(t => t.id === 'mortality_rate')
     expect(mortalityTable.columns).toBeFalsy()
     
-    // Verify spot_rate has 1 column
-    const spotTable = tables.find(t => t.id === 'spot_rate')
+    // Verify spot_rate_table has 1 column
+    const spotTable = tables.find(t => t.id === 'spot_rate_table')
     const spotColumns = Array.isArray(spotTable.columns.column)
       ? spotTable.columns.column
       : [spotTable.columns.column]
