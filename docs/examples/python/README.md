@@ -8,8 +8,11 @@ python3 model.py --help
 ```
 ## Example Python command lines and output
 ### Hard-coded results (annuity)
-
 `python3 annuity-model.py`
+
+### Run with actual inputs
+See [annuity model demo](../annuity-model/demo).
+
 
 ### Static chart (Lorenz)
 

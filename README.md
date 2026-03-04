@@ -32,7 +32,7 @@ then visit http://localhost:8080
 6. Inspect the Graph of variable dependencies.
 7. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
 8. Export as spreadsheet (which adds sample inputs that you can change in your spreadsheet editor).
-9. Export as Python.  [Run the Python script](docs/examples/python).
+9. Export as Python.  [Run the Python script](docs/examples/python) possibly with [actual inputs to replace the sample inputs](docs/examples/python/README.md#run-with-actual-inputs).
 
 
 ---
