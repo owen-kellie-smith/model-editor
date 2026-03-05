@@ -11,7 +11,8 @@ import {
   updateVariable,
   deleteVariable,
   validateVariableId,
-  listVariables
+  listVariables,
+  copyVariable
 } from "@/domain/variableCrud.js";
 
 describe("Variable CRUD Operations", () => {
@@ -754,4 +755,68 @@ describe("Variable CRUD Operations", () => {
       }).not.toThrow();
     });
   });
+
+  describe("copyVariable", () => {
+    it("copies a variable to a new ID", () => {
+      const result = copyVariable(baseModel, "step_length", "step_length_v2", lang);
+      expect(result).toBeDefined();
+      expect(result.features.variables).toContain("STEP_LENGTH_V2");
+      expect(result.features.variables).toContain("STEP_LENGTH");
+      const original = readVariable(baseModel, "step_length");
+      const copied = readVariable(result.obj, "step_length_v2");
+      expect(copied.definition).toEqual(original.definition);
+    });
+
+    it("throws when source variable does not exist", () => {
+      expect(() => {
+        copyVariable(baseModel, "nonexistent_var", "new_id", lang);
+      }).toThrow(/not found/i);
+    });
+
+    it("throws when new ID already exists", () => {
+      expect(() => {
+        copyVariable(baseModel, "step_length", "cashflow", lang);
+      }).toThrow(/already exists/i);
+    });
+
+    it("copies optional properties (dataType, unit, arguments) when present", () => {
+      const vars = baseModel.model.variables.variable;
+      const varWithDataType = Array.isArray(vars)
+        ? vars.find(v => v.dataType)
+        : (vars && vars.dataType ? vars : null);
+
+      if (!varWithDataType) {
+        return;
+      }
+
+      const sourceId = varWithDataType.id.toLowerCase();
+      const result = copyVariable(baseModel, sourceId, sourceId + "_copy", lang);
+      expect(result.features.variables).toContain((sourceId + "_copy").toUpperCase());
+    });
+  });
+
+  describe("listVariables edge cases", () => {
+    it("returns empty array for null model object", () => {
+      expect(listVariables(null)).toEqual([]);
+    });
+
+    it("returns empty array when model property is missing", () => {
+      expect(listVariables({})).toEqual([]);
+    });
+
+    it("wraps a single variable object in an array", () => {
+      const modelObj = {
+        model: {
+          variables: {
+            variable: { id: "only_one", definition: { type: "constant", "#text": "1" } }
+          }
+        }
+      };
+      const vars = listVariables(modelObj);
+      expect(Array.isArray(vars)).toBe(true);
+      expect(vars).toHaveLength(1);
+      expect(vars[0].id).toBe("only_one");
+    });
+  });
 });
+

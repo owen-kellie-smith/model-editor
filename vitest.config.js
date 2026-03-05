@@ -20,6 +20,8 @@ export default defineConfig({
         "**/graphApp.js",     
         "**/languageApp.js",     
         "**/ui.js",               // DOM refs
+        "**/variableCrudApp.js",  // UI wiring / DOM heavy
+        "**/spreadsheetRenderer.js", // ExcelJS shell – requires ExcelJS CDN
         "**/*.d.ts",
       ],
     },
