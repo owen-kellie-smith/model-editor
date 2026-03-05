@@ -6,10 +6,19 @@ import { loadModelFromText } from "./modelApp.js";
 function toFetchPath(path) {
   return path.replace(/^docs\//, "");
 }
-let availableLanguage;
-let availableModel;
+let availableLanguage = [];
+let availableModel = [];
 
 export async function refreshExampleVisibility(){
+  // Immediately hide the model example link if no language is loaded.
+  // Without this, the link can remain visible during the async HEAD-request
+  // phase even after the language env has been cleared, causing clicks to
+  // silently do nothing (loadModelFromText returns early when languageEnv is
+  // null but shows no feedback to the user).
+  if (!getLanguageEnv()) {
+    ui.modelExample.style.visibility = "hidden";
+  }
+
   const languageFiles = exampleFiles.filter(f => f.category === "language");
   const modelFiles = exampleFiles.filter(f => f.category === "model");
 
