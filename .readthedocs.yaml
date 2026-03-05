@@ -4,11 +4,4 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
-
-  jobs:
-    pre_build:
-      - pip install mkdocs
-
-  # By default, Read the Docs uses Sphinx.
-  # To use MkDocs with Markdown, explicitly specify:
-  documentation_type: mkdocs
+  documentation_type: mkdocs  documentation_type: mkdocs
