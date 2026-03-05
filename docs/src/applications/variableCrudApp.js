@@ -297,8 +297,8 @@ function handleDeleteVariable() {
 
     // Update the copy model in textarea
     const xml = serializeModel(result.obj);
+    validateModel(xml.trim(), "After delete", lang);
     ui.modelText.value = xml.trim();
-    validateModel(ui.modelText.value, "After delete", lang);
 
     // Refresh the variable dropdown
     renderVariableDropdown();
@@ -395,8 +395,8 @@ function handleSaveVariable() {
 
     // Update the copy model in textarea
     const xml = serializeModel(result.obj);
+    validateModel(xml.trim(), "After updated variable", lang);
     ui.modelText.value = xml.trim();
-    validateModel(ui.modelText.value, "After updated variable", lang);
 
     // Refresh the variable dropdown
     renderVariableDropdown();

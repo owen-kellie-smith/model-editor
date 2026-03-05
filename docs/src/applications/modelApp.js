@@ -53,8 +53,7 @@ function updateLoadedInfo() {
 }
 
 function updateDirtyIndicator() {
-  const currentText = ui.modelText.value.trim();
-  const isDirty = lastCommittedText !== null && currentText !== lastCommittedText;
+  const isDirty = lastCommittedText !== null && ui.modelText.value.trim() !== lastCommittedText;
   
   if (isDirty) {
     ui.modelDirty.textContent = "✖ Unapplied changes";
