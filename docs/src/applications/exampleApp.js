@@ -50,13 +50,23 @@ async function isAvailable(path) {
   }
 }
 
+function setLinkLoading(element, isLoading) {
+  element.style.pointerEvents = isLoading ? "none" : "";
+  element.style.cursor = isLoading ? "wait" : "";
+}
+
 export async function wireExampleHandlers() {
-  refreshExampleVisibility();
+  await refreshExampleVisibility();
   let languageIndex = -1;
   let modelIndex = -1;
+  let languageLoading = false;
+  let modelLoading = false;
 
   ui.languageExample.addEventListener("click", async () => {
     if (availableLanguage.length === 0) return;
+    if (languageLoading) return;
+    languageLoading = true;
+    setLinkLoading(ui.languageExample, true);
     languageIndex = (languageIndex + 1) % availableLanguage.length;
     const file = availableLanguage[languageIndex];
     try {
@@ -67,11 +77,17 @@ export async function wireExampleHandlers() {
       commitOrRejectLanguage(text, file.path.split("/").pop());
     } catch (err) {
       console.error(err);
+    } finally {
+      languageLoading = false;
+      setLinkLoading(ui.languageExample, false);
     }
   });
 
   ui.modelExample.addEventListener("click", async () => {
     if (availableModel.length === 0) return;
+    if (modelLoading) return;
+    modelLoading = true;
+    setLinkLoading(ui.modelExample, true);
     modelIndex = (modelIndex + 1) % availableModel.length;
     const file = availableModel[modelIndex];
     try {
@@ -81,6 +97,9 @@ export async function wireExampleHandlers() {
       loadModelFromText(text, file.path.split("/").pop());
     } catch (err) {
       console.error(err);
+    } finally {
+      modelLoading = false;
+      setLinkLoading(ui.modelExample, false);
     }
   });
 }
