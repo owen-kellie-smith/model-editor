@@ -6,6 +6,8 @@ import { exportFile } from "../utils/export.js";
 import { serializeModel } from "../domain/serialize.js";
 import { renderModelAsExcel, renderModelAsHTMLPreview, makeRenderContext } from "../domain/spreadsheetRenderer.js";
 import { renderModelAsPython } from "../domain/pythonRenderer.js";
+import { renderModelAsR } from "../domain/rRenderer.js";
+import { renderModelAsLatex } from "../domain/latexRenderer.js";
 import { setElementContent, sanitizeFilename } from "../utils/helpers.js";
 
 
@@ -75,6 +77,8 @@ export function validateModel(text, filename, lang) {
     ui.downloadModel.disabled = false;   // ✅ valid
     ui.downloadSpreadsheet.disabled = false;  // ✅ enable spreadsheet download
     ui.downloadPython.disabled = false;  // ✅ enable python export
+    ui.downloadRScript.disabled = false;  // ✅ enable R script export
+    ui.downloadLatex.disabled = false;  // ✅ enable LaTeX export
     updateModelStatus("✓ Valid", "success");
     updateLoadedInfo();
     updateDirtyIndicator();
@@ -97,6 +101,8 @@ export function validateModel(text, filename, lang) {
     ui.downloadModel.disabled = true;    // ❌ invalid
     ui.downloadSpreadsheet.disabled = true;  // ❌ disable spreadsheet download
     ui.downloadPython.disabled = true;  // ❌ disable python export
+    ui.downloadRScript.disabled = true;  // ❌ disable R script export
+    ui.downloadLatex.disabled = true;  // ❌ disable LaTeX export
     ui.spreadsheetPreview.innerHTML = '';
     updateModelStatus(formatErrorNoStack(er), "error");
     updateDirtyIndicator();  // ✅ ADD THIS - also update on error
@@ -255,6 +261,32 @@ export function wireModelHandlers() {
     } catch (error) {
       alert("Error exporting Python: " + error.message + ". See console for stack trace.");
       console.error("Python   export error:", error);
+    }
+  });
+
+  ui.downloadRScript.addEventListener("click", () => {
+    if (!modelEnv) return;
+    try {
+      const code = renderModelAsR(modelEnv.obj, modelEnv.features);
+      const modelId = sanitizeFilename(modelEnv.obj?.model?.id);
+      const rPath = `${modelId}.R`;
+      exportFile(code, rPath, "text/x-r-source");
+    } catch (error) {
+      alert("Error exporting R script: " + error.message + ". See console for stack trace.");
+      console.error("R script export error:", error);
+    }
+  });
+
+  ui.downloadLatex.addEventListener("click", () => {
+    if (!modelEnv) return;
+    try {
+      const code = renderModelAsLatex(modelEnv.obj, modelEnv.features);
+      const modelId = sanitizeFilename(modelEnv.obj?.model?.id);
+      const texPath = `${modelId}-equations.tex`;
+      exportFile(code, texPath, "application/x-latex");
+    } catch (error) {
+      alert("Error exporting LaTeX: " + error.message + ". See console for stack trace.");
+      console.error("LaTeX export error:", error);
     }
   });
   

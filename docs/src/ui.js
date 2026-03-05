@@ -17,6 +17,8 @@ export const ui = {
   downloadModel: document.getElementById("downloadModel"),
   downloadSpreadsheet: document.getElementById("downloadSpreadsheet"),   
   downloadPython: document.getElementById("downloadPython"),
+  downloadRScript: document.getElementById("downloadRScript"),
+  downloadLatex: document.getElementById("downloadLatex"),
   log: document.getElementById("log"),
   graphVariable: document.getElementById("graphVariable"),
   graphSortAlphabetically: document.getElementById("graphSortAlphabetically"),
