@@ -124,3 +124,60 @@ export function getGraphOfRelations(modelFeatures, rootVariable, depth) {
   
   return { variables, edges };
 }
+
+/**
+ * Get all variables within a specified depth from any of the given root variables.
+ *
+ * Returns the union of all variables reachable (via getRelations) from each root variable.
+ *
+ * @param {Object} modelFeatures - The model features object containing incoming and outgoing maps
+ * @param {string[]} rootVariables - Array of root variable names to start from
+ * @param {number} depth - The maximum depth to traverse from each root
+ * @returns {Set<string>} A set of variable names reachable from any root within the depth
+ */
+export function getRelationsMulti(modelFeatures, rootVariables, depth) {
+  const allRelations = new Set();
+  for (const rootVariable of rootVariables) {
+    const relations = getRelations(modelFeatures, rootVariable, depth);
+    for (const varName of relations) {
+      allRelations.add(varName);
+    }
+  }
+  return allRelations;
+}
+
+/**
+ * Get a graph representation for multiple root variables.
+ *
+ * Returns the union of all variables reachable from any of the root variables within
+ * the given depth, along with the edges between those variables.
+ *
+ * @param {Object} modelFeatures - The model features object containing incoming and outgoing maps
+ * @param {string[]} rootVariables - Array of root variable names to start from
+ * @param {number} depth - The maximum depth to traverse from each root
+ * @returns {Object} An object with variables (Set) and edges (Map<string, Set<string>>)
+ */
+export function getGraphOfRelationsMulti(modelFeatures, rootVariables, depth) {
+  // Get the union of all reachable variables from all root variables
+  const variables = getRelationsMulti(modelFeatures, rootVariables, depth);
+
+  // Build the edges map, including only connections between variables in the union set
+  const edges = new Map();
+
+  for (const varName of variables) {
+    const outgoingEdges = new Set();
+
+    const outgoing = modelFeatures.outgoing.get(varName);
+    if (outgoing) {
+      for (const dep of outgoing) {
+        if (variables.has(dep.name)) {
+          outgoingEdges.add(dep.name);
+        }
+      }
+    }
+
+    edges.set(varName, outgoingEdges);
+  }
+
+  return { variables, edges };
+}
