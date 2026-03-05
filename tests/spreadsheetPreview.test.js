@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { validateModelCore } from '@/domain/model.js'
-import { renderModelAsHTMLPreview } from '@/domain/spreadsheetRenderer.js'
+import { renderModelAsHTMLPreview } from '@/domain/spreadsheetLogic.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'

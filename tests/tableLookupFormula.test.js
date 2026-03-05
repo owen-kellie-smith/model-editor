@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { renderModelAsExcel, generateTableLookupFormula, generateTableLookupFormulaAdvanced } from '../docs/src/domain/spreadsheetRenderer.js'
+import { renderModelAsExcel } from '../docs/src/domain/spreadsheetRenderer.js'
+import { generateTableLookupFormula, generateTableLookupFormulaAdvanced } from '../docs/src/domain/spreadsheetLogic.js'
 import { validateModelCore } from '@/domain/model.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
 import { loadXml } from './helpers/xml.js'

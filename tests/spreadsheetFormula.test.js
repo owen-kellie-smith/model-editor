@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { validateModelCore } from '@/domain/model.js'
 import { getFunctionsFromLanguage } from '@/domain/language.js'
-import { convertExpressionToFormula, generatePiecewiseFormula } from '@/domain/spreadsheetRenderer.js'
+import { convertExpressionToFormula, generatePiecewiseFormula } from '@/domain/spreadsheetLogic.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 import fs from 'fs'
