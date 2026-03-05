@@ -1,0 +1,15 @@
+
+site_name: Model Editor Documentation
+nav:
+  - Home: README.md
+  - Example models: docs/examples/README.md
+  - Running Python scripts: docs/examples/python/README.md
+  - Annuity-model: docs/examples/annuity-model/README.md
+  - Annuity-model example: docs/examples/annuity-model/README.md
+  - Restaurant Model: docs/examples/restaurant-model/README.md
+  - Airline Profit Model: docs/examples/airline-model/README.md
+  - Continuous dynamical models: docs/examples/rocket-model/README.md
+  - Repo advert: docs/examples/annuity-model/demo/README.md
+  - Video clips for repo advert: docs/examples/annuity-model/demo/video/README.md
+  - Steps to remake repo advert: docs/examples/annuity-model/demo/video/factory/README.md
+
