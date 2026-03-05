@@ -1,7 +1,7 @@
 # model-editor
 
 ![Tests](https://github.com/owen-kellie-smith/model-editor/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://codecov.io/gh/owen-kellie-smith/model-editor/branch/main/graph/badge.svg?cachebust=1)
+![Coverage](https://codecov.io/gh/owen-kellie-smith/model-editor/branch/main/graph/badge.svg?cachebust=2)
 
 **Live demo:** https://owen-kellie-smith.github.io/model-editor/
 
