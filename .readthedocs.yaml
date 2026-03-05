@@ -4,4 +4,4 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
-  documentation_type: mkdocs  documentation_type: mkdocs
+  documentation_type: mkdocs
