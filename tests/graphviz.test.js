@@ -4,7 +4,7 @@ import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/domain/model.js";
 import { getFunctionsFromLanguage } from "@/domain/language.js";
-import { getGraphOfRelations } from "@/domain/graphRelations.js";
+import { getGraphOfRelations, getGraphOfRelationsMulti } from "@/domain/graphRelations.js";
 import { generateDot } from "@/domain/graphviz.js";
 
 describe("GraphViz DOT Generation", () => {
@@ -108,6 +108,49 @@ describe("GraphViz DOT Generation", () => {
           expect(line).toMatch(/^\s*"[^"]+"\s*->\s*"[^"]+";$/);
         }
       }
+    });
+
+    it("highlights only the root variable when no focusedVariables are given", () => {
+      const graph = getGraphOfRelations(modelFeatures, "B", 1);
+      const dot = generateDot(graph, "B");
+
+      expect(dot.includes('"B" [style=filled, fillcolor=lightblue]')).toBe(true);
+      // Other variables should not be highlighted
+      expect(dot.includes('"D" [style=filled')).toBe(false);
+      expect(dot.includes('"A" [style=filled')).toBe(false);
+    });
+
+    it("highlights all focused variables when focusedVariables set is provided", () => {
+      const graph = getGraphOfRelations(modelFeatures, "B", 2);
+      const focused = new Set(["B", "D"]);
+      const dot = generateDot(graph, "B", focused);
+
+      expect(dot.includes('"B" [style=filled, fillcolor=lightblue]')).toBe(true);
+      expect(dot.includes('"D" [style=filled, fillcolor=lightblue]')).toBe(true);
+      // Non-focused variables should not be highlighted
+      expect(dot.includes('"A" [style=filled')).toBe(false);
+    });
+
+    it("always includes the root variable in highlights even when not in focusedVariables", () => {
+      const graph = getGraphOfRelations(modelFeatures, "B", 2);
+      // focusedVariables does not contain "B"
+      const focused = new Set(["D", "E"]);
+      const dot = generateDot(graph, "B", focused);
+
+      expect(dot.includes('"B" [style=filled, fillcolor=lightblue]')).toBe(true);
+      expect(dot.includes('"D" [style=filled, fillcolor=lightblue]')).toBe(true);
+      expect(dot.includes('"E" [style=filled, fillcolor=lightblue]')).toBe(true);
+    });
+
+    it("still generates valid edges when multiple focused variables are given", () => {
+      const graph = getGraphOfRelationsMulti(modelFeatures, ["B", "C"], 1);
+      const focused = new Set(["B", "C"]);
+      const dot = generateDot(graph, "B", focused);
+
+      expect(dot.includes('"B" [style=filled, fillcolor=lightblue]')).toBe(true);
+      expect(dot.includes('"C" [style=filled, fillcolor=lightblue]')).toBe(true);
+      expect(dot.includes('"D" -> "B"')).toBe(true);
+      expect(dot.includes('"C" -> "A"')).toBe(true);
     });
   });
 });

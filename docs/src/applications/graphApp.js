@@ -1,7 +1,14 @@
 import { ui } from "../ui.js";
 import { getModelEnv } from "./modelApp.js";
-import { getGraphOfRelations } from "../domain/graphRelations.js";
+import { getGraphOfRelations, getGraphOfRelationsMulti } from "../domain/graphRelations.js";
 import { generateDot } from "../domain/graphviz.js";
+
+/**
+ * Set of currently focused variable names for multi-variable graph display.
+ * When empty, falls back to the dropdown selection.
+ * @type {Set<string>}
+ */
+const focusedVariables = new Set();
 
 /**
  * Render DOT format to SVG using Viz.js (loaded from CDN)
@@ -242,7 +249,70 @@ function downloadPng(event) {
 }
 
 /**
- * Generate and display the graph
+ * Update the focused variables display panel to reflect the current selection.
+ * Shows a list of all focused variables when more than one is selected.
+ */
+function updateFocusedVariablesDisplay() {
+  if (!ui.graphFocusedList) return;
+  if (focusedVariables.size <= 1) {
+    ui.graphFocusedList.textContent = '';
+  } else {
+    const vars = Array.from(focusedVariables).join(', ');
+    ui.graphFocusedList.textContent = `Focused: ${vars}`;
+  }
+}
+
+/**
+ * Attach Shift+click handlers to SVG graph nodes to support multi-variable focus.
+ * Regular click on a node sets it as the sole focus.
+ * Shift+click toggles the node in/out of the focused set.
+ */
+function attachNodeClickHandlers() {
+  const svgElement = ui.graphSvg.querySelector('svg');
+  if (!svgElement) return;
+
+  svgElement.addEventListener('click', (event) => {
+    const nodeEl = event.target.closest('.node');
+    if (!nodeEl) return;
+
+    const titleEl = nodeEl.querySelector('title');
+    if (!titleEl) return;
+
+    const varName = titleEl.textContent.trim();
+    if (!varName) return;
+
+    if (event.shiftKey) {
+      // Toggle variable in the focused set; never allow an empty set
+      if (focusedVariables.has(varName) && focusedVariables.size > 1) {
+        focusedVariables.delete(varName);
+      } else {
+        focusedVariables.add(varName);
+      }
+    } else {
+      // Single focus: clear set and focus only the clicked variable
+      focusedVariables.clear();
+      focusedVariables.add(varName);
+      // Sync the dropdown to the clicked variable when possible
+      if (ui.graphVariable.querySelector(`option[value="${varName}"]`)) {
+        ui.graphVariable.value = varName;
+      }
+    }
+
+    updateFocusedVariablesDisplay();
+    generateGraph();
+  });
+}
+
+
+/**
+ * Generate and display the dependency graph for the currently focused variable(s).
+ *
+ * Uses `focusedVariables` to determine which variables to render. When multiple
+ * variables are focused, builds the union graph via `getGraphOfRelationsMulti`.
+ * Updates the DOT source, attempts SVG rendering, and attaches node click handlers.
+ * Updates UI elements including download links, fit-to-screen, and error messages.
+ *
+ * @returns {Promise<void>}
  */
 async function generateGraph() {
   const modelEnv = getModelEnv();
@@ -255,22 +325,33 @@ async function generateGraph() {
   }
   
   const variable = ui.graphVariable.value;
-  if (!variable) {
+  if (!variable && focusedVariables.size === 0) {
     ui.graphDot.textContent = 'Please select a variable';
     ui.graphSvg.innerHTML = '';
     hideDownloadLinks();
     hideDotCopyLink();
     return;
   }
+
+  // Determine variables to render: use focusedVariables if populated, else dropdown selection
+  const varsToRender = focusedVariables.size > 0
+    ? Array.from(focusedVariables)
+    : [variable];
+
+  // Primary variable for DOT root highlight and filename
+  const primaryVariable = varsToRender[0];
   
   const depth = parseInt(ui.graphDepth.value, 10);
   
   try {
-    // Generate the graph relations
-    const graph = getGraphOfRelations(modelEnv.features, variable, depth);
+    // Generate the graph relations for all focused variables
+    const graph = varsToRender.length > 1
+      ? getGraphOfRelationsMulti(modelEnv.features, varsToRender, depth)
+      : getGraphOfRelations(modelEnv.features, primaryVariable, depth);
     
-    // Generate DOT format
-    const dotSource = generateDot(graph, variable);
+    // Generate DOT format, highlighting all focused variables
+    const focusedSet = focusedVariables.size > 0 ? new Set(focusedVariables) : null;
+    const dotSource = generateDot(graph, primaryVariable, focusedSet);
     ui.graphDot.textContent = dotSource;
     showDotCopyLink();
     
@@ -280,6 +361,8 @@ async function generateGraph() {
       ui.graphSvg.innerHTML = svg;
       // Apply fit-to-screen setting after rendering
       applyFitToScreen();
+      // Attach node click handlers for Shift+click multi-focus
+      attachNodeClickHandlers();
       // Show download links after successful render
       showDownloadLinks();
     } catch (svgError) {
@@ -304,12 +387,16 @@ export function wireGraphHandlers() {
   // Wire change events to automatically generate graph
   ui.graphVariable.addEventListener('change', () => {
     if (ui.graphVariable.value) {
+      // Selecting from the dropdown resets to single-variable focus
+      focusedVariables.clear();
+      focusedVariables.add(ui.graphVariable.value);
+      updateFocusedVariablesDisplay();
       generateGraph();
     }
   });
   
   ui.graphDepth.addEventListener('change', () => {
-    if (ui.graphVariable.value) {
+    if (ui.graphVariable.value || focusedVariables.size > 0) {
       generateGraph();
     }
   });
@@ -340,6 +427,8 @@ export function wireGraphHandlers() {
   // Listen for model load events to populate variables
   // We'll use a custom event or call this directly from modelApp
   window.addEventListener('modelLoaded', () => {
+    focusedVariables.clear();
+    updateFocusedVariablesDisplay();
     populateVariableDropdown();
     ui.graphDot.textContent = '';
     ui.graphSvg.innerHTML = '';
