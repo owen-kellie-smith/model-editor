@@ -24,4 +24,21 @@
 
   </functions>
 
+  <!-- Unit equivalence rules for dimensional consistency checking.
+       Format: 1 <unitA> = <factor> <unitB>
+       Declares that unitA and unitB are in the same dimension (e.g. both "time").
+       The numeric factor is informational only; only the unit names matter for
+       the consistency check.
+       Compound-unit rules (e.g. km/h = km / h) are not yet parsed automatically;
+       use dimension attributes on <unit> elements in the model for those. -->
+  <unitRules>
+    <rule>1 seconds = 1 s</rule>
+    <rule>1 minutes = 60 s</rule>
+    <rule>1 hours = 3600 s</rule>
+    <rule>1 days = 86400 s</rule>
+    <rule>1 weeks = 7 days</rule>
+    <rule>1 months = 30 days</rule>
+    <rule>1 years = 365.25 days</rule>
+  </unitRules>
+
 </language>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Model that adds two time variables (years + days).  Because language.xml
+     defines the rule "1 years = 365.25 days" (which chains years→days→s),
+     these units are dimensionally equivalent and the sum must be accepted. -->
+<model id="test-unit-equivalent">
+
+  <units>
+    <unit id="years"/>
+    <unit id="days"/>
+  </units>
+
+  <variables>
+
+    <variable id="age_years">
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="constant">30</definition>
+    </variable>
+
+    <variable id="extra_days">
+      <dataType>real</dataType>
+      <unit>days</unit>
+      <definition type="constant">120</definition>
+    </variable>
+
+    <!-- years + days — both time, should be accepted -->
+    <variable id="total_time">
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="expression">
+        age_years + extra_days
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>

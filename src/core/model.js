@@ -1,8 +1,237 @@
-import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
+import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML, removeStringLiterals } from "../utils/helpers.js";
 import { makeDependencyCollector } from "./dependencyCollector.js";
 import { log } from "../utils/logger.js"
 
-// returns xml, javascript object, model features
+// ---------------------------------------------------------------------------
+// Unit helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalises the raw value stored by the XML parser for a <unit> child element.
+ * The parser may produce a plain string, the number 1, or { "#text": "..." }.
+ * Returns the trimmed string, or "" if absent.
+ */
+export function getUnitValue(raw) {
+  if (raw === undefined || raw === null) return "";
+  if (typeof raw === "object" && raw["#text"] !== undefined) return String(raw["#text"]).trim();
+  return String(raw).trim();
+}
+
+// ---------------------------------------------------------------------------
+// Addend-splitting helpers (exported so they can be unit-tested directly)
+// ---------------------------------------------------------------------------
+
+/**
+ * Splits an expression string at top-level `+` and `-` operators (i.e. not
+ * inside parentheses or brackets).  Each returned term preserves its leading
+ * sign character so that `isPureVariableCall` can strip it.
+ *
+ * Examples:
+ *   "A + B"           → ["A", "+ B"]
+ *   "A - B(x, y)"     → ["A", "- B(x, y)"]
+ *   "(1 + r) ^ n"     → ["(1 + r) ^ n"]   ← the inner + is at depth 1
+ *   "-A + B"          → ["-A", "+ B"]
+ */
+export function splitTopLevelAddends(text) {
+  if (!text || typeof text !== "string") return [];
+  const terms = [];
+  let current = "";
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "(" || ch === "[") {
+      depth++;
+      current += ch;
+    } else if (ch === ")" || ch === "]") {
+      depth--;
+      current += ch;
+    } else if (depth === 0 && (ch === "+" || ch === "-")) {
+      if (current.trim() !== "") {
+        terms.push(current.trim());
+        current = ch;           // start next term with the sign
+      } else {
+        current += ch;          // unary: keep as prefix
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim() !== "") terms.push(current.trim());
+  return terms;
+}
+
+/**
+ * Returns true when `term` (a single addend, possibly with a leading +/-)
+ * is a pure variable call — i.e. just an identifier optionally followed by
+ * a parenthesised argument list, with no arithmetic operators at the top level.
+ *
+ * Rejects terms that contain  * / ^ ? : = < >  outside parentheses, which
+ * would indicate that the term is a sub-expression rather than a plain call.
+ */
+export function isPureVariableCall(term) {
+  if (!term || typeof term !== "string") return false;
+  // strip leading sign
+  const stripped = term.replace(/^[+-]\s*/, "").trim();
+  // must start with an identifier character
+  if (!/^[a-zA-Z_]/.test(stripped)) return false;
+  // must not contain arithmetic / comparison operators at top level
+  let depth = 0;
+  for (const ch of stripped) {
+    if (ch === "(" || ch === "[") { depth++; }
+    else if (ch === ")" || ch === "]") { depth--; }
+    else if (depth === 0 && /[*\/^?:=<>]/.test(ch)) return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Union-find for unit equivalences
+// ---------------------------------------------------------------------------
+
+function makeUnionFind() {
+  const parent = new Map();
+  function find(x) {
+    const key = x.toUpperCase();
+    if (!parent.has(key)) return key;
+    const root = find(parent.get(key));
+    parent.set(key, root);
+    return root;
+  }
+  function union(x, y) {
+    const rx = find(x);
+    const ry = find(y);
+    if (rx !== ry) parent.set(rx, ry);
+  }
+  function compatible(x, y) {
+    return find(x) === find(y);
+  }
+  return { find, union, compatible };
+}
+
+/**
+ * Builds a compatibility checker for units.
+ *
+ * Equivalences come from two sources:
+ *   1. `unitEquivalences` – array of [unitA, unitB] pairs from language.xml
+ *      `<unitRules>` (e.g. ["DAYS","S"], ["HOURS","S"]).
+ *   2. `dimension` attributes on <unit> elements in the model's <units>
+ *      section (e.g. `<unit id="years" dimension="time"/>`).
+ *
+ * @param {Map}   unitsMap        – symbols.units  (id.toUpperCase() → unit object)
+ * @param {Array} unitEquivalences – [[unitA, unitB], …] from language
+ * @returns {{ areCompatible(a:string, b:string): boolean }}
+ */
+export function buildUnitCompatibilityChecker(unitsMap, unitEquivalences) {
+  const uf = makeUnionFind();
+
+  // 1. Language-level equivalence rules
+  for (const [a, b] of (unitEquivalences ?? [])) {
+    uf.union(a, b);
+  }
+
+  // 2. Model-level dimension attributes: group all units sharing the same
+  //    dimension string.
+  const byDimension = new Map();
+  for (const [id, u] of unitsMap) {
+    const dim = u.dimension ?? u["dimension"];
+    if (dim && typeof dim === "string" && dim.trim()) {
+      const key = dim.trim().toUpperCase();
+      if (!byDimension.has(key)) byDimension.set(key, []);
+      byDimension.get(key).push(id);
+    }
+  }
+  for (const members of byDimension.values()) {
+    for (let i = 1; i < members.length; i++) {
+      uf.union(members[0], members[i]);
+    }
+  }
+
+  return {
+    areCompatible(a, b) {
+      if (!a || !b) return false;
+      return uf.compatible(a, b);
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Additive expression unit-consistency checker
+// ---------------------------------------------------------------------------
+
+/**
+ * Walks every `expression` and every piecewise `value` expression in the model
+ * and verifies that when two pure variable-call addends appear in a sum, their
+ * units are compatible (identical OR linked via equivalence rules).
+ *
+ * Only top-level `+` / `-` operators are inspected — additions buried inside
+ * function arguments (e.g. `max(a + b, 0)`) are at depth > 0 and are skipped.
+ *
+ * @param {Object} symbols         – from getMapsOfModelProperties
+ * @param {Array}  unitEquivalences – [[unitA, unitB], …] from language (may be empty/null)
+ */
+export function checkAdditionUnitConsistency(symbols, unitEquivalences) {
+  const checker = buildUnitCompatibilityChecker(symbols.units, unitEquivalences);
+
+  for (const [varName, v] of symbols.variables) {
+    const def = v.definition;
+    if (!def) continue;
+
+    const expressionTexts = [];
+
+    if (def.type === "expression") {
+      const t = def["#text"];
+      if (t) expressionTexts.push(t);
+    } else if (def.type === "piecewise") {
+      for (const c of asArray(def.case)) {
+        // check the value branch; skip the when-condition (boolean, not numeric)
+        const valueNode = c.value;
+        if (!valueNode) continue;
+        const t = typeof valueNode === "string"
+          ? valueNode
+          : valueNode["#text"];
+        if (t) expressionTexts.push(t);
+      }
+    }
+
+    for (const rawText of expressionTexts) {
+      const text = removeStringLiterals(rawText);
+      const addends = splitTopLevelAddends(text);
+      if (addends.length < 2) continue;
+
+      // Collect the (name, unit) for every pure-variable-call addend
+      const varAddends = [];
+      for (const term of addends) {
+        if (!isPureVariableCall(term)) continue;
+        const nameMatch = term.match(/[a-zA-Z_][a-zA-Z0-9_]*/);
+        if (!nameMatch) continue;
+        const refName = nameMatch[0].toUpperCase();
+        if (!symbols.variables.has(refName)) continue;   // index-set ref, etc.
+        const refVar = symbols.variables.get(refName);
+        const unit = getUnitValue(refVar.unit);
+        if (unit) varAddends.push({ refName, unit });
+      }
+
+      if (varAddends.length < 2) continue;
+
+      // All pure-variable-call addends must be mutually compatible
+      const { refName: firstName, unit: firstUnit } = varAddends[0];
+      for (const { refName: otherName, unit: otherUnit } of varAddends.slice(1)) {
+        if (!checker.areCompatible(firstUnit, otherUnit)) {
+          throwModelError(
+            "Unit mismatch in addition: cannot add expressions with incompatible units",
+            {
+              variable: varName,
+              term1: firstName, unit1: firstUnit,
+              term2: otherName, unit2: otherUnit,
+            }
+          );
+        }
+      }
+    }
+  }
+}
+
+
 export function validateModelCore(text, filename, lang, options = {}) {
   const xml = parseXmlOrThrow(text, filename);
   const obj = getObjectFromXML(xml);
@@ -79,13 +308,7 @@ export function getMapsOfModelProperties(xml, options = {}) {
       // v.unit may be a plain string, a number (e.g. 1 from <unit>1</unit>),
       // or an object { "#text": "..." } as produced by the XML parser for text-only elements.
       for (const [, v] of variables) {
-        const raw = v.unit;
-        const unitValue =
-          raw === undefined || raw === null
-            ? ""
-            : typeof raw === "object" && raw["#text"] !== undefined
-            ? String(raw["#text"]).trim()
-            : String(raw).trim();
+        const unitValue = getUnitValue(v.unit);
 
         if (!unitValue) {
           throwModelError("Variable is missing a unit; use '1' for dimensionless", { variable: v.id });
@@ -259,6 +482,9 @@ export  function getModelFeatures(xmlModel, lang, options = {}) {
     const outgoing = getOutgoing(incoming, resolvedVarsWithArguments);
   log("debug","outgoing:", outgoing);
     throwErrorForCircularExpressions(incoming);
+    if (!options.ignoreUnits) {
+      checkAdditionUnitConsistency(symbols, lang?.unitEquivalences ?? []);
+    }
     return {
       indexSets: [...symbols.indexSets.keys()],   // an array containing all the keys from the indexSets map
       variables: [...symbols.variables.keys()],    // an array containing all the keys from the variables map
