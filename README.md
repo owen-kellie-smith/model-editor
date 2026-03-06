@@ -45,7 +45,7 @@ Install dependencies and run the command-line tool directly:
 ```bash
 npm install
 node ./src/cli/index.js validate docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
-node ./src/cli/index.js graph docs/examples/restaurant-model/model.xml --language docs/examples/language.xml --root PROFIT --depth 2
+node ./src/cli/index.js graph docs/examples/restaurant-model/model.xml --language docs/examples/language.xml --root MONTHLY_NET_PROFIT --depth 2
 ```
 
 Or register the local executable and use the `model-editor` command:
