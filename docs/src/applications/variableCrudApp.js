@@ -8,7 +8,8 @@ import {
   listVariables,
   createVariable,
   updateVariable,
-  deleteVariable
+  deleteVariable,
+  renameVariable
 } from "../domain/variableCrud.js";
 import { serializeModel, serializeVariable, parseVariableXml } from "../domain/serialize.js";
 import { saveSession } from "../utils/persistence.js";
@@ -387,16 +388,55 @@ function handleSaveVariable() {
         return;
       }
     } else {
-      try {
-        result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
-        alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
-      } catch (updateError) {
-        const errorMsg = formatErrorMessage(updateError);
-        alert(
-          `Failed to update variable "${currentSelectedVariableId}":\n\n${errorMsg}\n\nPlease fix the issue and try again.`
+      const idChanged = variableData.id.toUpperCase() !== currentSelectedVariableId.toUpperCase();
+
+      if (idChanged) {
+        const confirmed = confirm(
+          `Do you want to rename "${currentSelectedVariableId}" to "${variableData.id}" everywhere?`
         );
-        console.error("Update variable error:", updateError);
-        return;
+        if (!confirmed) {
+          alert("Rename cancelled. No changes were saved.");
+          return;
+        }
+
+        // Step 1: rename the variable and propagate all references
+        let renamedResult;
+        try {
+          renamedResult = renameVariable(modelEnv.obj, currentSelectedVariableId, variableData.id, lang);
+        } catch (renameError) {
+          const errorMsg = formatErrorMessage(renameError);
+          alert(
+            `Failed to rename variable "${currentSelectedVariableId}" to "${variableData.id}":\n\n${errorMsg}\n\nPlease fix the issue and try again.`
+          );
+          console.error("Rename variable error:", renameError);
+          return;
+        }
+
+        // Step 2: apply any other changes (definition, dataType, unit, arguments) to the renamed variable
+        try {
+          result = updateVariable(renamedResult.obj, variableData.id, variableData, lang);
+        } catch (updateError) {
+          const errorMsg = formatErrorMessage(updateError);
+          alert(
+            `Failed to update variable "${variableData.id}" after rename:\n\n${errorMsg}\n\nPlease fix the issue and try again.`
+          );
+          console.error("Update variable error:", updateError);
+          return;
+        }
+
+        alert(`Variable "${currentSelectedVariableId}" renamed to "${variableData.id}" and updated successfully.`);
+      } else {
+        try {
+          result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
+          alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
+        } catch (updateError) {
+          const errorMsg = formatErrorMessage(updateError);
+          alert(
+            `Failed to update variable "${currentSelectedVariableId}":\n\n${errorMsg}\n\nPlease fix the issue and try again.`
+          );
+          console.error("Update variable error:", updateError);
+          return;
+        }
       }
     }
 

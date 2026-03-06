@@ -12,7 +12,8 @@ import {
   deleteVariable,
   validateVariableId,
   listVariables,
-  copyVariable
+  copyVariable,
+  renameVariable
 } from "@/domain/variableCrud.js";
 
 describe("Variable CRUD Operations", () => {
@@ -792,6 +793,96 @@ describe("Variable CRUD Operations", () => {
       const sourceId = varWithDataType.id.toLowerCase();
       const result = copyVariable(baseModel, sourceId, sourceId + "_copy", lang);
       expect(result.features.variables).toContain((sourceId + "_copy").toUpperCase());
+    });
+  });
+
+  describe("renameVariable", () => {
+    it("renames a variable and updates its own ID", () => {
+      const result = renameVariable(baseModel, "step_length", "step_size", lang);
+      expect(result).toBeDefined();
+      expect(result.features.variables).toContain("STEP_SIZE");
+      expect(result.features.variables).not.toContain("STEP_LENGTH");
+    });
+
+    it("propagates the new ID into expression definitions of other variables", () => {
+      const result = renameVariable(baseModel, "step_length", "step_size", lang);
+      // cashflow references step_length in its expression
+      const cashflow = readVariable(result.obj, "cashflow");
+      expect(cashflow.definition["#text"]).toContain("step_size");
+      expect(cashflow.definition["#text"]).not.toMatch(/\bstep_length\b/i);
+    });
+
+    it("propagates the new ID into piecewise definitions", () => {
+      // survival_to_start_of_step is a piecewise variable that references itself
+      const result = renameVariable(baseModel, "survival_to_start_of_step", "survival_rate", lang);
+      const renamed = readVariable(result.obj, "survival_rate");
+      expect(renamed).toBeDefined();
+      // The piecewise case value references survival_to_start_of_step recursively
+      const cases = Array.isArray(renamed.definition.case)
+        ? renamed.definition.case
+        : [renamed.definition.case];
+      // case.when / case.value may be plain strings or { "#text": "..." } objects
+      function toText(node) {
+        if (typeof node === "string") return node;
+        if (node && typeof node === "object") return node["#text"] ?? "";
+        return "";
+      }
+      const allText = cases.map(c => `${toText(c.when)} ${toText(c.value)}`).join(" ");
+      expect(allText).toContain("survival_rate");
+      expect(allText).not.toMatch(/\bsurvival_to_start_of_step\b/i);
+    });
+
+    it("propagates the new ID into tableLookup row and columnSelector refs", () => {
+      const result = renameVariable(baseModel, "attained_age_years_floor", "age_floor", lang);
+      // annual_mortality_rate uses attained_age_years_floor as a tableLookup row ref
+      const mortRate = readVariable(result.obj, "annual_mortality_rate");
+      expect(mortRate.definition.row.ref).toBe("age_floor");
+    });
+
+    it("does not affect table column names (only variable references)", () => {
+      // annual_annuity_amount is both a variable and a table column name;
+      // renaming the variable should NOT rename the table column definition
+      const result = renameVariable(baseModel, "annual_annuity_amount", "annuity_amount", lang);
+      // The renamed variable should exist under the new ID
+      const renamed = readVariable(result.obj, "annuity_amount");
+      expect(renamed).toBeDefined();
+      // The underlying table definition still references the original column name
+      expect(renamed.definition.column.ref).toBe("annual_annuity_amount");
+    });
+
+    it("throws when the old variable does not exist", () => {
+      expect(() => {
+        renameVariable(baseModel, "nonexistent_var", "new_id", lang);
+      }).toThrow(/not found/i);
+    });
+
+    it("throws when the new ID already exists", () => {
+      expect(() => {
+        renameVariable(baseModel, "step_length", "cashflow", lang);
+      }).toThrow(/already exists/i);
+    });
+
+    it("throws when the new ID is invalid", () => {
+      expect(() => {
+        renameVariable(baseModel, "step_length", "123invalid", lang);
+      }).toThrow(/invalid|must start with letter/i);
+    });
+
+    it("produces a model that re-validates without errors", () => {
+      const result = renameVariable(baseModel, "step_length", "step_size", lang);
+      const serialized = serializeModel(result.obj);
+      expect(() => {
+        validateModelCore(serialized, "test.xml", lang);
+      }).not.toThrow();
+    });
+
+    it("does not partially rename longer IDs sharing a prefix", () => {
+      // attained_age_years_floor and attained_age share the prefix 'attained_age'
+      // renaming 'attained_age' should NOT touch 'attained_age_years_floor'
+      const result = renameVariable(baseModel, "attained_age", "reached_age", lang);
+      // attained_age_years_floor should still exist with the original ID
+      const floor = readVariable(result.obj, "attained_age_years_floor");
+      expect(floor).toBeDefined();
     });
   });
 
