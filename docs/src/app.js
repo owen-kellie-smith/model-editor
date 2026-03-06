@@ -1,9 +1,11 @@
-import { wireLanguageHandlers } from "./applications/languageApp.js";
-import { wireModelHandlers } from "./applications/modelApp.js";
-import { wireGraphHandlers } from "./applications/graphApp.js";
-import { wireVariableCrudHandlers } from "./applications/variableCrudApp.js";
+import { wireLanguageHandlers, restoreLanguageFromSession } from "./applications/languageApp.js";
+import { wireModelHandlers, restoreModelFromSession } from "./applications/modelApp.js";
+import { wireGraphHandlers, restoreGraphFromSession } from "./applications/graphApp.js";
+import { wireVariableCrudHandlers, restoreVariableCrudFromSession } from "./applications/variableCrudApp.js";
 import { wireExampleHandlers } from "./applications/exampleApp.js";
 import { logLogLevel } from "./utils/logger.js";
+import { loadSession } from "./utils/persistence.js";
+import { getLanguageEnv } from "./applications/languageApp.js";
 
 /**
  * Formats error information for display to the user
@@ -92,4 +94,16 @@ wireGraphHandlers();
 wireVariableCrudHandlers();
 wireExampleHandlers();
 logLogLevel();
+
+// Restore any previously saved session so users don't lose work after a
+// browser crash or accidental tab close.
+const session = loadSession();
+restoreLanguageFromSession(session);
+if (getLanguageEnv()) {
+  restoreModelFromSession(session);
+  // After model load the modelLoaded event has already fired and the
+  // dropdowns have been populated, so we can safely restore selections.
+  restoreGraphFromSession(session);
+  restoreVariableCrudFromSession(session);
+}
 

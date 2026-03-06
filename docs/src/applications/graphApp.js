@@ -2,6 +2,7 @@ import { ui } from "../ui.js";
 import { getModelEnv } from "./modelApp.js";
 import { getGraphOfRelations, getGraphOfRelationsMulti } from "../domain/graphRelations.js";
 import { generateDot } from "../domain/graphviz.js";
+import { saveSession } from "../utils/persistence.js";
 
 /**
  * Set of currently focused variable names for multi-variable graph display.
@@ -260,6 +261,7 @@ function updateFocusedVariablesDisplay() {
     const vars = Array.from(focusedVariables).join(', ');
     ui.graphFocusedList.textContent = `Focused: ${vars}`;
   }
+  saveSession({ focusedVariables: Array.from(focusedVariables) });
 }
 
 /**
@@ -391,21 +393,27 @@ export function wireGraphHandlers() {
       focusedVariables.clear();
       focusedVariables.add(ui.graphVariable.value);
       updateFocusedVariablesDisplay();
+      saveSession({ graphVariable: ui.graphVariable.value });
       generateGraph();
     }
   });
   
   ui.graphDepth.addEventListener('change', () => {
+    saveSession({ graphDepth: ui.graphDepth.value });
     if (ui.graphVariable.value || focusedVariables.size > 0) {
       generateGraph();
     }
   });
   
   // Add event listener for fit-to-screen checkbox
-  ui.graphFitToScreen.addEventListener('change', applyFitToScreen);
+  ui.graphFitToScreen.addEventListener('change', () => {
+    saveSession({ graphFitToScreen: ui.graphFitToScreen.checked });
+    applyFitToScreen();
+  });
   
   // Add event listener for sort alphabetically checkbox
   ui.graphSortAlphabetically.addEventListener('change', () => {
+    saveSession({ graphSortAlphabetically: ui.graphSortAlphabetically.checked });
     populateVariableDropdown();
   });
   
@@ -436,3 +444,52 @@ export function wireGraphHandlers() {
     hideDotCopyLink();
   });
 }
+
+/**
+ * Restore graph UI settings and focused variables from a persisted session.
+ * Must be called AFTER the model has been loaded (so the variable dropdown
+ * is already populated).
+ *
+ * @param {Object} session - Session object returned by loadSession()
+ */
+export function restoreGraphFromSession(session) {
+  // Restore simple UI settings
+  if (session.graphFitToScreen !== undefined) {
+    ui.graphFitToScreen.checked = session.graphFitToScreen;
+    applyFitToScreen();
+  }
+  if (session.graphSortAlphabetically !== undefined) {
+    ui.graphSortAlphabetically.checked = session.graphSortAlphabetically;
+    populateVariableDropdown();
+  }
+  if (session.graphDepth !== undefined) {
+    ui.graphDepth.value = session.graphDepth;
+  }
+
+  // Restore focused variables set
+  const storedVars = Array.isArray(session.focusedVariables) ? session.focusedVariables : [];
+  const primaryVar = session.graphVariable || storedVars[0];
+
+  if (!primaryVar) return;
+
+  // Check that at least the primary variable exists in the dropdown
+  const primaryVarOption = ui.graphVariable.querySelector(`option[value="${CSS.escape(primaryVar)}"]`);
+  if (!primaryVarOption) return;
+
+  // Restore focusedVariables set
+  focusedVariables.clear();
+  const validVars = storedVars.filter(v =>
+    ui.graphVariable.querySelector(`option[value="${CSS.escape(v)}"]`)
+  );
+  if (validVars.length > 0) {
+    validVars.forEach(v => focusedVariables.add(v));
+  } else {
+    focusedVariables.add(primaryVar);
+  }
+
+  // Sync dropdown to primary variable
+  ui.graphVariable.value = primaryVar;
+  updateFocusedVariablesDisplay();
+  generateGraph();
+}
+
