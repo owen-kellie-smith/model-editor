@@ -118,6 +118,14 @@ describe('persistence', () => {
         sortVariablesAlpha: true,
         currentSelectedVariableId: 'MY_VAR',
         focusedVariables: ['MY_VAR', 'OTHER_VAR'],
+        detailsOpen: {
+          languageDetails: true,
+          modelDetails: false,
+          spreadsheetPreviewDetails: false,
+          variablesDetails: true,
+          dependenciesDetails: false,
+          reportDetails: false,
+        },
       };
 
       // Save in two separate calls to test merging
@@ -131,6 +139,7 @@ describe('persistence', () => {
         sortVariablesAlpha: fullSession.sortVariablesAlpha,
         currentSelectedVariableId: fullSession.currentSelectedVariableId,
         focusedVariables: fullSession.focusedVariables,
+        detailsOpen: fullSession.detailsOpen,
       });
 
       expect(loadSession()).toEqual(fullSession);

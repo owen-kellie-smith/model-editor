@@ -14,7 +14,7 @@
 <body>
   <div class="editor-container">
     <div class="editor">
-     <details open>
+     <details id="languageDetails" open>
       <summary>Language</summary>
       <div id="languageLoadedInfo" class="loaded-info">
         <span id="languageLoaded">
@@ -37,7 +37,7 @@
     </div>
 
     <div class="editor">
-     <details>
+     <details id="modelDetails">
       <summary>Model</summary>
       <div id="modelLoadedInfo" class="loaded-info">
         <span id="modelLoaded">
@@ -68,7 +68,7 @@
       </details>
     </div>
     <div class="editor">
-      <details>
+      <details id="variablesDetails">
         <summary>Variables</summary>
         <div class="variable-selector">
           <label for="variableDropdown">Select Variable:</label>
@@ -106,7 +106,7 @@
       </details>
     </div>
     <div class="editor">
-      <details>
+      <details id="dependenciesDetails">
         <summary>Dependencies</summary>
         <div class="graph-controls">
           <label for="graphVariable">Variable:</label>
@@ -146,7 +146,7 @@
     </div>
 
     <div class="editor">
-      <details>
+      <details id="reportDetails">
         <summary>Report</summary>
         <div id="log"></div>
       </details>

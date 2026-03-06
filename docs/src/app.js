@@ -4,7 +4,7 @@ import { wireGraphHandlers, restoreGraphFromSession } from "./applications/graph
 import { wireVariableCrudHandlers, restoreVariableCrudFromSession } from "./applications/variableCrudApp.js";
 import { wireExampleHandlers } from "./applications/exampleApp.js";
 import { logLogLevel } from "./utils/logger.js";
-import { loadSession } from "./utils/persistence.js";
+import { loadSession, saveSession } from "./utils/persistence.js";
 import { getLanguageEnv } from "./applications/languageApp.js";
 
 /**
@@ -100,8 +100,35 @@ wireVariableCrudHandlers();
 wireExampleHandlers();
 logLogLevel();
 
+// Persist the open/closed state of every <details> element that has an id.
+// The toggle event fires after the element's open attribute changes.
+function saveDetailsState() {
+  const detailsOpen = {};
+  document.querySelectorAll('details[id]').forEach((el) => {
+    detailsOpen[el.id] = el.open;
+  });
+  saveSession({ detailsOpen });
+}
+
+document.querySelectorAll('details[id]').forEach((el) => {
+  el.addEventListener('toggle', saveDetailsState);
+});
+
+// Restore the open/closed state of <details> panels from a previous session.
+function restoreDetailsFromSession(storedSession) {
+  const detailsOpen = storedSession.detailsOpen;
+  if (!detailsOpen || typeof detailsOpen !== 'object') return;
+  Object.entries(detailsOpen).forEach(([id, isOpen]) => {
+    const el = document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') {
+      el.open = isOpen;
+    }
+  });
+}
+
 // Restore any previously saved session so users don't lose work after a
 // browser crash or accidental tab close.
+restoreDetailsFromSession(session);
 restoreLanguageFromSession(session);
 if (getLanguageEnv()) {
   restoreModelFromSession(session);
