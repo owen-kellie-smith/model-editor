@@ -421,7 +421,7 @@ function handleSaveVariable() {
       } else {
         try {
           result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
-          alert(`Variable "${savedId}" updated successfully.`);
+          alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
         } catch (updateError) {
           const errorMsg = formatErrorMessage(updateError);
           alert(
