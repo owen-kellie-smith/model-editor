@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'fs'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.js'
-import { getFunctionsFromLanguage } from '@/domain/language.js'
-import { validateModelCore } from '@/domain/model.js'
+import { getFunctionsFromLanguage } from '@/core/language.js'
+import { validateModelCore } from '@/core/model.js'
 
 describe('New Example Models', () => {
   let languageObj

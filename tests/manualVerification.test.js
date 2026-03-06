@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest'
-import { validateModelCore } from '@/domain/model.js'
-import { getFunctionsFromLanguage } from '@/domain/language.js'
+import { validateModelCore } from '@/core/model.js'
+import { getFunctionsFromLanguage } from '@/core/language.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 import fs from 'fs'

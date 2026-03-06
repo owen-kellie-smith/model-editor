@@ -3,11 +3,11 @@ import fs from "fs";
 import { loadXml, loadXmlFromText } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { getObjectFromXML } from "@/utils/helpers.js";
-import { serializeLanguage  } from "@/domain/serialize.js";
+import { serializeLanguage  } from "@/core/serialize.js";
 import path from "path";
 
 
-import { getFunctionsFromLanguage } from "../docs/src/domain/language.js";
+import { getFunctionsFromLanguage } from "../src/core/language.js";
 
 
 describe("language loading", () => {

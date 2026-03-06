@@ -30,7 +30,7 @@ describe('graphApp', () => {
         dispatchEvent: vi.fn(),
       }
 
-      const { wireGraphHandlers } = await import('../docs/src/applications/graphApp.js')
+      const { wireGraphHandlers } = await import('../src/browser/applications/graphApp.js')
       wireGraphHandlers()
 
       // Confirm initially visible before the event fires

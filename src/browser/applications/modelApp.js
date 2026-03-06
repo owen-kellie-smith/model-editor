@@ -1,13 +1,13 @@
 import { ui } from "../ui.js";
-import { formatError, formatErrorNoStack, formatModelResult } from "../format/formatters.js";
+import { formatError, formatErrorNoStack, formatModelResult } from "../../utils/formatters.js";
 import { getLanguageEnv } from "./languageApp.js";
-import { validateModelCore } from "../domain/model.js";
-import { exportFile } from "../utils/export.js";
-import { serializeModel } from "../domain/serialize.js";
-import { renderModelAsExcel, renderModelAsHTMLPreview, makeRenderContext } from "../domain/spreadsheetRenderer.js";
-import { renderModelAsPython } from "../domain/pythonRenderer.js";
-import { setElementContent, sanitizeFilename } from "../utils/helpers.js";
-import { saveSession } from "../utils/persistence.js";
+import { validateModelCore } from "../../core/model.js";
+import { exportFile } from "../../utils/export.js";
+import { serializeModel } from "../../core/serialize.js";
+import { renderModelAsExcel, renderModelAsHTMLPreview, makeRenderContext } from "../../core/spreadsheetRenderer.js";
+import { renderModelAsPython } from "../../core/pythonRenderer.js";
+import { setElementContent, sanitizeFilename } from "../../utils/helpers.js";
+import { saveSession } from "../../utils/persistence.js";
 
 
 let modelEnv = null;

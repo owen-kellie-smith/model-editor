@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { serializeDefinition, parseDefinitionXml } from "@/domain/serialize.js";
+import { serializeDefinition, parseDefinitionXml } from "@/core/serialize.js";
 
 describe("serializeDefinition", () => {
   it("should serialize a simple expression definition", () => {
