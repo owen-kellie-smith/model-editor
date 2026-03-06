@@ -132,68 +132,55 @@ describe('runExportSpreadsheet', () => {
     expect(usage).toContain('--language')
   })
 
-  it('throws when model path is missing', () => {
+  it('throws when model path is missing', async () => {
     const args = { positional: [], options: { language: LANGUAGE_PATH } }
-    expect(() => runExportSpreadsheet(args)).toThrow(/export-spreadsheet/)
+    await expect(runExportSpreadsheet(args)).rejects.toThrow(/export-spreadsheet/)
   })
 
-  it('throws when language path is missing', () => {
+  it('throws when language path is missing', async () => {
     const args = { positional: [MODEL_PATH], options: {} }
-    expect(() => runExportSpreadsheet(args)).toThrow(/export-spreadsheet/)
+    await expect(runExportSpreadsheet(args)).rejects.toThrow(/export-spreadsheet/)
   })
 
-  it('throws when language flag is present but has no value', () => {
+  it('throws when language flag is present but has no value', async () => {
     const args = { positional: [MODEL_PATH], options: { language: true } }
-    expect(() => runExportSpreadsheet(args)).toThrow(/export-spreadsheet/)
+    await expect(runExportSpreadsheet(args)).rejects.toThrow(/export-spreadsheet/)
   })
 
-  it('writes a CSV file to the specified --out path', () => {
-    const outPath = tmpOut('restaurant.csv')
+  it('writes an xlsx file to the specified --out path', async () => {
+    const outPath = tmpOut('restaurant.xlsx')
     const args = {
       positional: [MODEL_PATH],
       options: { language: LANGUAGE_PATH, out: outPath },
     }
-    const result = runExportSpreadsheet(args)
+    const result = await runExportSpreadsheet(args)
     expect(result.outPath).toBe(outPath)
     expect(fs.existsSync(outPath)).toBe(true)
   })
 
-  it('written CSV contains expected section headers', () => {
-    const outPath = tmpOut('restaurant_sections.csv')
-    runExportSpreadsheet({
+  it('written xlsx file is a non-empty binary file', async () => {
+    const outPath = tmpOut('restaurant_binary.xlsx')
+    await runExportSpreadsheet({
       positional: [MODEL_PATH],
       options: { language: LANGUAGE_PATH, out: outPath },
     })
-    const content = fs.readFileSync(outPath, 'utf-8')
-    expect(content).toContain('# sheet: calc_cohort_step')
-    expect(content).toContain('# sheet: input_config')
+    const stat = fs.statSync(outPath)
+    expect(stat.size).toBeGreaterThan(0)
   })
 
-  it('written CSV has comma-separated rows', () => {
-    const outPath = tmpOut('restaurant_rows.csv')
-    runExportSpreadsheet({
-      positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
-    })
-    const content = fs.readFileSync(outPath, 'utf-8')
-    const dataLines = content.split('\n').filter(l => l && !l.startsWith('#') && l.trim() !== '')
-    expect(dataLines.length).toBeGreaterThan(0)
-    expect(dataLines[0]).toContain(',')
-  })
-
-  it('default --out produces model_spreadsheet.csv filename in result', () => {
+  it('default --out produces model_spreadsheet.xlsx filename in result', async () => {
     // We pass a custom --out to avoid writing to cwd, but verify default name logic
-    const outPath = tmpOut('model_spreadsheet.csv')
-    const result = runExportSpreadsheet({
+    const outPath = tmpOut('model_spreadsheet.xlsx')
+    const result = await runExportSpreadsheet({
       positional: [MODEL_PATH],
       options: { language: LANGUAGE_PATH, out: outPath },
     })
-    expect(path.basename(result.outPath)).toBe('model_spreadsheet.csv')
+    expect(path.basename(result.outPath)).toBe('model_spreadsheet.xlsx')
   })
 
-  it('returns outPath in result object', () => {
-    const outPath = tmpOut('result_test.csv')
-    const result = runExportSpreadsheet({
+  it('returns outPath in result object', async () => {
+    const outPath = tmpOut('result_test.xlsx')
+    const result = await runExportSpreadsheet({
       positional: [MODEL_PATH],
       options: { language: LANGUAGE_PATH, out: outPath },
     })
@@ -201,23 +188,23 @@ describe('runExportSpreadsheet', () => {
     expect(result.outPath).toBe(outPath)
   })
 
-  it('throws on invalid model XML', () => {
+  it('throws on invalid model XML', async () => {
     const circularModelPath = getFixture('modelCircular.xml')
-    expect(() =>
+    await expect(
       runExportSpreadsheet({
         positional: [circularModelPath],
-        options: { language: LANGUAGE_PATH, out: tmpOut('ignored.csv') },
+        options: { language: LANGUAGE_PATH, out: tmpOut('ignored.xlsx') },
       })
-    ).toThrow()
+    ).rejects.toThrow()
   })
 
-  it('throws on invalid language XML', () => {
+  it('throws on invalid language XML', async () => {
     const badLangPath = getFixture('languageNoName.xml')
-    expect(() =>
+    await expect(
       runExportSpreadsheet({
         positional: [MODEL_PATH],
-        options: { language: badLangPath, out: tmpOut('ignored2.csv') },
+        options: { language: badLangPath, out: tmpOut('ignored2.xlsx') },
       })
-    ).toThrow()
+    ).rejects.toThrow()
   })
 })

@@ -38,7 +38,13 @@ if (!handler) {
 }
 
 try {
-  handler(parseCliArgs(rest));
+  const result = handler(parseCliArgs(rest));
+  if (result && typeof result.then === 'function') {
+    result.catch(error => {
+      console.error(error.message || String(error));
+      process.exit(1);
+    });
+  }
 } catch (error) {
   console.error(error.message || String(error));
   process.exit(1);

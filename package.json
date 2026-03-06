@@ -4,7 +4,7 @@
   "description": "A single web page for parsing, validating, and representing declarative models stored in XML.",
   "main": "src/cli/index.js",
   "bin": {
-    "model-editor": "src/cli/index.js"
+    "model-editor": "./src/cli/index.js"
   },
   "directories": {
     "doc": "docs",
@@ -31,14 +31,12 @@
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.8.11",
+    "exceljs": "^4.4.0",
     "xpath": "^0.0.34"
   },
   "type": "module",
   "scripts": {
     "test": "vitest run",
     "cli": "node ./src/cli/index.js"
-  },
-  "bin": {
-    "model-editor": "./src/cli/index.js"
   }
 }
