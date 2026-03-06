@@ -3,9 +3,6 @@ import { ui } from "../ui.js";
 import { commitOrRejectLanguage, getLanguageEnv } from "./languageApp.js";
 import { loadModelFromText } from "./modelApp.js";
 
-function toFetchPath(path) {
-  return path.replace(/^docs\//, "");
-}
 let availableLanguage = [];
 let availableModel = [];
 
@@ -43,7 +40,7 @@ export async function refreshExampleVisibility(){
 
 async function isAvailable(path) {
   try {
-    const res = await fetch(toFetchPath(path), { method: "HEAD" });
+    const res = await fetch(path, { method: "HEAD" });
     return res.ok;
   } catch {
     return false;
@@ -70,7 +67,7 @@ export async function wireExampleHandlers() {
     languageIndex = (languageIndex + 1) % availableLanguage.length;
     const file = availableLanguage[languageIndex];
     try {
-      const res = await fetch(toFetchPath(file.path));
+      const res = await fetch(file.path);
       if (!res.ok) throw new Error(`Failed to load ${file.path}: ${res.status}`);
       const text = await res.text();
       ui.languageText.value = text;
@@ -91,7 +88,7 @@ export async function wireExampleHandlers() {
     modelIndex = (modelIndex + 1) % availableModel.length;
     const file = availableModel[modelIndex];
     try {
-      const res = await fetch(toFetchPath(file.path));
+      const res = await fetch(file.path);
       if (!res.ok) throw new Error(`Failed to load ${file.path}: ${res.status}`);
       const text = await res.text();
       loadModelFromText(text, file.path.split("/").pop());

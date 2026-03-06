@@ -1,15 +1,16 @@
-import { DOMParser as DOMParserImpl } from "@xmldom/xmldom"
-
-const isNativeDOMParser = typeof globalThis.DOMParser !== "undefined";
-const DOMParserToUse = globalThis.DOMParser ?? DOMParserImpl
-
 export function createDOMParser() {
-  const parser = new DOMParserToUse();
+  if (typeof globalThis.DOMParser === "undefined") {
+    throw new Error(
+      "DOMParser is not available. In Node.js/CLI environments, ensure @xmldom/xmldom " +
+      "is set up on globalThis before calling this function."
+    );
+  }
 
-  if (isNativeDOMParser) return parser;
+  const parser = new globalThis.DOMParser();
 
-  // Shim querySelectorAll for xmldom documents (used in Node.js / CLI).
-  // Supports simple patterns like "A", "A > B", "A B" (descendant).
+  // Shim querySelectorAll for environments where parsed documents lack it
+  // (e.g. xmldom in Node.js / CLI). Supports simple patterns like "A",
+  // "A > B" (direct child), and "A B" (descendant).
   const originalParseFromString = parser.parseFromString.bind(parser);
   parser.parseFromString = (text, mimeType) => {
     const doc = originalParseFromString(text, mimeType);
