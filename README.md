@@ -73,14 +73,14 @@ model-editor export-python <model.xml> --language <language.xml> [--out <file.py
 
 #### `export-spreadsheet`
 
-Exports the model as a CSV file using the same spreadsheet evaluation logic as the browser's **Export Spreadsheet** preview.
+Exports the model as an Excel (`.xlsx`) workbook using the exact same `renderModelAsExcel` function as the browser's **Export Spreadsheet** button, ensuring identical output between CLI and browser.
 
 ```
-model-editor export-spreadsheet <model.xml> --language <language.xml> [--out <file.csv>]
+model-editor export-spreadsheet <model.xml> --language <language.xml> [--out <file.xlsx>]
 ```
 
-- Output filename: `model_spreadsheet.csv` by default, matching the browser export convention.
-- The CSV contains multiple sections (one per sheet), each prefixed with a `# sheet: <name>` comment line.
+- Output filename: `model_spreadsheet.xlsx` by default, matching the browser export.
+- The workbook contains multiple sheets (constants, input config, calculation sheets, etc.) with Excel formulas and sample data.
 - Use `--out` to specify a custom output path.
 
 Both commands validate the input model and language files before exporting and report a clear error message if the files are missing or invalid.
