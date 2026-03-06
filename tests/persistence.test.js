@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { saveSession, loadSession, clearSession } from '../docs/src/utils/persistence.js';
+import { saveSession, loadSession, clearSession } from '../src/utils/persistence.js';
 
 // Provide a simple in-memory localStorage mock for the test environment.
 function makeLocalStorageMock() {

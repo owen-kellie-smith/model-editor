@@ -1,6 +1,6 @@
 
 import { test, expect } from "vitest";
-import { autoFitColumns } from "../docs/src/domain/spreadsheetRenderer.js";
+import { autoFitColumns } from "../src/core/spreadsheetRenderer.js";
 
 test("autoFitColumns sets width based on longest cell value, incl richText", () => {
   // Minimal fake column that matches what autoFitColumns uses

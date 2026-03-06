@@ -2,12 +2,12 @@
 import { describe, test, expect, beforeAll } from "vitest";
 
 // ✅ mock the dependency so we control the parsed XML document
-import { parseXmlOrThrow } from "../docs/src/utils/helpers.js";
-import { serializeVariable, parseVariableXml } from "../docs/src/domain/serialize.js";
+import { parseXmlOrThrow } from "../src/utils/helpers.js";
+import { serializeVariable, parseVariableXml } from "../src/core/serialize.js";
 
 import { vi } from "vitest";
 
-vi.mock("../docs/src/utils/helpers.js", () => ({
+vi.mock("../src/utils/helpers.js", () => ({
   parseXmlOrThrow: vi.fn(),
 }));
 

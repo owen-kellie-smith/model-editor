@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { validateModelCore } from '@/domain/model.js'
-import { renderModelAsPython } from '@/domain/pythonRenderer.js'
-import { getFunctionsFromLanguage } from '@/domain/language.js'
+import { validateModelCore } from '@/core/model.js'
+import { renderModelAsPython } from '@/core/pythonRenderer.js'
+import { getFunctionsFromLanguage } from '@/core/language.js'
 import { loadXml, loadXmlFromText } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.js'
 

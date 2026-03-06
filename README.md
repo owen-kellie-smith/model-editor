@@ -19,21 +19,95 @@ Single webpage model-editor with validation, dependency derivation, and executab
 
 ## How to run
 
+### Browser UI
+
 1. Clone or download the repository
-2. In the docs folder, serve locally:
+2. From the repository root, serve locally:
 
 ```bash
 python3 -m http.server 8080
 ```
+
 then visit http://localhost:8080
 
 3. Load or paste a `language.xml` (e.g. from the Example link) which lists functions (reserved words) in your modelling language.
 4. Load or paste a `model.xml` (e.g. from the [examples folder](docs/examples))
-5. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor. 
-6. Inspect the Graph of variable dependencies.
+5. Inspect Sample Evaluation which is a rendering of the model with sample inputs made up by the editor.
+6. Inspect the graph of variable dependencies.
 7. Edit variables (individually or in the main Model textarea) and see how your edits change the Sample Evaluation etc.
 8. Export as spreadsheet (which adds sample inputs that you can change in your spreadsheet editor).
-9. Export as Python.  [Run the Python script](docs/examples/python) possibly with [actual inputs to replace the sample inputs](docs/examples/annuity-model/demo).
+9. Export as Python. [Run the Python script](docs/examples/python) possibly with [actual inputs to replace the sample inputs](docs/examples/annuity-model/demo).
+
+### CLI
+
+Install dependencies and run the command-line tool directly:
+
+```bash
+npm install
+node ./src/cli/index.js validate docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
+node ./src/cli/index.js graph docs/examples/restaurant-model/model.xml --language docs/examples/language.xml --root PROFIT --depth 2
+```
+
+Or register the local executable and use the `model-editor` command:
+
+```bash
+npm install
+npm link
+model-editor validate docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
+```
+
+### Command-line Interface (CLI)
+
+The `model-editor` CLI lets you validate models and export them to Python directly from the terminal.
+
+**Install dependencies:**
+
+```bash
+npm install
+```
+
+**Usage:**
+
+```
+node src/cli/index.js --model <model.xml> [--language <language.xml>] [--format <summary|python>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--model <file>` | Path to the model XML file (required) |
+| `--language <file>` | Path to the language XML file (optional) |
+| `--format <type>` | Output format: `summary` (default) or `python` |
+| `--help`, `-h` | Show help message |
+
+**Examples:**
+
+Validate a model and print a summary:
+```bash
+node src/cli/index.js --model docs/examples/annuity-model/vendor-format-model.xml
+```
+
+Validate with a language file:
+```bash
+node src/cli/index.js \
+  --model docs/examples/annuity-model/vendor-format-model.xml \
+  --language docs/examples/language.xml
+```
+
+Export a model as Python:
+```bash
+node src/cli/index.js \
+  --model docs/examples/annuity-model/vendor-format-model.xml \
+  --language docs/examples/language.xml \
+  --format python
+```
+
+If installed globally via `npm install -g .`, you can use the `model-editor` command directly:
+
+```bash
+model-editor --model docs/examples/annuity-model/vendor-format-model.xml --format summary
+```
 
 
 ---
@@ -68,7 +142,7 @@ You can export:
 - **Graph Visualization:** Viz.js (DOT format rendering to SVG)
 - **Spreadsheet Generation:** ExcelJS for creating Excel workbooks with formulas
 - **Testing:** Vitest with jsdom for browser environment simulation
-- **Deployment:** GitHub Pages (static files served from `docs/` directory)
+- **Deployment:** GitHub Pages (served from repository root via GitHub Actions workflow)
 
 ---
 
@@ -110,22 +184,39 @@ All tests are located in the `tests/` directory and map to specific requirements
 
 ---
 
+## Architecture
+
+The repository is organised around a reusable model engine. The browser UI and the CLI both sit on top of the same core modules.
+
 ## Project Structure
 
 ```
-docs/                   # Application source (served statically via GitHub Pages)
-  index.html            # Main UI entry point
-  src/                  # Application modules
+index.html              # Main UI entry point (served from repo root)
+src/                    # All application source code
+  core/                 # Core business logic (model, language, renderers, etc.)
+  utils/                # Shared utilities (helpers, logger, formatters, etc.)
+  browser/              # Browser-specific app code
     applications/       # Feature modules (language, model, graph, CRUD)
-    domain/             # Core business logic
-    utils/              # Helper utilities
-    format/             # Formatting and error handling
+  cli/                  # CLI entry point
+    index.js            # model-editor command-line tool
+  config.js             # Application configuration (log level, etc.)
+docs/                   # Static assets
   styles/               # CSS files
   examples/             # Sample XML files
 tests/                  # Vitest test suite
   fixtures/             # Test data
   helpers/              # Test utilities
 ```
+
+## Deploying to GitHub Pages
+
+The repository includes a ready-made GitHub Actions workflow (`.github/workflows/pages.yml`) that deploys the app on every push to `main`. To enable it on your fork:
+
+1. Go to your repository on GitHub → **Settings** → **Pages**
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**
+3. Push to `main` (or click **Actions → Deploy to GitHub Pages → Run workflow**)
+
+The workflow uploads the entire repository root as the Pages artifact, so `index.html`, `src/`, and `docs/examples/` are all served at their natural paths.
 
 ---
 

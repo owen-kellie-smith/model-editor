@@ -2,8 +2,8 @@ import {
   getStringfromObject,
   getObjectFromMap,
   getObjectFromMapOfSets,
-} from "../utils/helpers.js";
-import { log } from "../utils/logger.js";
+} from "./helpers.js";
+import { log } from "./logger.js";
 
 export function formatError(err) {
   const lines = ["✖ Validation error:", err.message + " in " + err.stack];

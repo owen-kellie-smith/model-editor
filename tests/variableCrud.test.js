@@ -2,9 +2,9 @@ import { describe, it, expect, beforeAll } from "vitest";
 import fs from "fs";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
-import { validateModelCore } from "@/domain/model.js";
-import { getFunctionsFromLanguage } from "@/domain/language.js";
-import { serializeModel, serializeDefinition, parseDefinitionXml } from "@/domain/serialize.js";
+import { validateModelCore } from "@/core/model.js";
+import { getFunctionsFromLanguage } from "@/core/language.js";
+import { serializeModel, serializeDefinition, parseDefinitionXml } from "@/core/serialize.js";
 import {
   createVariable,
   readVariable,
@@ -14,7 +14,7 @@ import {
   listVariables,
   copyVariable,
   renameVariable
-} from "@/domain/variableCrud.js";
+} from "@/core/variableCrud.js";
 
 describe("Variable CRUD Operations", () => {
   let lang;
