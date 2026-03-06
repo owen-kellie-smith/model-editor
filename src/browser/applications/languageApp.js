@@ -1,11 +1,11 @@
 import { ui } from "../ui.js";
-import { parseXmlOrThrow, enableElement, getObjectFromXML, setElementContent } from "../utils/helpers.js";
-import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../format/formatters.js";
-import { getFunctionsFromLanguage } from "../domain/language.js";
-import { exportFile } from "../utils/export.js";
-import { serializeLanguage } from "../domain/serialize.js";
+import { parseXmlOrThrow, enableElement, getObjectFromXML, setElementContent } from "../../utils/helpers.js";
+import { formatError, formatErrorNoStack, formatLanguageLoaded } from "../../utils/formatters.js";
+import { getFunctionsFromLanguage } from "../../core/language.js";
+import { exportFile } from "../../utils/export.js";
+import { serializeLanguage } from "../../core/serialize.js";
 import { refreshExampleVisibility } from "./exampleApp.js";
-import { saveSession } from "../utils/persistence.js";
+import { saveSession } from "../../utils/persistence.js";
 let languageEnv = null;
 let languageObj = null;
 let validationTimeout = null;

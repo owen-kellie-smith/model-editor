@@ -1,8 +1,8 @@
 import { ui } from "../ui.js";
 import { getModelEnv } from "./modelApp.js";
-import { getGraphOfRelations, getGraphOfRelationsMulti } from "../domain/graphRelations.js";
-import { generateDot } from "../domain/graphviz.js";
-import { saveSession } from "../utils/persistence.js";
+import { getGraphOfRelations, getGraphOfRelationsMulti } from "../../core/graphRelations.js";
+import { generateDot } from "../../core/graphviz.js";
+import { saveSession } from "../../utils/persistence.js";
 
 /**
  * Set of currently focused variable names for multi-variable graph display.

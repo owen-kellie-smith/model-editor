@@ -70,12 +70,12 @@ function setupDom(elements = {}) {
  * `languageEnv` – the value returned by getLanguageEnv() (null = no language).
  */
 function mockDependencies(languageEnv = null) {
-  vi.doMock('../docs/src/applications/languageApp.js', () => ({
+  vi.doMock('../src/browser/applications/languageApp.js', () => ({
     getLanguageEnv: () => languageEnv,
     commitOrRejectLanguage: vi.fn(),
   }))
   const loadModelFromText = vi.fn()
-  vi.doMock('../docs/src/applications/modelApp.js', () => ({ loadModelFromText }))
+  vi.doMock('../src/browser/applications/modelApp.js', () => ({ loadModelFromText }))
   return { loadModelFromText }
 }
 
@@ -97,7 +97,7 @@ describe('exampleApp', () => {
       // The link should still be hidden synchronously before the fetch starts.
       global.fetch = vi.fn(() => Promise.resolve({ ok: true }))
 
-      const { refreshExampleVisibility } = await import('../docs/src/applications/exampleApp.js')
+      const { refreshExampleVisibility } = await import('../src/browser/applications/exampleApp.js')
 
       // Kick off refresh but don't await — we check the synchronous part
       const p = refreshExampleVisibility()
@@ -113,7 +113,7 @@ describe('exampleApp', () => {
 
       global.fetch = vi.fn(() => Promise.resolve({ ok: true }))
 
-      const { refreshExampleVisibility } = await import('../docs/src/applications/exampleApp.js')
+      const { refreshExampleVisibility } = await import('../src/browser/applications/exampleApp.js')
 
       const p = refreshExampleVisibility()
       // Link should still be visible — language IS set
@@ -137,7 +137,7 @@ describe('exampleApp', () => {
 
       const { loadModelFromText } = mockDependencies({ lang: 'en' })
 
-      const { wireExampleHandlers } = await import('../docs/src/applications/exampleApp.js')
+      const { wireExampleHandlers } = await import('../src/browser/applications/exampleApp.js')
       await wireExampleHandlers()
 
       const modelClick = modelExampleEl.addEventListener.mock.calls

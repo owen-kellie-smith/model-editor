@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
-import { validateModelCore } from '@/domain/model.js'
-import { getFunctionsFromLanguage } from '@/domain/language.js'
+import { validateModelCore } from '@/core/model.js'
+import { getFunctionsFromLanguage } from '@/core/language.js'
 
 describe('B2() Parentheses Bug Fix', () => {
   let lang

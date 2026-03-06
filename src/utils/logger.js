@@ -1,6 +1,6 @@
 // logger.js
 
-import { LOG_LEVEL } from "../../config.js"
+import { LOG_LEVEL } from "../config.js"
 
 export function logLogLevel() {
     log("info", `LOG_LEVEL: ${LOG_LEVEL}`);   

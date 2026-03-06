@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { renderModelAsExcel } from '../docs/src/domain/spreadsheetRenderer.js'
-import { generateTableLookupFormula, generateTableLookupFormulaAdvanced } from '../docs/src/domain/spreadsheetLogic.js'
-import { validateModelCore } from '@/domain/model.js'
-import { getFunctionsFromLanguage } from '@/domain/language.js'
+import { renderModelAsExcel } from '../src/core/spreadsheetRenderer.js'
+import { generateTableLookupFormula, generateTableLookupFormulaAdvanced } from '../src/core/spreadsheetLogic.js'
+import { validateModelCore } from '@/core/model.js'
+import { getFunctionsFromLanguage } from '@/core/language.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 

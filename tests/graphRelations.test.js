@@ -2,9 +2,9 @@ import { describe, it, expect, beforeAll } from "vitest";
 import fs from "fs";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
-import { validateModelCore } from "@/domain/model.js";
-import { getFunctionsFromLanguage } from "@/domain/language.js";
-import { getRelations, getGraphOfRelations, getRelationsMulti, getGraphOfRelationsMulti } from "@/domain/graphRelations.js";
+import { validateModelCore } from "@/core/model.js";
+import { getFunctionsFromLanguage } from "@/core/language.js";
+import { getRelations, getGraphOfRelations, getRelationsMulti, getGraphOfRelationsMulti } from "@/core/graphRelations.js";
 
 describe("Graph Relations", () => {
   let lang;
