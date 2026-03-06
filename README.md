@@ -188,30 +188,9 @@ All tests are located in the `tests/` directory and map to specific requirements
 
 The repository is organised around a reusable model engine. The browser UI and the CLI both sit on top of the same core modules.
 
-```
-src/core/               # Reusable engine API for validation, graphing, and export
-src/cli/                # Command-line interface
-docs/index.html         # Static page entry point for GitHub Pages
-docs/src/               # Browser application modules used by the static site
-tests/                  # Vitest test suite
-```
-
 ## Project Structure
 
 ```
-<<<<<<< HEAD
-docs/                   # Static site served via GitHub Pages
-  index.html            # Main UI entry point
-  src/                  # Browser app modules
-    applications/       # Feature modules (language, model, graph, CRUD)
-    domain/             # Existing browser-facing domain modules
-    utils/              # Helper utilities
-    format/             # Formatting and error handling
-src/                    # New top-level entry points for tooling
-  core/                 # Reusable engine barrel exports
-  cli/                  # CLI commands and runtime setup
-  ui/                   # Reserved for future browser-app extraction
-=======
 index.html              # Main UI entry point (served from repo root)
 src/                    # All application source code
   core/                 # Core business logic (model, language, renderers, etc.)
@@ -224,11 +203,20 @@ src/                    # All application source code
 docs/                   # Static assets
   styles/               # CSS files
   examples/             # Sample XML files
->>>>>>> 51b09e2d89859bd7f7c5d677b22fa2b449598920
 tests/                  # Vitest test suite
   fixtures/             # Test data
   helpers/              # Test utilities
 ```
+
+## Deploying to GitHub Pages
+
+The repository includes a ready-made GitHub Actions workflow (`.github/workflows/pages.yml`) that deploys the app on every push to `main`. To enable it on your fork:
+
+1. Go to your repository on GitHub → **Settings** → **Pages**
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**
+3. Push to `main` (or click **Actions → Deploy to GitHub Pages → Run workflow**)
+
+The workflow uploads the entire repository root as the Pages artifact, so `index.html`, `src/`, and `docs/examples/` are all served at their natural paths.
 
 ---
 
