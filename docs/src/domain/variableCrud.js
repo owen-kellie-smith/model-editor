@@ -331,6 +331,134 @@ export function listVariables(modelObj) {
 }
 
 /**
+ * Replaces occurrences of a variable ID in a text node that may be either
+ * a plain string or an object with a "#text" property (as produced by different
+ * XML parsers used in the codebase).
+ *
+ * @param {string|Object} node - The text node to update
+ * @param {RegExp} pattern - Word-boundary regex for the old ID (case-insensitive)
+ * @param {string} newId - The new variable ID to substitute
+ * @returns {string|Object} Updated node in the same form as the input
+ */
+function replaceTextRef(node, pattern, newId) {
+  if (typeof node === "string") {
+    return node.replace(pattern, newId);
+  }
+  if (node && typeof node === "object" && typeof node["#text"] === "string") {
+    return { ...node, "#text": node["#text"].replace(pattern, newId) };
+  }
+  return node;
+}
+
+/**
+ * Replaces occurrences of a variable ID in a definition object (in-place).
+ * Handles expression, constant, piecewise, and tableLookup definition types.
+ * Supports both string and "#text"-object forms for text content, since
+ * different XML parsers in the codebase produce different shapes.
+ *
+ * @param {Object} definition - The definition object to update
+ * @param {string} oldIdUpper - The old variable ID in uppercase (for case-insensitive comparison)
+ * @param {RegExp} pattern - Word-boundary regex for the old ID (case-insensitive)
+ * @param {string} newId - The new variable ID to substitute
+ */
+function replaceVariableIdInDefinition(definition, oldIdUpper, pattern, newId) {
+  if (!definition || typeof definition !== "object") return;
+
+  const defType = definition.type;
+
+  if (defType === "expression" || defType === "constant") {
+    if (typeof definition["#text"] === "string") {
+      definition["#text"] = definition["#text"].replace(pattern, newId);
+    }
+  } else if (defType === "piecewise") {
+    if (definition.case) {
+      const cases = Array.isArray(definition.case) ? definition.case : [definition.case];
+      for (const c of cases) {
+        if (c.when !== undefined) {
+          c.when = replaceTextRef(c.when, pattern, newId);
+        }
+        if (c.value !== undefined) {
+          c.value = replaceTextRef(c.value, pattern, newId);
+        }
+      }
+    }
+  } else if (defType === "tableLookup") {
+    if (definition.row && typeof definition.row.ref === "string" &&
+        definition.row.ref.toUpperCase() === oldIdUpper) {
+      definition.row.ref = newId;
+    }
+    if (definition.columnSelector && typeof definition.columnSelector.ref === "string" &&
+        definition.columnSelector.ref.toUpperCase() === oldIdUpper) {
+      definition.columnSelector.ref = newId;
+    }
+  }
+  // 'table' definitions reference table columns (not variables) — no update needed
+}
+
+/**
+ * Renames a variable and updates all references to its ID throughout the model.
+ *
+ * References are propagated in:
+ *  - expression / constant definitions (`#text` field, word-boundary replacement)
+ *  - piecewise definitions (`case[].when` and `case[].value`, word-boundary replacement)
+ *  - tableLookup definitions (`row.ref` and `columnSelector.ref`, exact case-insensitive match)
+ *
+ * @param {Object} modelObj - The model object (from validateModelCore result)
+ * @param {string} oldId - The current identifier of the variable to rename
+ * @param {string} newId - The new identifier for the variable
+ * @param {Object} lang - The language environment for validation
+ * @returns {Object} Updated model validation result
+ * @throws {Error} If old variable not found, new ID already exists, or model becomes invalid
+ */
+export function renameVariable(modelObj, oldId, newId, lang) {
+  // Find the variable to rename
+  const existingVariable = readVariable(modelObj, oldId);
+  if (!existingVariable) {
+    throw new Error(`Variable with ID '${oldId}' not found`);
+  }
+
+  // Validate the new variable ID format
+  validateVariableId(newId);
+
+  // Check for conflict only when the name actually changes
+  if (oldId.toUpperCase() !== newId.toUpperCase()) {
+    const conflicting = readVariable(modelObj, newId);
+    if (conflicting) {
+      throw new Error(`Variable with ID '${newId}' already exists`);
+    }
+  }
+
+  // Deep copy to avoid mutating the original
+  const updatedModel = JSON.parse(JSON.stringify(modelObj));
+
+  const variables = updatedModel.model.variables.variable;
+  const varArray = Array.isArray(variables) ? variables : [variables];
+
+  const oldIdUpper = oldId.toUpperCase();
+  // Escape special regex characters in the old ID
+  const escapedOldId = oldId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Word-boundary, case-insensitive pattern to avoid partial replacements
+  const pattern = new RegExp(`\\b${escapedOldId}\\b`, "gi");
+
+  for (const variable of varArray) {
+    // Rename the variable itself
+    if (variable.id.toUpperCase() === oldIdUpper) {
+      variable.id = newId;
+    }
+    // Update all references to the old ID in every variable's definition
+    if (variable.definition) {
+      replaceVariableIdInDefinition(variable.definition, oldIdUpper, pattern, newId);
+    }
+  }
+
+  // Serialize the updated model and validate it
+  const serializedModel = serializeModel(updatedModel);
+  const validatedResult = validateModelCore(serializedModel, "updated-model.xml", lang);
+
+  return validatedResult;
+}
+
+/**
  * Copies a variable to a new variable with a different ID.
  * 
  * @param {Object} modelObj - The model object (from validateModelCore result)
