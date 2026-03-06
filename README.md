@@ -46,6 +46,8 @@ Install dependencies and run the command-line tool directly:
 npm install
 node ./src/cli/index.js validate docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
 node ./src/cli/index.js graph docs/examples/restaurant-model/model.xml --language docs/examples/language.xml --root MONTHLY_NET_PROFIT --depth 2
+node ./src/cli/index.js export-python docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
+node ./src/cli/index.js export-spreadsheet docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
 ```
 
 Or register the local executable and use the `model-editor` command:
@@ -54,7 +56,34 @@ Or register the local executable and use the `model-editor` command:
 npm install
 npm link
 model-editor validate docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
+model-editor export-python docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
+model-editor export-spreadsheet docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
 ```
+
+#### `export-python`
+
+Exports the model as a runnable Python script using the same logic as the browser's **Export Python** button.
+
+```
+model-editor export-python <model.xml> --language <language.xml> [--out <file.py>]
+```
+
+- Output filename: `<model_id>.py` by default (e.g. `restaurant_model.py`), matching the browser export.
+- Use `--out` to specify a custom output path.
+
+#### `export-spreadsheet`
+
+Exports the model as a CSV file using the same spreadsheet evaluation logic as the browser's **Export Spreadsheet** preview.
+
+```
+model-editor export-spreadsheet <model.xml> --language <language.xml> [--out <file.csv>]
+```
+
+- Output filename: `model_spreadsheet.csv` by default, matching the browser export convention.
+- The CSV contains multiple sections (one per sheet), each prefixed with a `# sheet: <name>` comment line.
+- Use `--out` to specify a custom output path.
+
+Both commands validate the input model and language files before exporting and report a clear error message if the files are missing or invalid.
 
 ---
 
