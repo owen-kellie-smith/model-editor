@@ -3,8 +3,8 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest'
 import fs from 'fs'
-import { validateModelCore } from '@/domain/model.js'
-import { getFunctionsFromLanguage } from '@/domain/language.js'
+import { validateModelCore } from '@/core/model.js'
+import { getFunctionsFromLanguage } from '@/core/language.js'
 import { loadXml } from './helpers/xml.js'
 import { getFixture } from './helpers/fixtures.ts'
 
@@ -19,9 +19,9 @@ import {
   convertConstantExpressionToFormula,
   topologicalSort,
   renderSheetAsHtml,
-} from '@/domain/spreadsheetLogic.js'
+} from '@/core/spreadsheetLogic.js'
 
-import { buildVariableMap } from '@/domain/renderShared.js'
+import { buildVariableMap } from '@/core/renderShared.js'
 
 // ---------------------------------------------------------------------------
 // makeRenderContext

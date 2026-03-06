@@ -1,4 +1,4 @@
-import { exportFile } from "../docs/src/utils/export.js"
+import { exportFile } from "../src/utils/export.js"
 import { describe, test, expect, vi } from "vitest"
 
 describe("exportFile", () => {

@@ -7,7 +7,7 @@ import {
   formatErrorNoStack,
   formatLanguageLoaded,
   formatModelResult,
-} from "../docs/src/format/formatters.js";
+} from "../src/utils/formatters.js";
 
 // Mock helpers so tests are stable + not dependent on their internals
 vi.mock("../src/utils/helpers.js", () => ({

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll } from "vitest";
 import fs from "fs";
 import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
-import { validateModelCore } from "@/domain/model.js";
-import { getFunctionsFromLanguage } from "@/domain/language.js";
-import { getGraphOfRelations, getGraphOfRelationsMulti } from "@/domain/graphRelations.js";
-import { generateDot } from "@/domain/graphviz.js";
+import { validateModelCore } from "@/core/model.js";
+import { getFunctionsFromLanguage } from "@/core/language.js";
+import { getGraphOfRelations, getGraphOfRelationsMulti } from "@/core/graphRelations.js";
+import { generateDot } from "@/core/graphviz.js";
 
 describe("GraphViz DOT Generation", () => {
   let lang;

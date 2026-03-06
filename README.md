@@ -22,7 +22,7 @@ Single webpage model-editor with validation, dependency derivation, and executab
 ### Browser UI
 
 1. Clone or download the repository
-2. In the `docs` folder, serve locally:
+2. From the repository root, serve locally:
 
 ```bash
 python3 -m http.server 8080
@@ -54,6 +54,59 @@ Or register the local executable and use the `model-editor` command:
 npm install
 npm link
 model-editor validate docs/examples/restaurant-model/model.xml --language docs/examples/language.xml
+```
+
+### Command-line Interface (CLI)
+
+The `model-editor` CLI lets you validate models and export them to Python directly from the terminal.
+
+**Install dependencies:**
+
+```bash
+npm install
+```
+
+**Usage:**
+
+```
+node src/cli/index.js --model <model.xml> [--language <language.xml>] [--format <summary|python>]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--model <file>` | Path to the model XML file (required) |
+| `--language <file>` | Path to the language XML file (optional) |
+| `--format <type>` | Output format: `summary` (default) or `python` |
+| `--help`, `-h` | Show help message |
+
+**Examples:**
+
+Validate a model and print a summary:
+```bash
+node src/cli/index.js --model docs/examples/annuity-model/vendor-format-model.xml
+```
+
+Validate with a language file:
+```bash
+node src/cli/index.js \
+  --model docs/examples/annuity-model/vendor-format-model.xml \
+  --language docs/examples/language.xml
+```
+
+Export a model as Python:
+```bash
+node src/cli/index.js \
+  --model docs/examples/annuity-model/vendor-format-model.xml \
+  --language docs/examples/language.xml \
+  --format python
+```
+
+If installed globally via `npm install -g .`, you can use the `model-editor` command directly:
+
+```bash
+model-editor --model docs/examples/annuity-model/vendor-format-model.xml --format summary
 ```
 
 
@@ -89,7 +142,7 @@ You can export:
 - **Graph Visualization:** Viz.js (DOT format rendering to SVG)
 - **Spreadsheet Generation:** ExcelJS for creating Excel workbooks with formulas
 - **Testing:** Vitest with jsdom for browser environment simulation
-- **Deployment:** GitHub Pages (static files served from `docs/` directory)
+- **Deployment:** GitHub Pages (served from repository root via GitHub Actions workflow)
 
 ---
 
@@ -146,6 +199,7 @@ tests/                  # Vitest test suite
 ## Project Structure
 
 ```
+<<<<<<< HEAD
 docs/                   # Static site served via GitHub Pages
   index.html            # Main UI entry point
   src/                  # Browser app modules
@@ -157,6 +211,20 @@ src/                    # New top-level entry points for tooling
   core/                 # Reusable engine barrel exports
   cli/                  # CLI commands and runtime setup
   ui/                   # Reserved for future browser-app extraction
+=======
+index.html              # Main UI entry point (served from repo root)
+src/                    # All application source code
+  core/                 # Core business logic (model, language, renderers, etc.)
+  utils/                # Shared utilities (helpers, logger, formatters, etc.)
+  browser/              # Browser-specific app code
+    applications/       # Feature modules (language, model, graph, CRUD)
+  cli/                  # CLI entry point
+    index.js            # model-editor command-line tool
+  config.js             # Application configuration (log level, etc.)
+docs/                   # Static assets
+  styles/               # CSS files
+  examples/             # Sample XML files
+>>>>>>> 51b09e2d89859bd7f7c5d677b22fa2b449598920
 tests/                  # Vitest test suite
   fixtures/             # Test data
   helpers/              # Test utilities

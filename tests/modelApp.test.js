@@ -51,7 +51,7 @@ describe('modelApp', () => {
       }
 
       // Import the module - this will use our mocked document
-      const { updateModelTextareaAndDate } = await import('../docs/src/applications/modelApp.js')
+      const { updateModelTextareaAndDate } = await import('../src/browser/applications/modelApp.js')
 
       // Verify the function exists and is callable
       expect(updateModelTextareaAndDate).toBeDefined()

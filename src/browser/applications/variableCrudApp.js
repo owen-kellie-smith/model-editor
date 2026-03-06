@@ -3,16 +3,16 @@
 import { ui } from "../ui.js";
 import { getModelEnv, validateModel } from "./modelApp.js";
 import { getLanguageEnv } from "./languageApp.js";
-import { setElementContent, escapeHtml } from "../utils/helpers.js";
+import { setElementContent, escapeHtml } from "../../utils/helpers.js";
 import {
   listVariables,
   createVariable,
   updateVariable,
   deleteVariable,
   renameVariable
-} from "../domain/variableCrud.js";
-import { serializeModel, serializeVariable, parseVariableXml } from "../domain/serialize.js";
-import { saveSession } from "../utils/persistence.js";
+} from "../../core/variableCrud.js";
+import { serializeModel, serializeVariable, parseVariableXml } from "../../core/serialize.js";
+import { saveSession } from "../../utils/persistence.js";
 
 let currentSelectedVariableId = null;
 let isCreatingNew = false;

@@ -3,8 +3,8 @@ import { wireModelHandlers, restoreModelFromSession } from "./applications/model
 import { wireGraphHandlers, restoreGraphFromSession } from "./applications/graphApp.js";
 import { wireVariableCrudHandlers, restoreVariableCrudFromSession } from "./applications/variableCrudApp.js";
 import { wireExampleHandlers } from "./applications/exampleApp.js";
-import { logLogLevel } from "./utils/logger.js";
-import { loadSession, saveSession } from "./utils/persistence.js";
+import { logLogLevel } from "../utils/logger.js";
+import { loadSession, saveSession } from "../utils/persistence.js";
 import { getLanguageEnv } from "./applications/languageApp.js";
 
 /**
