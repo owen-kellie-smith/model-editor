@@ -7,6 +7,7 @@ import { serializeModel } from "../domain/serialize.js";
 import { renderModelAsExcel, renderModelAsHTMLPreview, makeRenderContext } from "../domain/spreadsheetRenderer.js";
 import { renderModelAsPython } from "../domain/pythonRenderer.js";
 import { setElementContent, sanitizeFilename } from "../utils/helpers.js";
+import { saveSession } from "../utils/persistence.js";
 
 
 let modelEnv = null;
@@ -72,6 +73,7 @@ export function validateModel(text, filename, lang) {
     modelEnv = result;
     modelCommitTime = new Date();
     lastCommittedText = text;
+    saveSession({ modelText: text });
     ui.downloadModel.disabled = false;   // ✅ valid
     ui.downloadSpreadsheet.disabled = false;  // ✅ enable spreadsheet download
     ui.downloadPython.disabled = false;  // ✅ enable python export
@@ -189,6 +191,7 @@ export function wireModelHandlers() {
   // Add input event listener with debouncing
   ui.modelText.addEventListener("input", (e) => {
     if (!languageEnvIsSet()) return;
+    saveSession({ modelText: e.target.value });
     debouncedValidateModel(e.target.value,getLanguageEnv());
   });
 
@@ -281,3 +284,16 @@ export function wireModelHandlers() {
     reader.readAsText(file);
   });
 }
+
+/**
+ * Restore the model textarea from a persisted session object and
+ * automatically validate/commit it so the rest of the UI is ready to use.
+ * Requires the language to already be loaded.
+ *
+ * @param {Object} session - Session object returned by loadSession()
+ */
+export function restoreModelFromSession(session) {
+  if (!session.modelText) return;
+  loadModelFromText(session.modelText, 'restored session');
+}
+

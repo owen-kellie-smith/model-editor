@@ -5,6 +5,7 @@ import { getFunctionsFromLanguage } from "../domain/language.js";
 import { exportFile } from "../utils/export.js";
 import { serializeLanguage } from "../domain/serialize.js";
 import { refreshExampleVisibility } from "./exampleApp.js";
+import { saveSession } from "../utils/persistence.js";
 let languageEnv = null;
 let languageObj = null;
 let validationTimeout = null;
@@ -61,6 +62,7 @@ function commitLanguage(lang, obj) {
   languageCommitTime = new Date();
   lastCommittedText = ui.languageText.value;
   
+  saveSession({ languageText: ui.languageText.value });
   setLogText(formatLanguageLoaded(lang));
   enableControls(true);
   ui.downloadLanguage.disabled = false;   // ✅
@@ -136,6 +138,7 @@ function debouncedValidateLanguage(text) {
 export function wireLanguageHandlers() {
   // Add input event listener with debouncing
   ui.languageText.addEventListener("input", (e) => {
+    saveSession({ languageText: e.target.value });
     debouncedValidateLanguage(e.target.value);
   });
 
@@ -163,5 +166,17 @@ export function wireLanguageHandlers() {
     };
     reader.readAsText(file);
   });
+}
+
+/**
+ * Restore the language textarea from a persisted session object and
+ * automatically commit it so the rest of the UI is ready to use.
+ *
+ * @param {Object} session - Session object returned by loadSession()
+ */
+export function restoreLanguageFromSession(session) {
+  if (!session.languageText) return;
+  ui.languageText.value = session.languageText;
+  commitOrRejectLanguage(session.languageText, 'restored session');
 }
 

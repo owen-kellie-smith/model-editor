@@ -11,6 +11,7 @@ import {
   deleteVariable
 } from "../domain/variableCrud.js";
 import { serializeModel, serializeVariable, parseVariableXml } from "../domain/serialize.js";
+import { saveSession } from "../utils/persistence.js";
 
 let currentSelectedVariableId = null;
 let isCreatingNew = false;
@@ -50,6 +51,7 @@ export function renderVariableDropdown() {
   ui.variableDetails.style.display = "none";
   ui.variableFormSection.style.display = "none";
   currentSelectedVariableId = null;
+  saveSession({ currentSelectedVariableId: null });
 
   if (!modelEnv) {
     const option = document.createElement("option");
@@ -118,6 +120,7 @@ function showVariableDetails(variableId) {
     }
 
     currentSelectedVariableId = variableId;
+    saveSession({ currentSelectedVariableId: variableId });
 
     // Set variable name
     setElementContent(ui.selectedVariableName, escapeHtml(variable.id));
@@ -199,6 +202,7 @@ function showEditForm() {
 
     ui.variableFormTitle.textContent = "Edit Variable";
     ui.editVarDefinition.value = serializeVariable(variable);
+    saveSession({ editVarDefinition: ui.editVarDefinition.value, isCreatingNew: false });
 
     ui.variableFormSection.style.display = "block";
     ui.variableFormSection.scrollIntoView({ behavior: "smooth" });
@@ -226,6 +230,7 @@ function showNewVariableForm() {
   ui.editVarDefinition.value = `<variable id="new_variable">
   <definition type="expression">0</definition>
 </variable>`;
+  saveSession({ editVarDefinition: ui.editVarDefinition.value, isCreatingNew: true });
 
   ui.variableFormSection.style.display = "block";
   ui.variableFormSection.scrollIntoView({ behavior: "smooth" });
@@ -257,6 +262,7 @@ function showCopyVariableForm() {
     );
 
     ui.editVarDefinition.value = xml;
+    saveSession({ editVarDefinition: xml, isCreatingNew: true });
 
     ui.variableFormSection.style.display = "block";
     ui.variableFormSection.scrollIntoView({ behavior: "smooth" });
@@ -273,6 +279,7 @@ function hideEditForm() {
   ui.variableFormSection.style.display = "none";
   isCreatingNew = false;
   ui.editVarDefinition.value = "";
+  saveSession({ editVarDefinition: null, isCreatingNew: false });
 }
 
 /**
@@ -430,6 +437,7 @@ export function wireVariableCrudHandlers() {
       ui.variableDetails.style.display = "none";
       ui.variableFormSection.style.display = "none";
       currentSelectedVariableId = null;
+      saveSession({ currentSelectedVariableId: null });
     }
   });
 
@@ -440,9 +448,52 @@ export function wireVariableCrudHandlers() {
   ui.saveVariableBtn.addEventListener("click", () => handleSaveVariable());
   ui.cancelEditBtn.addEventListener("click", () => hideEditForm());
 
-  ui.sortVariablesAlpha.addEventListener("change", () => renderVariableDropdown());
+  ui.sortVariablesAlpha.addEventListener("change", () => {
+    saveSession({ sortVariablesAlpha: ui.sortVariablesAlpha.checked });
+    renderVariableDropdown();
+  });
+
+  ui.editVarDefinition.addEventListener("input", () => {
+    saveSession({ editVarDefinition: ui.editVarDefinition.value });
+  });
 
   window.addEventListener("modelLoaded", () => renderVariableDropdown());
 
   renderVariableDropdown();
 }
+
+/**
+ * Restore variable CRUD UI settings from a persisted session.
+ * Must be called AFTER the model has been loaded (so the variable dropdown
+ * is already populated).
+ *
+ * @param {Object} session - Session object returned by loadSession()
+ */
+export function restoreVariableCrudFromSession(session) {
+  // Restore sort checkbox
+  if (session.sortVariablesAlpha !== undefined) {
+    ui.sortVariablesAlpha.checked = session.sortVariablesAlpha;
+    renderVariableDropdown();
+  }
+
+  // Restore selected variable
+  const id = session.currentSelectedVariableId;
+  if (id) {
+    // Only restore if the variable still exists in the dropdown
+    const existingOption = ui.variableDropdown.querySelector(`option[value="${CSS.escape(id)}"]`);
+    if (existingOption) {
+      ui.variableDropdown.value = id;
+      // Trigger the details panel (sets currentSelectedVariableId internally)
+      ui.variableDropdown.dispatchEvent(new Event('change'));
+    }
+  }
+
+  // Restore variable edit textarea if it was open
+  if (session.editVarDefinition) {
+    isCreatingNew = !!session.isCreatingNew;
+    ui.editVarDefinition.value = session.editVarDefinition;
+    ui.variableFormTitle.textContent = isCreatingNew ? "New Variable" : "Edit Variable";
+    ui.variableFormSection.style.display = "block";
+  }
+}
+
