@@ -88,6 +88,11 @@ if (params.has("large")) {
   document.documentElement.classList.add("large-ui");
 }
 
+// Load the session before wiring handlers so that handler initialization
+// (e.g. renderVariableDropdown inside wireVariableCrudHandlers) cannot
+// overwrite persisted session values before we read them.
+const session = loadSession();
+
 wireLanguageHandlers();
 wireModelHandlers();
 wireGraphHandlers();
@@ -97,7 +102,6 @@ logLogLevel();
 
 // Restore any previously saved session so users don't lose work after a
 // browser crash or accidental tab close.
-const session = loadSession();
 restoreLanguageFromSession(session);
 if (getLanguageEnv()) {
   restoreModelFromSession(session);
