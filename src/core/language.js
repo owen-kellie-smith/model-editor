@@ -5,7 +5,7 @@ export const runtimeIdentifiers = new Set([
   "RECORDNUMBER",
   "T"
 ]);
-  
+
 export function getFunctionsFromLanguage(xmlDoc, filename) {
   const functions = new Map();
   const fnNodes = xmlDoc.querySelectorAll("functions > function");

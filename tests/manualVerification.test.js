@@ -18,7 +18,7 @@ describe('Manual Verification of Sample Data Generation', () => {
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
 
     // Validate model
-    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang)
+    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang, { ignoreUnits: true })
 
     console.log('\n=== Model Structure Analysis ===\n')
 

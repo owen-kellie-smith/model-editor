@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="test-undeclared-unit">
+
+  <indexSets>
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+  <units>
+    <unit id="years"/>
+    <!-- 'GBP' is intentionally NOT declared here -->
+  </units>
+
+  <variables>
+
+    <variable id="step_length">
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="constant">
+        1
+      </definition>
+    </variable>
+
+    <!-- This variable references 'GBP' which is not declared in <units> -->
+    <variable id="cashflow">
+      <dataType>real</dataType>
+      <unit>GBP</unit>
+      <definition type="constant">
+        100
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>

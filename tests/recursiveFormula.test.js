@@ -51,7 +51,7 @@ describe('Recursive Piecewise Formula Conversion', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // The renderModelAsExcel function should create formulas that properly handle
@@ -107,7 +107,7 @@ describe('Recursive Piecewise Formula Conversion', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     const blob = await renderModelAsExcel(model.obj, model.features)
@@ -153,7 +153,7 @@ describe('Recursive Piecewise Formula Conversion', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     const blob = await renderModelAsExcel(model.obj, model.features)

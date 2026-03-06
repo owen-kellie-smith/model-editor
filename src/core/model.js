@@ -2,18 +2,33 @@ import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../
 import { makeDependencyCollector } from "./dependencyCollector.js";
 import { log } from "../utils/logger.js"
 
-// returns xml, javascript object, model features
-export function validateModelCore(text, filename, lang) {
+// ---------------------------------------------------------------------------
+// Unit helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalises the raw value stored by the XML parser for a <unit> child element.
+ * The parser may produce a plain string, the number 1, or { "#text": "..." }.
+ * Returns the trimmed string, or "" if absent.
+ */
+export function getUnitValue(raw) {
+  if (raw === undefined || raw === null) return "";
+  if (typeof raw === "object" && raw["#text"] !== undefined) return String(raw["#text"]).trim();
+  return String(raw).trim();
+}
+
+
+export function validateModelCore(text, filename, lang, options = {}) {
   const xml = parseXmlOrThrow(text, filename);
   const obj = getObjectFromXML(xml);
-  const features = getModelFeatures(obj, lang);
+  const features = getModelFeatures(obj, lang, options);
 
   return { features, obj, filename };
 }
 
   // returns in one object maps of indexSets, units, tables, variables in xml
   // throws error if domain rules are broken (duplicate index sets, duplicate variables)
-export function getMapsOfModelProperties(xml) {
+export function getMapsOfModelProperties(xml, options = {}) {
     const indexSets = new Map();
     const units = new Map();
     const tables = new Map();
@@ -72,6 +87,20 @@ export function getMapsOfModelProperties(xml) {
       for (const container of tableContainers) {
         for (const t of asArray(container?.VariableDefinition)) {
           tables.set(t.Name.toUpperCase(), t);
+        }
+      }
+    } else if (!options.ignoreUnits) {
+      // Unit validation for non-legacy models.
+      // v.unit may be a plain string, a number (e.g. 1 from <unit>1</unit>),
+      // or an object { "#text": "..." } as produced by the XML parser for text-only elements.
+      for (const [, v] of variables) {
+        const unitValue = getUnitValue(v.unit);
+
+        if (!unitValue) {
+          throwModelError("Variable is missing a unit; use '1' for dimensionless", { variable: v.id });
+        }
+        if (unitValue !== "1" && !units.has(unitValue.toUpperCase())) {
+          throwModelError("Variable uses a unit that is not declared in the model", { variable: v.id, unit: unitValue });
         }
       }
     }
@@ -229,8 +258,8 @@ export  function getIdentifierTokens(exprText) {
   }
 
 // passes xmlModel and lang to parsers to get an object containing parsed model features (variables, incoming and outgoing variables) 
-export  function getModelFeatures(xmlModel, lang) {
-    const symbols = getMapsOfModelProperties(xmlModel);
+export  function getModelFeatures(xmlModel, lang, options = {}) {
+    const symbols = getMapsOfModelProperties(xmlModel, options);
   log("debug","symbols:", symbols);
     const resolvedVarsWithArguments = getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols);
   log("debug","resolvedVarsWithArguments:", resolvedVarsWithArguments);

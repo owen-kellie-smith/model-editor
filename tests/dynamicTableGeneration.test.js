@@ -45,7 +45,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     expect(model.obj.model.tables).toBeTruthy()
     
@@ -90,7 +90,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     expect(model.obj.model.tables).toBeTruthy()
     
@@ -111,7 +111,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     // Tables should be undefined or empty
     expect(model.obj.model.tables).toBeFalsy()
@@ -145,7 +145,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // The table reference in the variable should be cohort_data
@@ -181,7 +181,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Verify table structure is correct for sample data generation
@@ -199,7 +199,7 @@ describe('Dynamic Table Generation', () => {
     const modelPath = getFixture('vendor-format-model.xml')
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
     
-    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang)
+    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     expect(model.obj.model.tables).toBeTruthy()
     
@@ -281,7 +281,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Verify constraint is present in variable
@@ -344,7 +344,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Verify both tables exist
@@ -409,7 +409,7 @@ describe('Dynamic Table Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Verify the ref_table has 3 columns

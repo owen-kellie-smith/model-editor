@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<model id="test-missing-unit">
+
+  <indexSets>
+    <indexSet id="step">
+      <description>Projection steps</description>
+      <dataType>integer</dataType>
+    </indexSet>
+  </indexSets>
+
+  <units>
+    <unit id="years"/>
+  </units>
+
+  <variables>
+
+    <variable id="step_length">
+      <dataType>real</dataType>
+      <unit>years</unit>
+      <definition type="constant">
+        1
+      </definition>
+    </variable>
+
+    <!-- This variable is missing a unit — should trigger validation error -->
+    <variable id="rate">
+      <dataType>real</dataType>
+      <definition type="constant">
+        0.05
+      </definition>
+    </variable>
+
+  </variables>
+
+</model>

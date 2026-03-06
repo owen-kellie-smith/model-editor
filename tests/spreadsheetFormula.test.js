@@ -31,7 +31,7 @@ describe('Spreadsheet Formula Conversion', () => {
     
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
     
-    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang)
+    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang, { ignoreUnits: true })
     
     // Verify model loaded successfully
     expect(model).toBeTruthy()
@@ -82,7 +82,7 @@ describe('Spreadsheet Formula Conversion', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     
     // Verify model loaded successfully
     expect(model).toBeTruthy()
@@ -141,7 +141,7 @@ describe('Spreadsheet Formula Conversion', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     
     // Verify model loaded successfully
     expect(model).toBeTruthy()
@@ -350,7 +350,7 @@ describe('Spreadsheet Formula Conversion', () => {
     const dividendsLang = getFunctionsFromLanguage(langXml, 'test')
 
     const dividendsXml = fs.readFileSync(dividendsModelPath, 'utf-8')
-    const model = validateModelCore(dividendsXml, 'Dividends.xml', dividendsLang)
+    const model = validateModelCore(dividendsXml, 'Dividends.xml', dividendsLang, { ignoreUnits: true })
     expect(model).toBeTruthy()
 
     // Build variable map from model XML

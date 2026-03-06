@@ -57,7 +57,7 @@ describe('Python Export', () => {
     for (const [name, rel] of examples) {
       const modelPath = exampleMap[name]
       const xml = fs.readFileSync(modelPath, 'utf-8')
-      const { obj, features } = validateModelCore(xml, rel, lang)
+      const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
       const py = renderModelAsPython(obj, features)
 
       // Sanity checks on generated program structure
@@ -80,7 +80,7 @@ describe('Python Export', () => {
     const rel = exampleMap["airline dividends"]
     const modelPath = rel;
     const xml = fs.readFileSync(modelPath, 'utf-8')
-    const { obj, features } = validateModelCore(xml, rel, lang)
+    const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     expect(py).not.toContain('<>')
     expect(py).toContain('!=')
@@ -90,7 +90,7 @@ describe('Python Export', () => {
     const rel = exampleMap["annuity vendor format"];
     const modelPath = rel;
     const xml = fs.readFileSync(modelPath, 'utf-8')
-    const { obj, features } = validateModelCore(xml, rel, lang)
+    const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')
@@ -102,7 +102,7 @@ describe('Python Export', () => {
   it('is non-crashing but error-visible: seasonal.xml should report issues and produce NaNs', () => {
     const rel = exampleMap["restaurant seasonal"];
     const xml = fs.readFileSync(rel, 'utf-8')
-    const { obj, features } = validateModelCore(xml, rel, lang)
+    const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')
@@ -119,7 +119,7 @@ describe('Python Export', () => {
   it('reports embedded table usage when no input CSV files are present', () => {
     const rel = exampleMap["annuity vendor format"];
     const xml = fs.readFileSync(rel, 'utf-8')
-    const { obj, features } = validateModelCore(xml, rel, lang)
+    const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')
@@ -132,7 +132,7 @@ describe('Python Export', () => {
   it('reports csv-loaded table when input CSV file is present', () => {
     const rel = exampleMap["annuity vendor format"];
     const xml = fs.readFileSync(rel, 'utf-8')
-    const { obj, features } = validateModelCore(xml, rel, lang)
+    const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')
@@ -177,7 +177,7 @@ describe('Python Export', () => {
     </variable>
   </variables>
 </model>`
-    const { obj, features } = validateModelCore(modelXml, 'test.xml', lang)
+    const { obj, features } = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')
@@ -225,7 +225,7 @@ describe('Python Export', () => {
     </variable>
   </variables>
 </model>`
-    const { obj, features } = validateModelCore(modelXml, 'test.xml', lang)
+    const { obj, features } = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')
@@ -250,7 +250,7 @@ describe('Python Export', () => {
   it('writes a .log file containing the screen output', () => {
     const rel = exampleMap["annuity vendor format"];
     const xml = fs.readFileSync(rel, 'utf-8')
-    const { obj, features } = validateModelCore(xml, rel, lang)
+    const { obj, features } = validateModelCore(xml, rel, lang, { ignoreUnits: true })
     const py = renderModelAsPython(obj, features)
     const { dir, pyPath } = writeTempPython(py)
     const csvPath = path.join(dir, 'out.csv')

@@ -134,9 +134,46 @@ describe("validateModelCore", () => {
     });
   });
 
+  describe("when model contains a variable with no unit", () => {
+    it("throws a 'missing a unit' error", () => {
+      const text = readFixture("modelVariableMissingUnit.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelVariableMissingUnit.xml", lang);
+      }).toThrow(/missing a unit/i);
+    });
+  });
+
+  describe("when model contains a variable whose unit is not declared", () => {
+    it("throws an 'not declared' error", () => {
+      const text = readFixture("modelVariableUndeclaredUnit.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelVariableUndeclaredUnit.xml", lang);
+      }).toThrow(/not declared/i);
+    });
+  });
+
+  describe("when ignoreUnits option is set", () => {
+    it("does not throw for a variable missing a unit", () => {
+      const text = readFixture("modelVariableMissingUnit.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelVariableMissingUnit.xml", lang, { ignoreUnits: true });
+      }).not.toThrow();
+    });
+
+    it("does not throw for a variable with an undeclared unit", () => {
+      const text = readFixture("modelVariableUndeclaredUnit.xml");
+
+      expect(() => {
+        validateModelCore(text, "modelVariableUndeclaredUnit.xml", lang, { ignoreUnits: true });
+      }).not.toThrow();
+    });
+  });
+
   describe("when model contains outgoing variables", () => {
-    it("calculates outgoing variables from formulae", () => {
-      const text = readFixture("modelPrecedents.xml");
+    it("calculates outgoing variables from formulae", () => {      const text = readFixture("modelPrecedents.xml");
       const result = validateModelCore(text, "modelPrecedents.xml", lang);
       
       // In modelPrecedents.xml:

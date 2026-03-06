@@ -28,7 +28,7 @@ describe('Spreadsheet Diagnostics Integration', () => {
     }
     
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
-    const model = validateModelCore(modelXml, 'legacy-format-model.xml', lang)
+    const model = validateModelCore(modelXml, 'legacy-format-model.xml', lang, { ignoreUnits: true })
     
     // Verify model loaded successfully
     expect(model).toBeTruthy()
@@ -77,7 +77,7 @@ describe('Spreadsheet Diagnostics Integration', () => {
     }
     
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
-    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang)
+    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang, { ignoreUnits: true })
     
     // Verify model loaded successfully
     expect(model).toBeTruthy()

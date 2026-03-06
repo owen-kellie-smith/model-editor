@@ -39,7 +39,8 @@ describe("Variable CRUD Operations", () => {
           type: "expression",
           "#text": "1 + 1"
         },
-        dataType: "real"
+        dataType: "real",
+        unit: "1"
       };
 
       const result = createVariable(baseModel, variableData, lang);
@@ -54,7 +55,8 @@ describe("Variable CRUD Operations", () => {
         definition: {
           type: "constant",
           "#text": "42"
-        }
+        },
+        unit: "1"
       };
 
       const result = createVariable(baseModel, variableData, lang);
@@ -97,7 +99,8 @@ describe("Variable CRUD Operations", () => {
         definition: {
           type: "expression",
           "#text": "undefined_var + 1"
-        }
+        },
+        unit: "1"
       };
 
       expect(() => {
@@ -111,7 +114,8 @@ describe("Variable CRUD Operations", () => {
         definition: {
           type: "expression",
           "#text": "undefined_var + 1"
-        }
+        },
+        unit: "1"
       };
 
       try {
@@ -141,7 +145,8 @@ describe("Variable CRUD Operations", () => {
         definition: {
           type: "expression",
           "#text": "step_length * 2"
-        }
+        },
+        unit: "1"
       };
 
       const result = createVariable(baseModel, variableData, lang);
@@ -223,7 +228,7 @@ describe("Variable CRUD Operations", () => {
         unit: "months"
       };
 
-      const result = updateVariable(baseModel, "step_length", updatedData, lang);
+      const result = updateVariable(baseModel, "step_length", updatedData, lang, { ignoreUnits: true });
       
       expect(result).toBeDefined();
       const updatedVar = readVariable(result.obj, "step_length");
@@ -276,7 +281,7 @@ describe("Variable CRUD Operations", () => {
         unit: "days"
       };
 
-      const result = updateVariable(baseModel, "step_length", updatedData, lang);
+      const result = updateVariable(baseModel, "step_length", updatedData, lang, { ignoreUnits: true });
       
       expect(result).toBeDefined();
       const updatedVar = readVariable(result.obj, "step_length");
@@ -406,7 +411,8 @@ describe("Variable CRUD Operations", () => {
           type: "constant",
           "#text": "100"
         },
-        dataType: "real"
+        dataType: "real",
+        unit: "1"
       };
       
       let result = createVariable(baseModel, newVar, lang);
@@ -443,7 +449,8 @@ describe("Variable CRUD Operations", () => {
         definition: {
           type: "expression",
           "#text": "step_length + 1"
-        }
+        },
+        unit: "1"
       };
       
       const result = createVariable(baseModel, newVar, lang);
@@ -537,7 +544,8 @@ describe("Variable CRUD Operations", () => {
         definition: {
           type: "expression",
           "#text": "circular_var + 1"
-        }
+        },
+        unit: "1"
       };
 
       expect(() => {
@@ -585,7 +593,8 @@ describe("Variable CRUD Operations", () => {
           type: "expression",
           "#text": "step_length * 2"
         },
-        dataType: originalVariable.dataType
+        dataType: originalVariable.dataType,
+        unit: "1"
       };
 
       const result = createVariable(baseModel, copiedVariableData, lang);

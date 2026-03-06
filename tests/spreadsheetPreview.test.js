@@ -21,20 +21,20 @@ describe('renderModelAsHTMLPreview', () => {
     const restaurantXml = fs.readFileSync(
       getFixture('restaurant/model.xml'), 'utf-8'
     )
-    restaurantModel = validateModelCore(restaurantXml, 'restaurant-model.xml', lang)
+    restaurantModel = validateModelCore(restaurantXml, 'restaurant-model.xml', lang, { ignoreUnits: true })
 
     const restaurantNoIdxXml = fs.readFileSync(getFixture('restaurantNoIndices.xml'), 'utf-8')
-    restaurantNoIndicesModel = validateModelCore(restaurantNoIdxXml, 'restaurantNoIndices.xml', lang)
+    restaurantNoIndicesModel = validateModelCore(restaurantNoIdxXml, 'restaurantNoIndices.xml', lang, { ignoreUnits: true })
 
     const airlineXml = fs.readFileSync(
       getFixture('airline/model.xml'), 'utf-8'
     )
-    airlineModel = validateModelCore(airlineXml, 'airline-model.xml', lang)
+    airlineModel = validateModelCore(airlineXml, 'airline-model.xml', lang, { ignoreUnits: true })
 
     const annuityXml = fs.readFileSync(
       getFixture('vendor-format-model.xml'), 'utf-8'
     )
-    annuityModel = validateModelCore(annuityXml, 'vendor-format-model.xml', lang)
+    annuityModel = validateModelCore(annuityXml, 'vendor-format-model.xml', lang, { ignoreUnits: true })
   })
 
   it('returns a non-empty HTML string', () => {
