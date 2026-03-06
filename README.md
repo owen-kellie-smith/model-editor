@@ -27,7 +27,7 @@ Single webpage model-editor with validation, dependency derivation, and executab
 ```bash
 python3 -m http.server 8080
 ```
-then visit http://localhost:8080/docs/index.html
+then visit http://localhost:8080/
 
 3. Load or paste a `language.xml` (e.g. from the Example link) which lists functions (reserved words) in your modelling language.
 4. Load or paste a `model.xml` (e.g. from the [examples folder](docs/examples))
@@ -123,7 +123,7 @@ You can export:
 - **Graph Visualization:** Viz.js (DOT format rendering to SVG)
 - **Spreadsheet Generation:** ExcelJS for creating Excel workbooks with formulas
 - **Testing:** Vitest with jsdom for browser environment simulation
-- **Deployment:** GitHub Pages (static files served from `docs/` directory)
+- **Deployment:** GitHub Pages (served from repository root via GitHub Actions workflow)
 
 ---
 
@@ -168,6 +168,7 @@ All tests are located in the `tests/` directory and map to specific requirements
 ## Project Structure
 
 ```
+index.html              # Main UI entry point (served from repo root)
 src/                    # All application source code
   core/                 # Core business logic (model, language, renderers, etc.)
   utils/                # Shared utilities (helpers, logger, formatters, etc.)
@@ -176,8 +177,7 @@ src/                    # All application source code
   cli/                  # CLI entry point
     index.js            # model-editor command-line tool
   config.js             # Application configuration (log level, etc.)
-docs/                   # Static assets (served via GitHub Pages)
-  index.html            # Main UI entry point
+docs/                   # Static assets
   styles/               # CSS files
   examples/             # Sample XML files
 tests/                  # Vitest test suite
