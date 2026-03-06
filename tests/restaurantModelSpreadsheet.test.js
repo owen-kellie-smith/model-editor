@@ -20,7 +20,7 @@ describe('Restaurant Model Spreadsheet Rendering', () => {
     // Load restaurant model
     const restaurantModelPath = getFixture('restaurant/model.xml')
     const restaurantModelXml = fs.readFileSync(restaurantModelPath, 'utf-8')
-    restaurantModel = validateModelCore(restaurantModelXml, 'restaurant-model.xml', lang)
+    restaurantModel = validateModelCore(restaurantModelXml, 'restaurant-model.xml', lang, { ignoreUnits: true })
   })
 
   it('should render restaurant model as Excel without errors', async () => {

@@ -22,6 +22,7 @@
 
     <variable id="base_rate">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         0.05
       </definition>
@@ -29,6 +30,7 @@
 
     <variable id="spread">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         0.02
       </definition>
@@ -36,6 +38,7 @@
 
     <variable id="total_rate">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         max(base_rate + spread, 0)
       </definition>

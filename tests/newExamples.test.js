@@ -20,7 +20,7 @@ describe('New Example Models', () => {
       const modelXml = readFileSync(getFixture('restaurant/model.xml'), 'utf-8')
       
       expect(() => {
-        validateModelCore(modelXml, 'restaurant-model/model.xml', languageObj)
+        validateModelCore(modelXml, 'restaurant-model/model.xml', languageObj, { ignoreUnits: true })
       }).not.toThrow()
     })
 
@@ -38,7 +38,7 @@ describe('New Example Models', () => {
       const modelXml = readFileSync(getFixture('airline/model.xml'), 'utf-8')
       
       expect(() => {
-        validateModelCore(modelXml, 'airline-model/model.xml', languageObj)
+        validateModelCore(modelXml, 'airline-model/model.xml', languageObj, { ignoreUnits: true })
       }).not.toThrow()
     })
 

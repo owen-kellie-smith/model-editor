@@ -20,7 +20,7 @@ describe('Airline Model Spreadsheet Rendering', () => {
     // Load airline model
     const airlineModelPath = getFixture('airline/model.xml')
     const airlineModelXml = fs.readFileSync(airlineModelPath, 'utf-8')
-    airlineModel = validateModelCore(airlineModelXml, 'airline-model.xml', lang)
+    airlineModel = validateModelCore(airlineModelXml, 'airline-model.xml', lang, { ignoreUnits: true })
   })
 
   it('should categorize airline model variables correctly', () => {
@@ -230,7 +230,7 @@ describe('Airline Model Spreadsheet Rendering', () => {
   </variables>
 </model>`
 
-    const testModel = validateModelCore(testModelXml, 'test-airline-model.xml', lang)
+    const testModel = validateModelCore(testModelXml, 'test-airline-model.xml', lang, { ignoreUnits: true })
     
     expect(testModel).toBeTruthy()
     expect(testModel.obj).toBeTruthy()

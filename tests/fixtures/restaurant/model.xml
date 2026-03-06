@@ -95,6 +95,7 @@
 
     <variable id="table_turnover_rate">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="constant">
         2.5
       </definition>
@@ -102,6 +103,7 @@
 
     <variable id="weekdays_per_month">
       <dataType>integer</dataType>
+      <unit>1</unit>
       <definition type="constant">
         21
       </definition>
@@ -109,6 +111,7 @@
 
     <variable id="weekend_days_per_month">
       <dataType>integer</dataType>
+      <unit>1</unit>
       <definition type="constant">
         9
       </definition>

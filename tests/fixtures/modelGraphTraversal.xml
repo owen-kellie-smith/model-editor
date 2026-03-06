@@ -36,6 +36,7 @@
 
     <variable id="E">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         1.0
       </definition>
@@ -43,6 +44,7 @@
 
     <variable id="D">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         E
       </definition>
@@ -50,6 +52,7 @@
 
     <variable id="B">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         D
       </definition>
@@ -57,6 +60,7 @@
 
     <variable id="C">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         2.0
       </definition>
@@ -64,6 +68,7 @@
 
     <variable id="A">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         B + C
       </definition>
@@ -71,6 +76,7 @@
 
     <variable id="J">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         3.0
       </definition>
@@ -78,6 +84,7 @@
 
     <variable id="I">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         J
       </definition>
@@ -85,6 +92,7 @@
 
     <variable id="G">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         I
       </definition>
@@ -92,6 +100,7 @@
 
     <variable id="H">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         4.0
       </definition>
@@ -99,6 +108,7 @@
 
     <variable id="F">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         G + H
       </definition>
@@ -106,6 +116,7 @@
 
     <variable id="K">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         42.0
       </definition>

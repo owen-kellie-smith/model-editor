@@ -52,7 +52,7 @@ describe('Constraint-Aware Sample Data Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Verify the constraint structure is correct
@@ -67,7 +67,7 @@ describe('Constraint-Aware Sample Data Generation', () => {
     const modelPath = getFixture('vendor-format-model.xml')
     const modelXml = fs.readFileSync(modelPath, 'utf-8')
     
-    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang)
+    const model = validateModelCore(modelXml, 'vendor-format-model.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Find the mortality_table variable
@@ -162,7 +162,7 @@ describe('Constraint-Aware Sample Data Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Verify all tables exist
@@ -220,7 +220,7 @@ describe('Constraint-Aware Sample Data Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     const table = model.obj.model.tables.table

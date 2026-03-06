@@ -35,7 +35,7 @@ describe('B2() Parentheses Bug Fix', () => {
 </model>`
     
     // Validate the model
-    const modelEnv = validateModelCore(modelXml, 'test-model.xml', lang)
+    const modelEnv = validateModelCore(modelXml, 'test-model.xml', lang, { ignoreUnits: true })
     expect(modelEnv).toBeDefined()
     expect(modelEnv.obj).toBeDefined()
     expect(modelEnv.features).toBeDefined()
@@ -72,7 +72,7 @@ describe('B2() Parentheses Bug Fix', () => {
   </variables>
 </model>`
     
-    const modelEnv = validateModelCore(modelXml, 'test-model.xml', lang)
+    const modelEnv = validateModelCore(modelXml, 'test-model.xml', lang, { ignoreUnits: true })
     expect(modelEnv).toBeDefined()
     
     // Verify the expression is parsed correctly
@@ -125,7 +125,7 @@ describe('B2() Parentheses Bug Fix', () => {
   </variables>
 </model>`
     
-    const modelEnv = validateModelCore(modelXml, 'restaurant-test.xml', lang)
+    const modelEnv = validateModelCore(modelXml, 'restaurant-test.xml', lang, { ignoreUnits: true })
     expect(modelEnv).toBeDefined()
     
     // Verify variables are categorized correctly

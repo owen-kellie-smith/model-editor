@@ -32,6 +32,7 @@
     <unit id="GBP_per_year"/>
     <unit id="GBP"/>
     <unit id="years"/>
+    <unit id="per_year"/>
 
   </units>
 
@@ -122,6 +123,7 @@
         <arg indexSet="cohort"/>
       </arguments>
       <dataType>string</dataType>
+      <unit>1</unit>
       <definition type="table">
         <table ref="cohort_data"/>
         <column ref="mortality_table"/>
@@ -151,6 +153,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>integer</dataType>
+      <unit>years</unit>
       <definition type="expression">
         floor(attained_age(cohort, step))
       </definition>
@@ -162,6 +165,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>per_year</unit>
       <definition type="tableLookup">
         <table ref="mortality_rate"/>
         <row ref="attained_age_years_floor"/>
@@ -175,6 +179,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="expression">
         (1 - annual_mortality_rate(cohort, step)) ^ step_length
       </definition>
@@ -186,6 +191,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>1</unit>
     
       <definition type="piecewise">
     
@@ -211,6 +217,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>boolean</dataType>
+      <unit>1</unit>
     
       <definition type="expression">
         attained_age(cohort, step) >= annuity_start_age(cohort)
@@ -223,6 +230,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>1</unit>
     
       <definition type="expression">
         payable_at_start_of_step(cohort, step) ? 1 : 0
@@ -249,6 +257,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>per_year</unit>
       <definition type="table">
         <table ref="spot_rate_table"/>
         <column ref="rate"/>
@@ -260,6 +269,7 @@
         <arg indexSet="step"/>
       </arguments>
       <dataType>real</dataType>
+      <unit>1</unit>
     
       <definition type="expression">
         (1 + spot_rate(step)) ^ (- step * step_length)

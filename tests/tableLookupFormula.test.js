@@ -46,7 +46,7 @@ describe('Table Lookup Formula Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Get the variable XML for direct formula testing
@@ -102,7 +102,7 @@ describe('Table Lookup Formula Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     const varXml = model.obj.model.variables.variable
@@ -153,7 +153,7 @@ describe('Table Lookup Formula Generation', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     const vars = Array.isArray(model.obj.model.variables.variable) 

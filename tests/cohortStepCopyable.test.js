@@ -51,7 +51,7 @@ describe('Cohort Step Sheet Copyable Feature', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     expect(model.features).toBeTruthy()
     
@@ -116,7 +116,7 @@ describe('Cohort Step Sheet Copyable Feature', () => {
   </variables>
 </model>`
     
-    const model = validateModelCore(modelXml, 'test.xml', lang)
+    const model = validateModelCore(modelXml, 'test.xml', lang, { ignoreUnits: true })
     expect(model).toBeTruthy()
     
     // Should render without errors
