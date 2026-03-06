@@ -30,6 +30,10 @@
   },
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "cli": "node ./src/cli/index.js"
+  },
+  "bin": {
+    "model-editor": "./src/cli/index.js"
   }
 }

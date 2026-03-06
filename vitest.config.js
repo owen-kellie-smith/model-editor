@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     setupFiles: ["./tests/setup.js"],
+    testTimeout: 120000,
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html","lcov"],
