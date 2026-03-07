@@ -9,10 +9,12 @@
   <units>
     <unit id="USD"></unit>
     <unit id="USD_per_month"></unit>
-    <unit id="percent"></unit>
+    <unit id="days_per_month"></unit>
+    <unit id="1_per_day"></unit>
     <unit id="customers"></unit>
     <unit id="tables"></unit>
     <unit id="hours"></unit>
+    <unit id="months"></unit>
   </units>
   <variables>
     <variable id="seating_capacity">
@@ -37,18 +39,21 @@
       </definition>
     </variable>
     <variable id="table_turnover_rate">
+      <unit>1_per_day</unit>
       <dataType>real</dataType>
       <definition type="constant">
         2.5
       </definition>
     </variable>
     <variable id="weekdays_per_month">
+      <unit>days_per_month</unit>
       <dataType>integer</dataType>
       <definition type="constant">
         21
       </definition>
     </variable>
     <variable id="weekend_days_per_month">
+      <unit>days_per_month</unit>
       <dataType>integer</dataType>
       <definition type="constant">
         9
@@ -56,21 +61,21 @@
     </variable>
     <variable id="baseline_occupancy_weekday">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.62
       </definition>
     </variable>
     <variable id="baseline_occupancy_weekend">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.88
       </definition>
     </variable>
     <variable id="max_effective_occupancy">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.92
       </definition>
@@ -84,18 +89,20 @@
     </variable>
     <variable id="seasonality_amplitude">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.10
       </definition>
     </variable>
     <variable id="seasonality_phase_shift_months">
       <dataType>real</dataType>
+      <unit>months</unit>
       <definition type="constant">
         -2
       </definition>
     </variable>
     <variable id="seasonality_multiplier">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -120,7 +127,7 @@
     </variable>
     <variable id="monthly_cost_inflation">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.004
       </definition>
@@ -160,12 +167,14 @@
       </definition>
     </variable>
     <variable id="food_markup">
+      <unit>1</unit>
       <dataType>real</dataType>
       <definition type="constant">
         3.0
       </definition>
     </variable>
     <variable id="beverage_markup">
+      <unit>1</unit>
       <dataType>real</dataType>
       <definition type="constant">
         5.0
@@ -193,7 +202,7 @@
     </variable>
     <variable id="beverage_attach_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.75
       </definition>
@@ -213,18 +222,21 @@
       </definition>
     </variable>
     <variable id="meal_price_elasticity">
+      <unit>1</unit>
       <dataType>real</dataType>
       <definition type="constant">
         1.3
       </definition>
     </variable>
     <variable id="beverage_price_elasticity">
+      <unit>1</unit>
       <dataType>real</dataType>
       <definition type="constant">
         1.0
       </definition>
     </variable>
     <variable id="demand_multiplier_meal_price">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -234,6 +246,7 @@
       </definition>
     </variable>
     <variable id="demand_multiplier_beverage_price">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -280,12 +293,14 @@
       </definition>
     </variable>
     <variable id="marketing_decay">
+      <unit>1</unit>
       <dataType>real</dataType>
       <definition type="constant">
         0.60
       </definition>
     </variable>
     <variable id="marketing_stock">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -303,11 +318,13 @@
     </variable>
     <variable id="marketing_lift_per_1000">
       <dataType>real</dataType>
+      <unit>1</unit>
       <definition type="constant">
         0.010
       </definition>
     </variable>
     <variable id="demand_multiplier_marketing">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -317,6 +334,7 @@
       </definition>
     </variable>
     <variable id="demand_multiplier_total">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -333,7 +351,7 @@
         <arg indexSet="month"></arg>
       </arguments>
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         baseline_occupancy_weekday * demand_multiplier_total(month)
       </definition>
@@ -343,7 +361,7 @@
         <arg indexSet="month"></arg>
       </arguments>
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         baseline_occupancy_weekend * demand_multiplier_total(month)
       </definition>
@@ -353,7 +371,7 @@
         <arg indexSet="month"></arg>
       </arguments>
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         min(max_effective_occupancy, raw_occupancy_weekday(month))
       </definition>
@@ -363,7 +381,7 @@
         <arg indexSet="month"></arg>
       </arguments>
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         min(max_effective_occupancy, raw_occupancy_weekend(month))
       </definition>
@@ -410,7 +428,7 @@
     </variable>
     <variable id="waste_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.08
       </definition>
@@ -460,6 +478,7 @@
       </definition>
     </variable>
     <variable id="labor_strain_multiplier">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="month"></arg>
       </arguments>
@@ -478,9 +497,9 @@
         base_labor_cost + labor_cost_per_customer * monthly_total_customers(month) * labor_strain_multiplier(month)
       </definition>
     </variable>
-    <variable id="payroll_tax_benefits_percent">
+    <variable id="payroll_tax_benefits_">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.15
       </definition>
@@ -492,7 +511,7 @@
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
-        monthly_labor_cost(month) * payroll_tax_benefits_percent
+        monthly_labor_cost(month) * payroll_tax_benefits_
       </definition>
     </variable>
     <variable id="rent_base">
@@ -504,7 +523,7 @@
     </variable>
     <variable id="rent_escalation_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.05
       </definition>
@@ -581,9 +600,9 @@
         overhead_base + overhead_per_customer * monthly_total_customers(month)
       </definition>
     </variable>
-    <variable id="card_fee_percent">
+    <variable id="card_fee_">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.032
       </definition>
@@ -595,12 +614,12 @@
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
-        monthly_total_revenue(month) * card_fee_percent
+        monthly_total_revenue(month) * card_fee_
       </definition>
     </variable>
-    <variable id="comp_discount_percent">
+    <variable id="comp_discount_">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.025
       </definition>
@@ -612,7 +631,7 @@
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
-        monthly_total_revenue(month) * comp_discount_percent
+        monthly_total_revenue(month) * comp_discount_
       </definition>
     </variable>
     <variable id="wear_cost_per_customer">
@@ -631,7 +650,7 @@
     </variable>
     <variable id="maintenance_catchup_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.18
       </definition>
@@ -682,6 +701,7 @@
       </definition>
     </variable>
     <variable id="equipment_life_months">
+      <unit>months</unit>
       <dataType>integer</dataType>
       <definition type="constant">
         30
@@ -835,19 +855,20 @@
     </variable>
     <variable id="annual_interest_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.09
       </definition>
     </variable>
     <variable id="monthly_interest_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         annual_interest_rate / 12
       </definition>
     </variable>
     <variable id="principal_paydown_start_month">
+      <unit>1</unit>
       <dataType>integer</dataType>
       <definition type="constant">
         7
@@ -855,7 +876,7 @@
     </variable>
     <variable id="principal_paydown_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.25
       </definition>
@@ -954,7 +975,7 @@
     </variable>
     <variable id="dividend_payout_ratio">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.35
       </definition>
@@ -1074,7 +1095,7 @@
         <arg indexSet="month"></arg>
       </arguments>
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         monthly_profit_after_interest(month) / monthly_total_revenue(month)
       </definition>
