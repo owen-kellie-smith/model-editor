@@ -6,17 +6,30 @@
   <!-- Index sets        -->
   <!-- ================= -->
 
+  <indexSets>
+  </indexSets>
+
+
+  <!-- ================= -->
+  <!-- Units             -->
+  <!-- ================= -->
+
   <units>
 
     <unit id="USD"/>
     <unit id="USD_per_month"/>
-    <unit id="percent"/>
     <unit id="customers"/>
     <unit id="tables"/>
     <unit id="hours"/>
+    <unit id="1_per_day"/>
+    <unit id="days_per_month"/>
 
   </units>
 
+
+  <!-- ================= -->
+  <!-- Variables         -->
+  <!-- ================= -->
 
   <variables>
 
@@ -56,7 +69,7 @@
 
     <variable id="beverage_attach_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.75
       </definition>
@@ -72,6 +85,7 @@
 
     <variable id="table_turnover_rate">
       <dataType>real</dataType>
+      <unit>1_per_day</unit>
       <definition type="constant">
         2.5
       </definition>
@@ -79,6 +93,7 @@
 
     <variable id="weekdays_per_month">
       <dataType>integer</dataType>
+      <unit>days_per_month</unit>
       <definition type="constant">
         21
       </definition>
@@ -86,6 +101,7 @@
 
     <variable id="weekend_days_per_month">
       <dataType>integer</dataType>
+      <unit>days_per_month</unit>
       <definition type="constant">
         9
       </definition>
@@ -93,7 +109,7 @@
 
     <variable id="occupancy_rate_weekday">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.65
       </definition>
@@ -101,7 +117,7 @@
 
     <variable id="occupancy_rate_weekend">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.90
       </definition>
@@ -158,6 +174,9 @@
     </variable>
 
     <variable id="monthly_food_revenue">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
@@ -166,6 +185,9 @@
     </variable>
 
     <variable id="monthly_beverage_revenue">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
@@ -174,6 +196,9 @@
     </variable>
 
     <variable id="monthly_total_revenue">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
@@ -183,17 +208,17 @@
 
     <!-- Cost Structure -->
 
-    <variable id="food_cost_percent">
+    <variable id="food_cost">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.30
       </definition>
     </variable>
 
-    <variable id="beverage_cost_percent">
+    <variable id="beverage_cost">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="constant">
         0.25
       </definition>
@@ -240,18 +265,24 @@
     </variable>
 
     <variable id="monthly_food_cost">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
-        monthly_food_revenue * food_cost_percent
+        monthly_food_revenue * food_cost
       </definition>
     </variable>
 
     <variable id="monthly_beverage_cost">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
-        monthly_beverage_revenue * beverage_cost_percent
+        monthly_beverage_revenue * beverage_cost
       </definition>
     </variable>
 
@@ -264,6 +295,9 @@
     </variable>
 
     <variable id="monthly_total_costs">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
@@ -274,6 +308,9 @@
     <!-- Profitability -->
 
     <variable id="monthly_gross_profit">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
@@ -282,6 +319,9 @@
     </variable>
 
     <variable id="monthly_net_profit">
+      <arguments>
+        
+      </arguments>
       <dataType>currency</dataType>
       <unit>USD_per_month</unit>
       <definition type="expression">
@@ -290,8 +330,11 @@
     </variable>
 
     <variable id="monthly_profit_margin">
+      <arguments>
+        
+      </arguments>
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit>1</unit>
       <definition type="expression">
         monthly_net_profit / monthly_total_revenue
       </definition>
@@ -300,4 +343,3 @@
   </variables>
 
 </model>
-
