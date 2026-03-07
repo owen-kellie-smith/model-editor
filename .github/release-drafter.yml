@@ -1,0 +1,5 @@
+name-template: 'Release $NEXT_VERSION'
+tag-template: '$NEXT_VERSION'
+categories: []
+change-template: '* $TITLE by @$AUTHOR (#$NUMBER)'
+publish: false
