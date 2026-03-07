@@ -6,6 +6,6 @@ export const exampleFiles = [
   { category: "model", path: "docs/examples/restaurant-model/restaurantNoIndices.xml" },
   { category: "model", path: "docs/examples/restaurant-model/seasonal.xml" },
   { category: "model", path: "docs/examples/restaurant-model/model.xml" },
-  { category: "model", path: "docs/examples/airline-model/model.xml" },
-  { category: "model", path: "docs/examples/airline-model/Dividends.xml" },
+  { category: "model", path: "docs/examples/airline-model/airline_no_seasons.xml" },
+  { category: "model", path: "docs/examples/airline-model/airline_with_seasons.xml" },
 ];
