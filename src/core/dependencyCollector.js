@@ -8,6 +8,15 @@ PARAMETERS:
   text – the full input string  e.g. "foo(step + 3)"
   keyword (optional) – the shift keyword - defaults to "step"
 */
+/**
+ * Extracts the integer time-step shift for a given reference inside an expression.
+ * For example, given ref="B" and text="B(step - 2)", returns -2.
+ *
+ * @param {string} ref - The identifier to look for (e.g. a variable name)
+ * @param {string} text - The full expression string to search
+ * @param {string} keyword - The shift keyword to look for inside the call (e.g. "step")
+ * @returns {number} The shift amount (positive or negative integer), or 0 if no shift found
+ */
 function computeShift(ref, text, keyword) {
 
   const re = new RegExp(ref + "\\s*\\(([^)]*)\\)", "i");
@@ -30,6 +39,11 @@ function computeShift(ref, text, keyword) {
 /**
  * Computes a shift for any of the provided index keywords.
  * Priority order is the order of `keywords`.
+ *
+ * @param {string} ref - The identifier to look for
+ * @param {string} text - The full expression string to search
+ * @param {string[]} keywords - Ordered list of shift keywords to try
+ * @returns {number} The first non-zero shift found, or 0 if no shift is detected
  */
 function computeShiftAny(ref, text, keywords) {
   for (const kw of keywords) {
@@ -40,11 +54,33 @@ function computeShiftAny(ref, text, keywords) {
   return 0
 }
 
+/**
+ * Creates a dependency collector that accumulates variable references found in
+ * a variable's definition into the provided `deps` Set.
+ *
+ * The returned object exposes `addDependenciesFromDefinition`, which dispatches
+ * to the appropriate parser for each definition type (expression, piecewise,
+ * tableLookup).
+ *
+ * @param {{ indexSets: Map, units: Map, tables: Map, variables: Map }} symbols - Model symbol maps
+ * @param {Object} lang - Language environment containing the `functions` Map
+ * @param {string} ownerName - Name of the variable being analysed (used in error messages)
+ * @param {Set<{ name: string, shift: number }>} deps - Set to accumulate dependencies into
+ * @returns {{ addDependenciesFromDefinition: (def: Object) => void }}
+ */
 export function makeDependencyCollector(symbols, lang, ownerName, deps) {
 
   // --------------------------------------------------
   // low level primitive
   // --------------------------------------------------
+  /**
+   * Adds a single variable reference to `deps` after validating it exists.
+   * Detects temporal shifts by inspecting the surrounding expression text.
+   *
+   * @param {string} ref - Uppercase identifier to validate and add
+   * @param {{ label?: string, text?: string }} [options={}] - Optional context for error messages and shift detection
+   * @throws {Error} If `ref` is not a known variable
+   */
   function addDependencyIfVariable(ref, options = {}) {
     const { label = "", ...extra } = options;
 
@@ -69,6 +105,13 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
   // --------------------------------------------------
   // expression
   // --------------------------------------------------
+  /**
+   * Scans an expression or constant text node for variable references and
+   * adds each to `deps`, skipping language functions, runtime identifiers,
+   * table-only identifiers, and index set names.
+   *
+   * @param {{ "#text"?: string } | string} node - The text node to analyse
+   */
   function addDependenciesFromExpression(node) {
     const rawText = node?.["#text"] ?? "";
     const text = removeStringLiterals(rawText);
@@ -88,6 +131,12 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
   // --------------------------------------------------
   // table lookup
   // --------------------------------------------------
+  /**
+   * Extracts the row-selector and column-selector variable references from
+   * a tableLookup definition and adds them to `deps`.
+   *
+   * @param {{ row?: { ref?: string }, columnSelector?: { ref?: string } }} def - The tableLookup definition object
+   */
   function addDependenciesFromTableLookup(def) {
     const row = def.row?.ref?.toUpperCase();
     if (row) {
@@ -103,6 +152,13 @@ export function makeDependencyCollector(symbols, lang, ownerName, deps) {
   // --------------------------------------------------
   // dispatcher (the brain)
   // --------------------------------------------------
+  /**
+   * Dispatches to the appropriate dependency-extraction function based on
+   * the definition's `type` property (expression, piecewise, or tableLookup).
+   * Does nothing if `def` is absent or has an unrecognised type.
+   *
+   * @param {{ type?: string } | null} def - The variable definition object
+   */
   function addDependenciesFromDefinition(def) {
     if (!def) return;
 

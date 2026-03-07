@@ -18,6 +18,14 @@ import {
 // JS-side helpers for emitting Python
 // ------------------------------------------------------------
 
+/**
+ * Emits Python helper functions for cache-only variable lookups and
+ * single-step value computation that avoids infinite self-recursion.
+ * Appends lines of Python source code to the `lines` array.
+ *
+ * @param {string[]} lines - Array of Python source lines to append to
+ * @returns {void}
+ */
 function emitCacheOnlyEvaluator(lines) {
   // Cache-only lookup for *any* var (no lazy compute)
   lines.push("def G_cache_only(var_id: str, *args: Any) -> Any:");
@@ -66,6 +74,14 @@ function emitCacheOnlyEvaluator(lines) {
 }
 
  
+/**
+ * Emits the Python block that precomputes temporal self-recursive variables
+ * iteratively (forward or backward through time) to avoid unbounded Python recursion.
+ * Must be called with lines that will be indented inside `main()` (4 spaces).
+ *
+ * @param {string[]} lines - Array of Python source lines to append to
+ * @returns {void}
+ */
 function emitIterativeTemporalRecursions(lines) {
   // This block must be indented inside main() (4 spaces).
   const L = (s = "") => lines.push(`    ${s}`);
@@ -127,17 +143,37 @@ function emitIterativeTemporalRecursions(lines) {
   L("");
 }
 
+/**
+ * Normalises a value to a trimmed single-space string.
+ *
+ * @param {*} s - The value to normalise
+ * @returns {string} Trimmed string with consecutive whitespace collapsed to a single space
+ */
 function normalize(s) {
   return String(s ?? "").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Wraps a value in a JSON-encoded Python string literal.
+ * Uses JSON.stringify to produce a safely escaped double-quoted string.
+ *
+ * @param {*} s - The value to escape
+ * @returns {string} A Python string literal, e.g. `"hello\\nworld"`
+ */
 function escapePyString(s) {
   // JSON.stringify gives us a safe double-quoted string literal.
   return JSON.stringify(String(s ?? ""));
 }
 
-// Convert a single (top-level) ternary "cond ? a : b" into Python "(a if cond else b)".
-// Handles nesting reasonably by tracking parentheses/brackets/braces.
+/**
+ * Converts a top-level JavaScript ternary expression (`cond ? a : b`) into
+ * Python's equivalent conditional expression (`(a if cond else b)`).
+ * Handles nesting by tracking parenthesis/bracket/brace depth.
+ * Returns the original string unchanged if no ternary is found.
+ *
+ * @param {string} expr - The expression string that may contain a ternary operator
+ * @returns {string} The expression with the outermost ternary rewritten for Python
+ */
 function convertTernary(expr) {
   let s = String(expr ?? "");
   let depth = 0;
@@ -164,6 +200,17 @@ function convertTernary(expr) {
   return `(${a} if ${cond} else ${b})`;
 }
 
+/**
+ * Translates a model expression string into a Python expression string.
+ * Applies a series of transformations: ternary rewriting, operator substitution,
+ * and replacement of bare variable identifiers with `G("id", ...)` calls.
+ *
+ * @param {string} expr - The model expression text to translate
+ * @param {string[]} varIdsLongestFirst - All variable IDs sorted longest-first to avoid partial matches
+ * @param {Object<string, string[]>} domains - Map from variable ID to its index-set domain array
+ * @param {string} temporalId - The temporal index set identifier (e.g. "step")
+ * @returns {string} A Python expression string
+ */
 function translateExprToPython(expr, varIdsLongestFirst, domains, temporalId) {
   let s = normalize(expr);
   if (!s) return "0";
@@ -233,6 +280,14 @@ function translateExprToPython(expr, varIdsLongestFirst, domains, temporalId) {
   // A simple regex pass will match word-boundaries inside quotes and corrupt the expression
   // into things like V("V(\"radius\")"). Instead, scan the string and only substitute when we're
   // not inside quotes.
+  /**
+   * Replaces all bare (non-call) occurrences of a variable identifier in an expression string
+   * with a `G("id")` lookup call, while skipping any occurrences that appear inside string literals.
+   *
+   * @param {string} input - The expression string to transform
+   * @param {string} vid - The variable identifier to replace
+   * @returns {string} The transformed expression string
+   */
   function replaceBareIdOutsideStrings(input, vid) {
     const esc = vid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = new RegExp(`\\b${esc}\\b(?!\\s*\\()`, "g");
@@ -269,6 +324,15 @@ function translateExprToPython(expr, varIdsLongestFirst, domains, temporalId) {
   return s;
 }
 
+/**
+ * Computes a deterministic topological evaluation order for variables at a single index point.
+ * Only considers shift==0 (same-point) dependencies; shifted dependencies are handled by the
+ * outer temporal loop. Falls back to appending any remaining variables if a full sort is impossible.
+ *
+ * @param {Object<string, Object>} defs - Map from variable ID to its definition metadata
+ * @param {Object<string, Array<{ name: string, shift: number }>>} deps - Map from variable ID to its incoming dependencies
+ * @returns {string[]} Ordered array of variable IDs
+ */
 function topoSortVarsForPoint(defs, deps) {
   // Deterministic per-index-point evaluation order.
   // Only consider shift==0 dependencies (same index point). Shifted deps are satisfied by outer temporal loop.
@@ -314,6 +378,13 @@ function topoSortVarsForPoint(defs, deps) {
   return out;
 }
 
+/**
+ * Converts the model's table sheets (from buildTableSheetsData) into a compact
+ * JSON literal for embedding as default input data in the generated Python script.
+ *
+ * @param {Object} modelObj - The model object
+ * @returns {string} A JSON string mapping table IDs to { headers, rows } objects
+ */
 function pythonLiteralTableSheets(modelObj) {
   const sheets = buildTableSheetsData(modelObj);
   // Convert to a minimal dict: tableId -> {headers, rows}

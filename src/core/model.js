@@ -32,6 +32,16 @@ export function getUnitValue(raw) {
 }
 
 
+/**
+ * Parses and validates a raw XML model string, returning the parsed object and computed features.
+ *
+ * @param {string} text - The raw XML text of the model
+ * @param {string} filename - Label used in error messages to identify the source
+ * @param {Object} lang - Language environment (from getFunctionsFromLanguage)
+ * @param {Object} [options={}] - Validation options (e.g. { ignoreUnits: true })
+ * @returns {{ features: Object, obj: Object, filename: string }} Validated model result
+ * @throws {Error} If the XML is invalid or the model violates domain rules
+ */
 export function validateModelCore(text, filename, lang, options = {}) {
   const xml = parseXmlOrThrow(text, filename);
   const obj = getObjectFromXML(xml);
@@ -42,6 +52,16 @@ export function validateModelCore(text, filename, lang, options = {}) {
 
   // returns in one object maps of indexSets, units, tables, variables in xml
   // throws error if domain rules are broken (duplicate index sets, duplicate variables)
+/**
+ * Builds case-insensitive maps of all model properties (indexSets, units, tables, variables).
+ * Also validates units for non-legacy models and applies the legacy XML fallback loader
+ * when no `<variables>` element is present.
+ *
+ * @param {Object} xml - Parsed model object (from getObjectFromXML)
+ * @param {Object} [options={}] - Options, e.g. { ignoreUnits: true } to skip unit validation
+ * @returns {{ indexSets: Map, units: Map, tables: Map, variables: Map }}
+ * @throws {Error} If duplicates are found or a variable references an undeclared unit
+ */
 export function getMapsOfModelProperties(xml, options = {}) {
     const indexSets = new Map();
     const units = new Map();
@@ -126,6 +146,14 @@ export function getMapsOfModelProperties(xml, options = {}) {
 
  // returns map of variables whose arguments are verified to be IndexSets
   // throws error if domain rules are broken (arguments not recognised as IndexSets)
+/**
+ * Resolves variable arguments, confirming each argument refers to a known index set.
+ * Returns a map from uppercase variable name to { name, domain, xml }.
+ *
+ * @param {{ indexSets: Map, variables: Map }} symbols - Maps produced by getMapsOfModelProperties
+ * @returns {Map<string, { name: string, domain: string[], xml: Object }>}
+ * @throws {Error} If any variable argument does not correspond to a declared index set
+ */
 export function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
     const resolved = new Map(); 
     for (const [name, v] of symbols.variables) {
@@ -151,6 +179,16 @@ export function getVariablesWithTheirArgumentsConfirmedAsIndexSets(symbols) {
 
   // gets a map of incoming variables (variables that flow into each variable)
   // throws error if there is an undefined reference: string in formula not a variable nor a function, or undefined table)
+/**
+ * Builds a map of incoming dependencies for every variable.
+ * For each variable, the set contains all variables whose values it directly uses.
+ *
+ * @param {{ indexSets: Map, units: Map, tables: Map, variables: Map }} symbols
+ * @param {Map<string, { name: string, domain: string[], xml: Object }>} resolvedVarsWithArguments
+ * @param {Object} lang - Language environment (from getFunctionsFromLanguage)
+ * @returns {Map<string, Set<{ name: string, shift: number }>>}
+ * @throws {Error} If a formula contains a reference that is neither a known variable nor a function
+ */
 export function getIncoming(symbols, resolvedVarsWithArguments, lang) {
   const incomingAll = new Map(); 
 
@@ -169,6 +207,14 @@ export function getIncoming(symbols, resolvedVarsWithArguments, lang) {
 
   // gets a map of outgoing variables (variables that this variable flows into)
   // for each variable, shows which variables use it as input
+/**
+ * Builds a map of outgoing dependencies (the inverse of incoming).
+ * For each variable, the set contains all variables that directly depend on it.
+ *
+ * @param {Map<string, Set<{ name: string, shift: number }>>} incomingAll
+ * @param {Map<string, { name: string, domain: string[], xml: Object }>} resolvedVarsWithArguments
+ * @returns {Map<string, Set<{ name: string, shift: number }>>}
+ */
 export function getOutgoing(incomingAll, resolvedVarsWithArguments) {
   const outgoingAll = new Map();
   
@@ -195,6 +241,15 @@ export function getOutgoing(incomingAll, resolvedVarsWithArguments) {
 }
 
   // throw an error if e.g. A flows into C which flows into B which flows into A.
+/**
+ * Detects circular dependency chains in the variable graph and throws if one is found.
+ * Uses a BFS-style walk keyed on `{variableName}@{timeOffset}` to correctly allow
+ * shifted self-references (e.g. B(t) = B(t-1)) while still catching true cycles.
+ *
+ * @param {Map<string, Set<{ name: string, shift: number }>>} incoming - Map from variable name to its incoming dependencies
+ * @returns {void}
+ * @throws {Error} If a circular dependency is detected
+ */
 export function throwErrorForCircularExpressions(incoming) {
 
   for (const root of incoming.keys()) {
@@ -260,6 +315,13 @@ export function throwErrorForCircularExpressions(incoming) {
  
     
   // gets words from exprText
+/**
+ * Extracts all word-like identifier tokens from an expression string.
+ * A token matches the pattern `[a-zA-Z_][a-zA-Z0-9_]*` (i.e. a valid identifier).
+ *
+ * @param {string} exprText - The expression text to scan
+ * @returns {string[]} Deduplicated array of identifier strings found in the expression
+ */
 export  function getIdentifierTokens(exprText) {
   const regex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g; // \b is word boundary so \b ... \b encloses a word
 
@@ -274,6 +336,16 @@ export  function getIdentifierTokens(exprText) {
   }
 
 // passes xmlModel and lang to parsers to get an object containing parsed model features (variables, incoming and outgoing variables) 
+/**
+ * Orchestrates the full model parsing pipeline: builds symbol maps, resolves arguments,
+ * computes incoming/outgoing dependency maps, and checks for circular expressions.
+ *
+ * @param {Object} xmlModel - Parsed model object (from getObjectFromXML)
+ * @param {Object} lang - Language environment (from getFunctionsFromLanguage)
+ * @param {Object} [options={}] - Options passed through to getMapsOfModelProperties
+ * @returns {{ indexSets: string[], variables: string[], resolvedVarsWithArguments: Map, incoming: Map, outgoing: Map }}
+ * @throws {Error} If any domain rule is violated (unknown reference, duplicate, unit error, circular expression, etc.)
+ */
 export  function getModelFeatures(xmlModel, lang, options = {}) {
     const symbols = getMapsOfModelProperties(xmlModel, options);
   log("debug","symbols:", symbols);

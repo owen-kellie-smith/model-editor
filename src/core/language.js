@@ -6,6 +6,15 @@ export const runtimeIdentifiers = new Set([
   "T"
 ]);
 
+/**
+ * Parses a language XML document and returns a map of declared functions.
+ * Each function entry records its arity, minArgs, and maxArgs.
+ *
+ * @param {Document} xmlDoc - Parsed XML document (from parseXmlOrThrow)
+ * @param {string} filename - Label used in error messages to identify the source
+ * @returns {{ functions: Map<string, { arity: number, minArgs: number, maxArgs: number }> }}
+ * @throws {Error} If any function declaration is missing a name or has non-numeric arity/minArgs/maxArgs
+ */
 export function getFunctionsFromLanguage(xmlDoc, filename) {
   const functions = new Map();
   const fnNodes = xmlDoc.querySelectorAll("functions > function");

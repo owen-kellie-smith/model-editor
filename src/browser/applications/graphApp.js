@@ -316,6 +316,15 @@ function attachNodeClickHandlers() {
  *
  * @returns {Promise<void>}
  */
+/**
+ * Generates the dependency graph for the currently focused variable(s), renders it
+ * to DOT format, attempts SVG rendering via Viz.js, and updates all related UI elements
+ * (DOT source panel, SVG container, download links, copy link).
+ *
+ * Uses the `focusedVariables` set when populated, otherwise falls back to the dropdown selection.
+ *
+ * @returns {Promise<void>}
+ */
 async function generateGraph() {
   const modelEnv = getModelEnv();
   if (!modelEnv || !modelEnv.features) {
@@ -380,7 +389,11 @@ async function generateGraph() {
 }
 
 /**
- * Wire up the graph UI handlers
+ * Wires all UI event handlers for the graph panel (variable dropdown, depth selector,
+ * fit-to-screen checkbox, sort checkbox, download links, DOT copy link, and
+ * the `modelLoaded` window event that resets the graph when a new model is loaded).
+ *
+ * @returns {void}
  */
 export function wireGraphHandlers() {
   // Populate depth dropdown once on load

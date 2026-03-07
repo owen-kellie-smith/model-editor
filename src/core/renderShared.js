@@ -73,6 +73,13 @@ export function buildVariableMap(modelObj) {
   return variableMap
 }
 
+/**
+ * Builds a case-insensitive Map from variable ID to normalised data type string.
+ * Handles both plain-string and `{ "#text": "..." }` object forms of the dataType property.
+ *
+ * @param {Map<string, Object>} variableMap - Map from uppercase variable ID to variable XML object
+ * @returns {Map<string, string>} Map from uppercase variable ID to lowercase data type string
+ */
 export function buildDataTypeMap(variableMap) {
   const m = new Map()
   if (!variableMap) return m
@@ -112,6 +119,14 @@ export function buildInputConfigData(ctx) {
 // Table sheet generation (shared across XLSX/HTML/Python)
 // ------------------------------------------------------------
 
+/**
+ * Builds a Map of table definitions from the model object.
+ * Each entry includes the table id, rowIndex reference, optional rowIndex min/max,
+ * and an array of column descriptors.
+ *
+ * @param {Object} modelObj - The model object (from getObjectFromXML)
+ * @returns {Map<string, { id: string, rowIndex: string, rowIndexMin?: number, rowIndexMax?: number, columns: Array }>}
+ */
 function extractTableDefinitions(modelObj) {
   const map = new Map()
   const tables = asArray(modelObj?.model?.tables?.table)
@@ -133,6 +148,13 @@ function extractTableDefinitions(modelObj) {
   return map
 }
 
+/**
+ * Extracts `mustResolveAs / columnOf` constraints from variable definitions.
+ * Returns a Map from variable ID to its column-of-table constraint.
+ *
+ * @param {Object} modelObj - The model object
+ * @returns {Map<string, { columnOfTable: string }>}
+ */
 function extractColumnConstraints(modelObj) {
   const m = new Map()
   const vars = asArray(modelObj?.model?.variables?.variable)
@@ -148,6 +170,14 @@ function extractColumnConstraints(modelObj) {
   return m
 }
 
+/**
+ * Resolves the valid column IDs for a `columnOf` constraint by looking up the referenced table.
+ * Falls back to default placeholder column names if the table has no declared columns.
+ *
+ * @param {string} tableId - The table identifier to look up
+ * @param {Map<string, Object>} tableDefs - Table definitions from extractTableDefinitions
+ * @returns {string[]} Array of valid column ID strings
+ */
 function resolveColumnOfConstraint(tableId, tableDefs) {
   const t = tableDefs.get(tableId)
   if (!t) return []
@@ -158,6 +188,14 @@ function resolveColumnOfConstraint(tableId, tableDefs) {
   return [`${tableId}_column1`, `${tableId}_column2`]
 }
 
+/**
+ * Determines how many sample data rows to generate for a table sheet.
+ * Uses the declared rowIndex min/max range when available, capping at 10 for large ranges.
+ * Defaults to 5 rows when no range information is present.
+ *
+ * @param {{ rowIndexMin?: number, rowIndexMax?: number }} tableDef - The table definition
+ * @returns {number} The number of sample rows to generate
+ */
 function determineSampleRowCount(tableDef) {
   if (tableDef.rowIndexMin !== undefined && tableDef.rowIndexMax !== undefined) {
     const range = tableDef.rowIndexMax - tableDef.rowIndexMin + 1
@@ -167,6 +205,20 @@ function determineSampleRowCount(tableDef) {
   return 5
 }
 
+/**
+ * Generates a single sample cell value for use in table preview rows.
+ * Picks an appropriate value based on the column's data type, and respects
+ * min/max bounds and constrained valid values when provided.
+ *
+ * @param {string} _id - Column identifier (unused; reserved for future use)
+ * @param {string} dataType - The column data type (e.g. "string", "boolean", "integer", "real")
+ * @param {number} i - Zero-based row index within the sample
+ * @param {number|undefined} min - Minimum allowed value (numeric columns)
+ * @param {number|undefined} max - Maximum allowed value (numeric columns)
+ * @param {string} _tableId - Parent table identifier (unused; reserved for future use)
+ * @param {string[]|null} validValues - Pre-approved list of values (e.g. from a columnOf constraint)
+ * @returns {string|number} The generated sample value
+ */
 function generateSampleValue(_id, dataType, i, min, max, _tableId, validValues) {
   const dt = String(dataType ?? '').toLowerCase()
   if (validValues && validValues.length) return validValues[Math.min(i, validValues.length - 1)]
