@@ -10,3 +10,4 @@ tag-template: '$NEXT_VERSION'
 categories: []
 change-template: '* $TITLE by @$AUTHOR (#$NUMBER)'
 publish: false
+target_commitish: main
