@@ -35,6 +35,8 @@
     <unit id="GBP_per_year"/>
     <unit id="GBP"/>
     <unit id="years"/>
+    <unit id="1_per_year"/>
+    <unit id="1_per_month"/>
 
   </units>
 
@@ -94,6 +96,7 @@
     </variable>
 
     <variable id="within_projection_limit">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="step"/>
       </arguments>
@@ -145,6 +148,7 @@
         <arg indexSet="cohort"/>
       </arguments>
       <dataType>string</dataType>
+      <unit>1</unit>
       <definition type="table">
         <table ref="cohort_data"/>
         <column ref="mortality_table"/>
@@ -169,6 +173,7 @@
     </variable>
 
     <variable id="attained_age_years_floor">
+      <unit>years</unit>
       <arguments>
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
@@ -180,6 +185,7 @@
     </variable>
 
     <variable id="annual_mortality_rate">
+      <unit>1_per_year</unit>
       <arguments>
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
@@ -193,6 +199,8 @@
     </variable>
 
     <variable id="monthly_survival_rate">
+      <unit>1_per_month</unit>
+      <arguments>
       <arguments>
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
@@ -204,6 +212,7 @@
     </variable>
 
     <variable id="survival_to_start_of_step">
+      <unit>1</unit>
       <arguments>
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
