@@ -9,6 +9,7 @@
   <units>
     <unit id="USD"></unit>
     <unit id="USD_per_month"></unit>
+    <unit id="1_per_year"></unit>
     <unit id="percent"></unit>
     <unit id="passengers"></unit>
     <unit id="seats"></unit>
@@ -124,10 +125,10 @@
     </variable>
     <variable id="annual_interest_rate">
       <dataType>real</dataType>
-      <unit></unit>
       <definition type="constant">
         0.065
       </definition>
+      <unit>1_per_year</unit>
     </variable>
     <variable id="initial_debt">
       <dataType>currency</dataType>
