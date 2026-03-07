@@ -201,7 +201,6 @@
     <variable id="monthly_survival_rate">
       <unit>1_per_month</unit>
       <arguments>
-      <arguments>
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
       </arguments>
@@ -247,6 +246,7 @@
       <definition type="expression">
         attained_age(cohort, step) >= annuity_start_age(cohort)
       </definition>
+      <unit>1</unit>
     </variable>
 
     <variable id="payment_indicator">
@@ -259,6 +259,7 @@
       <definition type="expression">
         payable_at_start_of_step(cohort, step) ? 1 : 0
       </definition>
+      <unit>1</unit>
     </variable>
 
     <variable id="cashflow">
@@ -285,6 +286,7 @@
         <table ref="spot_rate_table"/>
         <column ref="rate"/>
       </definition>
+      <unit>1_per_year</unit>
     </variable>
 
     <variable id="discount_factor">
@@ -296,6 +298,7 @@
       <definition type="expression">
         (1 + spot_rate(step)) ^ (- step * step_length)
       </definition>
+      <unit>1</unit>
     </variable>
 
     <variable id="discounted_cashflow">
@@ -327,6 +330,7 @@
         <arg indexSet="cohort"/>
         <arg indexSet="step"/>
       </arguments>
+      <unit>GBP</unit>
       <dataType>real</dataType>
     
       <definition type="piecewise">
