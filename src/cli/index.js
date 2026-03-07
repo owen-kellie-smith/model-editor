@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseCliArgs } from './argParsing.js';
+import { formatErrorNoStack } from '../utils/formatters.js';
 import { runValidate, validateCommandUsage } from './commands/validate.js';
 import { runGraph, graphCommandUsage } from './commands/graph.js';
 import { runExportPython, exportPythonCommandUsage } from './commands/export-python.js';
@@ -41,11 +42,11 @@ try {
   const result = handler(parseCliArgs(rest));
   if (result && typeof result.then === 'function') {
     result.catch(error => {
-      console.error(error.message || String(error));
+      console.error(formatErrorNoStack(error));
       process.exit(1);
     });
   }
 } catch (error) {
-  console.error(error.message || String(error));
+  console.error(formatErrorNoStack(error));
   process.exit(1);
 }
