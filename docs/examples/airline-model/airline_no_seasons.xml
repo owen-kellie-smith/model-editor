@@ -15,6 +15,7 @@
     <unit id="flights"></unit>
     <unit id="hours"></unit>
     <unit id="miles"></unit>
+    <unit id="aircraft"></unit>
   </units>
   <variables>
     <variable id="aircraft_count">
@@ -22,6 +23,7 @@
       <definition type="constant">
         10
       </definition>
+      <unit>aircraft</unit>
     </variable>
     <variable id="seats_per_aircraft">
       <dataType>integer</dataType>
@@ -42,18 +44,21 @@
       <definition type="constant">
         7500
       </definition>
+      <unit>USD</unit>
     </variable>
     <variable id="avg_ticket_price">
       <dataType>real</dataType>
       <definition type="constant">
         165
       </definition>
+      <unit>USD</unit>
     </variable>
     <variable id="avg_load_factor">
       <dataType>real</dataType>
       <definition type="constant">
         0.83
       </definition>
+      <unit>1</unit>
     </variable>
     <variable id="total_monthly_flights">
       <arguments>
@@ -119,7 +124,7 @@
     </variable>
     <variable id="annual_interest_rate">
       <dataType>real</dataType>
-      <unit>percent</unit>
+      <unit></unit>
       <definition type="constant">
         0.065
       </definition>

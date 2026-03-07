@@ -13,8 +13,22 @@ import { log } from "../utils/logger.js"
  */
 export function getUnitValue(raw) {
   if (raw === undefined || raw === null) return "";
-  if (typeof raw === "object" && raw["#text"] !== undefined) return String(raw["#text"]).trim();
-  return String(raw).trim();
+
+  if (typeof raw === "string" || typeof raw === "number") {
+    return String(raw).trim();
+  }
+
+  if (typeof raw === "object") {
+    if (raw["#text"] !== undefined) {
+      return String(raw["#text"]).trim();
+    }
+
+    // fallback: try first value in object
+    const val = Object.values(raw)[0];
+    return val ? String(val).trim() : "";
+  }
+
+  return "";
 }
 
 
@@ -96,6 +110,8 @@ export function getMapsOfModelProperties(xml, options = {}) {
       for (const [, v] of variables) {
         const unitValue = getUnitValue(v.unit);
 
+//console.log("RAW UNIT:", v.unit);
+//console.log("UNIT VALUE:", unitValue);
         if (!unitValue) {
           throwModelError("Variable is missing a unit; use '1' for dimensionless", { variable: v.id });
         }
