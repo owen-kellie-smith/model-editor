@@ -51,7 +51,7 @@ This model implements a **planar circular restricted three-body problem with thr
 |---|---|---|---|---|
 | Initial Moon phase angle | $$P$$  | `moon_phase0` | 1.93 | rad   |
 | Initial height of spacecraft above surface of Earth  | $$H$$  | `x0` | 200 | km  |
-| Initial speed of spacecraft (for circular orbit of Earth) | $$\sqrt{\frac{\mu}{\rho + H}}$$  | `vy0` | 1.93 | km^3/s^2  |
+| Initial speed of spacecraft (for circular orbit of Earth) | $$\sqrt{\frac{\mu}{\rho + H}}$$  | `vy0` | 1.93 | km/s  |
 
 ### Spacecraft Control Constants for Trans Lunar Injection (TLI) 
 
