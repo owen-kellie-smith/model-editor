@@ -20,10 +20,22 @@ let activePreviewCohortId = 1;
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
+/**
+ * Returns the current model environment, or null if no model has been loaded.
+ *
+ * @returns {{ features: Object, obj: Object, filename: string }|null}
+ */
 export function getModelEnv() {
   return modelEnv;
 }
 
+/**
+ * Replaces the current model environment and fires a `modelLoaded` window event
+ * so that other UI components (graph, variable list, etc.) can refresh.
+ *
+ * @param {{ features: Object, obj: Object, filename: string }} newModelEnv - The new model environment
+ * @returns {void}
+ */
 export function setModelEnv(newModelEnv) {
   modelEnv = newModelEnv;
   modelCommitTime = new Date();
@@ -33,10 +45,22 @@ export function setModelEnv(newModelEnv) {
   window.dispatchEvent(new CustomEvent('modelLoaded'));
 }
 
+/**
+ * Sets the content of the log area in the UI.
+ *
+ * @param {string|Element} s - The content to display
+ * @returns {void}
+ */
 function setLogText(s) {
   setElementContent(ui.log, s)
 }
 
+/**
+ * Returns false and shows an error in the log if the language environment has not been loaded.
+ * Used as a guard before model operations that require a language.
+ *
+ * @returns {boolean} True if the language is loaded; false otherwise
+ */
 function languageEnvIsSet() {
   if (!getLanguageEnv()) {
     setLogText("✖ Load language.xml first.");
@@ -45,6 +69,11 @@ function languageEnvIsSet() {
   return true;
 }
 
+/**
+ * Updates the "loaded at" timestamp label for the model panel.
+ *
+ * @returns {void}
+ */
 function updateLoadedInfo() {
   if (modelCommitTime) {
     ui.modelLoaded.textContent = `Loaded: ${modelCommitTime.toLocaleString()}`;
@@ -53,6 +82,12 @@ function updateLoadedInfo() {
   }
 }
 
+/**
+ * Compares the current model textarea text against the last committed text and
+ * shows or hides the "Unapplied changes" indicator accordingly.
+ *
+ * @returns {void}
+ */
 function updateDirtyIndicator() {
   const isDirty = lastCommittedText !== null && ui.modelText.value.trim() !== lastCommittedText;
   
@@ -65,6 +100,16 @@ function updateDirtyIndicator() {
   }
 }
 
+/**
+ * Validates the given XML model text, updates the log, model environment, status indicator,
+ * spreadsheet preview, and dispatches a `modelLoaded` event on success.
+ * On failure, clears the model environment and disables export buttons.
+ *
+ * @param {string} text - The raw XML model text to validate
+ * @param {string} filename - Label used in error messages to identify the source
+ * @param {Object} lang - Language environment (from getLanguageEnv)
+ * @returns {void}
+ */
 export function validateModel(text, filename, lang) {
   try {
     text = text.trim();
@@ -104,6 +149,15 @@ export function validateModel(text, filename, lang) {
     updateDirtyIndicator();  // ✅ ADD THIS - also update on error
   }
 }
+/**
+ * Validates the model XML currently in the textarea and updates the status indicator.
+ * Enables or disables the "Load Model" button based on whether the XML is valid.
+ * Also updates the log with the current model information or the validation error.
+ *
+ * @param {string} text - The current textarea content to validate
+ * @param {Object} lang - Language environment (from getLanguageEnv)
+ * @returns {void}
+ */
 function validateModelContent(text, lang) {
   if (!text.trim()) {
     updateModelStatus("", "error");
@@ -124,11 +178,26 @@ function validateModelContent(text, lang) {
   }
 }
 
+/**
+ * Updates the model status indicator with the given message and CSS status class.
+ *
+ * @param {string} message - The status message to display
+ * @param {"success"|"error"} statusClass - CSS class controlling the indicator colour
+ * @returns {void}
+ */
 function updateModelStatus(message, statusClass) {
   ui.modelStatus.textContent = message;
   ui.modelStatus.className = `status ${statusClass}`;
 }
 
+/**
+ * Schedules a deferred call to validateModelContent after the user stops typing.
+ * Immediately updates the dirty indicator on every keystroke.
+ *
+ * @param {string} text - The current textarea content
+ * @param {Object} lang - Language environment (from getLanguageEnv)
+ * @returns {void}
+ */
 function debouncedValidateModel(text, lang) {
   // Clear any pending validation
   if (validationTimeout) {
@@ -181,12 +250,26 @@ export function updateModelTextareaAndDate() {
   }
 }
 
+/**
+ * Loads a model from a text string by populating the textarea and calling validateModel.
+ * Does nothing if no language is loaded.
+ *
+ * @param {string} text - The raw XML model text
+ * @param {string} filename - Label used in error messages to identify the source
+ * @returns {void}
+ */
 export function loadModelFromText(text, filename) {
   if (!languageEnvIsSet()) return;
   ui.modelText.value = text;
   validateModel(text, filename, getLanguageEnv());
 }
 
+/**
+ * Wires all UI event handlers for the model panel (textarea input, file load,
+ * load-from-textarea button, download buttons, and spreadsheet preview cohort selector).
+ *
+ * @returns {void}
+ */
 export function wireModelHandlers() {
   // Add input event listener with debouncing
   ui.modelText.addEventListener("input", (e) => {

@@ -17,16 +17,40 @@ function escapeXml(text) {
     .replace(/'/g, "&apos;");
 }
 
+/**
+ * Serialises a model object to a well-formed XML string.
+ *
+ * @param {{ model: Object }} obj - The model object (from validateModelCore or getObjectFromXML)
+ * @returns {string} XML string beginning with an XML declaration
+ */
 export function serializeModel(obj) {
   return `<?xml version="1.0"?>\n` +
     buildNode(obj.model, "model", 0);
 }
 
+/**
+ * Serialises a language object to a well-formed XML string.
+ *
+ * @param {{ model: Object }} obj - The language object (from getObjectFromXML applied to a language document)
+ * @returns {string} XML string beginning with an XML declaration
+ */
 export function serializeLanguage(obj) {
   return `<?xml version="1.0"?>\n` +
          buildNode(obj.model, "language", 0);
 }
 
+/**
+ * Recursively converts a plain JS object node into an indented XML string.
+ * - Primitive values are serialised as text content.
+ * - Object properties whose keys start with `#text` become text content.
+ * - Other object properties become child elements; arrays produce repeated elements.
+ * - Remaining scalar properties become XML attributes.
+ *
+ * @param {Object|string|number|null} node - The node to serialise
+ * @param {string} tagName - The XML element tag name to use
+ * @param {number} depth - Current indentation depth (0 = top level)
+ * @returns {string} Indented XML string for this node and its descendants
+ */
 export function buildNode(node, tagName, depth) {
   const indent = "  ".repeat(depth);
   const nl = "\n";

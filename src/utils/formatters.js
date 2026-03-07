@@ -5,6 +5,12 @@ import {
 } from "./helpers.js";
 import { log } from "./logger.js";
 
+/**
+ * Formats a caught Error into a multi-line string including the stack trace and optional context.
+ *
+ * @param {Error} err - The error to format
+ * @returns {string} A human-readable error string
+ */
 export function formatError(err) {
   const lines = ["✖ Validation error:", err.message + " in " + err.stack];
   if (err.context) {
@@ -13,6 +19,13 @@ export function formatError(err) {
     return lines.join("\n");
 }
 
+/**
+ * Formats a caught Error into a multi-line string without the stack trace.
+ * Suitable for display in the status bar where brevity is preferred.
+ *
+ * @param {Error} err - The error to format
+ * @returns {string} A concise human-readable error string
+ */
 export function formatErrorNoStack(err) {
   const lines = [err.message ];
   if (err.context) {
@@ -21,6 +34,12 @@ export function formatErrorNoStack(err) {
   return lines.join("\n");
 }
 
+/**
+ * Formats a successfully loaded language environment into a display string.
+ *
+ * @param {{ functions: Map }} lang - The language environment from getFunctionsFromLanguage
+ * @returns {string} A summary string listing the loaded functions
+ */
 export function formatLanguageLoaded(lang) {
   return (
     "Language loaded:\n " +
@@ -28,10 +47,25 @@ export function formatLanguageLoaded(lang) {
   );
 }
 
+/**
+ * Formats a validated model result into a DOM Element for display in the log area.
+ *
+ * @param {{ features: Object, obj: Object, filename: string }} modelResult - Result from validateModelCore
+ * @returns {Element} A `<div>` element containing an HTML summary of the model
+ */
 export function formatModelResult({ features, obj, filename }) {
   return formatModelResultHTML({ features, obj, filename });
 }
 
+/**
+ * Recursively adds `<li>` elements to a list element for each entry in a group.
+ * Handles arrays, plain objects, and primitive values.
+ *
+ * @param {Element} el - The list element (`<ul>` or `<ol>`) to append items to
+ * @param {Array|Object|*} group - The data to iterate over
+ * @param {string|null} [parentKey=null] - The key of the parent entry (unused, kept for recursion context)
+ * @returns {void}
+ */
 function addListElements(el, group, parentKey = null) {
   let items;
   if (Array.isArray(group)) {
@@ -65,6 +99,14 @@ function addListElements(el, group, parentKey = null) {
   });
 }
 
+/**
+ * Appends a labelled section (heading + ordered list) to a container element.
+ *
+ * @param {Element} trunk - The container element to append to
+ * @param {string} label - The section heading text
+ * @param {Array|Object} group - The data to display as a list
+ * @returns {void}
+ */
 function appendModelResultSection(trunk, label, group){
   const h = document.createElement("h3");
   h.textContent = label;
@@ -74,6 +116,13 @@ function appendModelResultSection(trunk, label, group){
   trunk.appendChild(list);
 }
 
+/**
+ * Builds a `<div>` Element summarising a validated model result for display in the log area.
+ * Includes sections for index sets, variables, outgoing/incoming maps, and the raw model object.
+ *
+ * @param {{ features: Object, obj: Object, filename: string }} param0
+ * @returns {Element} A `<div>` element containing the formatted model summary
+ */
 function formatModelResultHTML({ features, obj, filename }) {
   const {
     indexSets,

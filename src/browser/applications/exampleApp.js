@@ -6,6 +6,13 @@ import { loadModelFromText } from "./modelApp.js";
 let availableLanguage = [];
 let availableModel = [];
 
+/**
+ * Refreshes the visibility of the "Load example" links by checking which example
+ * files are actually available via HTTP HEAD requests.
+ * Hides the model example link immediately if no language is loaded.
+ *
+ * @returns {Promise<void>}
+ */
 export async function refreshExampleVisibility(){
   // Immediately hide the model example link if no language is loaded.
   // Without this, the link can remain visible during the async HEAD-request
@@ -38,6 +45,12 @@ export async function refreshExampleVisibility(){
 
 }
 
+/**
+ * Checks whether a file at the given path is reachable via an HTTP HEAD request.
+ *
+ * @param {string} path - The URL path to check
+ * @returns {Promise<boolean>} Resolves to true if the server returns a 2xx status
+ */
 async function isAvailable(path) {
   try {
     const res = await fetch(path, { method: "HEAD" });
@@ -47,11 +60,26 @@ async function isAvailable(path) {
   }
 }
 
+/**
+ * Sets or restores normal pointer-events and cursor styling on a link element
+ * to indicate a loading / ready state.
+ *
+ * @param {Element} element - The anchor element to update
+ * @param {boolean} isLoading - True to show a wait cursor and disable clicks; false to restore
+ * @returns {void}
+ */
 function setLinkLoading(element, isLoading) {
   element.style.pointerEvents = isLoading ? "none" : "";
   element.style.cursor = isLoading ? "wait" : "";
 }
 
+/**
+ * Wires click handlers for the "Load example language" and "Load example model" links.
+ * Each click cycles through the available example files in round-robin order.
+ * Refreshes example link visibility before attaching handlers.
+ *
+ * @returns {Promise<void>}
+ */
 export async function wireExampleHandlers() {
   await refreshExampleVisibility();
   let languageIndex = -1;
