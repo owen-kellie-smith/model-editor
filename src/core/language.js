@@ -12,36 +12,42 @@ export const runtimeIdentifiers = new Set([
  * to Excel formulas and Python code.  Model XML files do not need to declare
  * these; they are always available during validation and export.
  *
+ * Shape of each entry: `{ arity, minArgs, maxArgs }` where:
+ *   - `arity`   – exact argument count when non-zero; 0 means "variadic"
+ *   - `minArgs` – minimum argument count (0 = no lower bound enforced)
+ *   - `maxArgs` – maximum argument count (0 = unlimited)
+ *
  * @type {Map<string, { arity: number, minArgs: number, maxArgs: number }>}
  */
 export const standardFunctions = new Map([
   // numeric – rounding / truncation
-  ["FLOOR",   { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["CEIL",    { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["CEILING", { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["ROUND",   { arity: 2, minArgs: 0, maxArgs: 0 }],
-  ["INT",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["FLOOR",   { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["CEIL",    { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["CEILING", { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["ROUND",   { arity: 2, minArgs: 2, maxArgs: 2 }],
+  ["INT",     { arity: 1, minArgs: 1, maxArgs: 1 }],
   // numeric – general
-  ["ABS",     { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["SQRT",    { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["POW",     { arity: 2, minArgs: 0, maxArgs: 0 }],
+  ["ABS",     { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["SQRT",    { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["POW",     { arity: 2, minArgs: 2, maxArgs: 2 }],
   // numeric – exponential / logarithmic
-  ["LOG",     { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["EXP",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["LOG",     { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["EXP",     { arity: 1, minArgs: 1, maxArgs: 1 }],
   // numeric – trigonometric
-  ["SIN",     { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["COS",     { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["TAN",     { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["ASIN",    { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["ACOS",    { arity: 1, minArgs: 0, maxArgs: 0 }],
-  ["ATAN",    { arity: 1, minArgs: 0, maxArgs: 0 }],
-  // aggregate – binary (also used in sum/min/max over an index)
-  ["MIN",     { arity: 2, minArgs: 0, maxArgs: 0 }],
-  ["MAX",     { arity: 2, minArgs: 0, maxArgs: 0 }],
+  ["SIN",     { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["COS",     { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["TAN",     { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["ASIN",    { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["ACOS",    { arity: 1, minArgs: 1, maxArgs: 1 }],
+  ["ATAN",    { arity: 1, minArgs: 1, maxArgs: 1 }],
+  // aggregate – binary (also supported in min/max over an index: min(expr, indexSet))
+  ["MIN",     { arity: 2, minArgs: 2, maxArgs: 2 }],
+  ["MAX",     { arity: 2, minArgs: 2, maxArgs: 2 }],
   // aggregate – sum over an index set: sum(expr, indexSet)
+  // arity=0 indicates variadic; minArgs=1; maxArgs=0 means unlimited.
   ["SUM",     { arity: 0, minArgs: 1, maxArgs: 0 }],
   // conditional
-  ["IF",      { arity: 3, minArgs: 0, maxArgs: 0 }],
+  ["IF",      { arity: 3, minArgs: 3, maxArgs: 3 }],
 ]);
 
 /**

@@ -34,6 +34,17 @@ export function getUnitValue(raw) {
 
 
 /**
+ * Returns true if the value is a valid language-environment object
+ * (i.e. an object with a `functions` Map property).
+ *
+ * @param {*} value
+ * @returns {boolean}
+ */
+function isValidLangObject(value) {
+  return value != null && typeof value === "object" && value.functions instanceof Map;
+}
+
+/**
  * Parses and validates a raw XML model string, returning the parsed object and computed features.
  *
  * The `lang` parameter is optional.  When omitted (or null/undefined), the language
@@ -54,9 +65,7 @@ export function validateModelCore(text, filename, lang, options = {}) {
   const obj = getObjectFromXML(xml);
 
   // Derive language environment from the model when none is supplied.
-  const resolvedLang = (lang && typeof lang === "object" && lang.functions instanceof Map)
-    ? lang
-    : getFunctionsFromModelObj(obj);
+  const resolvedLang = isValidLangObject(lang) ? lang : getFunctionsFromModelObj(obj);
 
   const features = getModelFeatures(obj, resolvedLang, options);
 

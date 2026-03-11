@@ -88,7 +88,7 @@ describe('runExportPython', () => {
     expect(result.outPath).toBe(outPath)
   })
 
-  it('throws on invalid model XML (circular)', () => {
+  it('throws on model with circular dependencies', () => {
     const circularModelPath = getFixture('modelCircular.xml')
     expect(() =>
       runExportPython({
@@ -154,7 +154,7 @@ describe('runExportSpreadsheet', () => {
     expect(result.outPath).toBe(outPath)
   })
 
-  it('throws on invalid model XML (circular)', async () => {
+  it('throws on model with circular dependencies', async () => {
     const circularModelPath = getFixture('modelCircular.xml')
     await expect(
       runExportSpreadsheet({
