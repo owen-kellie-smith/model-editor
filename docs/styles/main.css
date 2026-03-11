@@ -529,3 +529,59 @@ hr {
     max-width: 12rem;
   }
 }
+
+/* ── Built-in functions help dialog ─────────────────────────────────────── */
+
+#functionsHelpDialog {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 1.5rem;
+  max-width: 680px;
+  width: 90vw;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+#functionsHelpDialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.functions-help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.functions-help-header h3 {
+  margin: 0;
+}
+
+.functions-help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.functions-help-table th {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  background: #f0f0f0;
+  border-bottom: 2px solid #ccc;
+}
+
+.functions-help-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+
+.functions-help-table td:first-child {
+  font-family: monospace;
+  white-space: nowrap;
+  color: #333;
+}
+
+.functions-help-table tbody tr:nth-child(even) td {
+  background: #fafafa;
+}

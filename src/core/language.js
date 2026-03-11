@@ -8,6 +8,47 @@ export const runtimeIdentifiers = new Set([
 ]);
 
 /**
+ * Human-readable descriptions of every built-in standard function.
+ * Used by the CLI `functions` command and the browser help dialog to
+ * document what functions are available without any declaration in model.xml.
+ *
+ * Each entry has:
+ *   - `name`        – lowercase function name
+ *   - `signature`   – call signature shown to the user
+ *   - `description` – one-line plain-text description
+ *
+ * @type {Array<{ name: string, signature: string, description: string }>}
+ */
+export const standardFunctionDescriptions = [
+  // rounding / truncation
+  { name: 'floor',   signature: 'floor(x)',            description: 'Round x down to the nearest integer' },
+  { name: 'ceil',    signature: 'ceil(x)',             description: 'Round x up to the nearest integer (alias: ceiling)' },
+  { name: 'round',   signature: 'round(x, n)',         description: 'Round x to n decimal places' },
+  { name: 'int',     signature: 'int(x)',              description: 'Truncate x towards zero' },
+  // general numeric
+  { name: 'abs',     signature: 'abs(x)',              description: 'Absolute value of x' },
+  { name: 'sqrt',    signature: 'sqrt(x)',             description: 'Square root of x' },
+  { name: 'pow',     signature: 'pow(base, exp)',      description: 'Raise base to the power exp' },
+  // exponential / logarithmic
+  { name: 'log',     signature: 'log(x)',              description: 'Natural logarithm of x' },
+  { name: 'exp',     signature: 'exp(x)',              description: 'e raised to the power x' },
+  // trigonometric
+  { name: 'sin',     signature: 'sin(x)',              description: 'Sine of x (x in radians)' },
+  { name: 'cos',     signature: 'cos(x)',              description: 'Cosine of x (x in radians)' },
+  { name: 'tan',     signature: 'tan(x)',              description: 'Tangent of x (x in radians)' },
+  { name: 'asin',    signature: 'asin(x)',             description: 'Inverse sine; result in radians' },
+  { name: 'acos',    signature: 'acos(x)',             description: 'Inverse cosine; result in radians' },
+  { name: 'atan',    signature: 'atan(x)',             description: 'Inverse tangent; result in radians' },
+  // aggregate – pairwise
+  { name: 'min',     signature: 'min(a, b)',           description: 'Minimum of two values' },
+  { name: 'max',     signature: 'max(a, b)',           description: 'Maximum of two values' },
+  // aggregate – over an index set
+  { name: 'sum',     signature: 'sum(expr, indexSet)', description: 'Sum expr over all values of the named index set' },
+  // conditional
+  { name: 'if',      signature: 'if(cond, a, b)',      description: 'Return a when cond is true, b otherwise' },
+];
+
+/**
  * The built-in standard functions that the system recognises and can render
  * to Excel formulas and Python code.  Model XML files do not need to declare
  * these; they are always available during validation and export.
@@ -149,4 +190,3 @@ export function getFunctionsFromLanguage(xmlDoc, filename) {
 
   return { functions };
 }
-

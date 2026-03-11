@@ -7,7 +7,7 @@ import { serializeLanguage  } from "@/core/serialize.js";
 import path from "path";
 
 
-import { getFunctionsFromLanguage, getFunctionsFromModelObj, standardFunctions } from "../src/core/language.js";
+import { getFunctionsFromLanguage, getFunctionsFromModelObj, standardFunctions, standardFunctionDescriptions } from "../src/core/language.js";
 
 
 describe("language loading", () => {
@@ -147,6 +147,63 @@ describe("getFunctionsFromModelObj", () => {
     };
     const lang = getFunctionsFromModelObj(obj);
     expect(lang.functions.get("MYFUNC").definition).toEqual(definition);
+  });
+});
+
+describe("standardFunctionDescriptions", () => {
+  it("is an array", () => {
+    expect(Array.isArray(standardFunctionDescriptions)).toBe(true);
+  });
+
+  it("has an entry for every key in standardFunctions (excluding aliases)", () => {
+    // ceil / ceiling are aliases; only 'ceil' appears in descriptions
+    const descNames = new Set(standardFunctionDescriptions.map(f => f.name.toUpperCase()));
+    // Every description name should be in standardFunctions (modulo alias normalisation)
+    for (const name of descNames) {
+      const inStd = standardFunctions.has(name) || standardFunctions.has(name.toUpperCase());
+      expect(inStd, `"${name}" in descriptions but not in standardFunctions`).toBe(true);
+    }
+  });
+
+  it("each entry has non-empty name, signature, and description strings", () => {
+    for (const entry of standardFunctionDescriptions) {
+      expect(typeof entry.name).toBe("string");
+      expect(entry.name.length).toBeGreaterThan(0);
+      expect(typeof entry.signature).toBe("string");
+      expect(entry.signature.length).toBeGreaterThan(0);
+      expect(typeof entry.description).toBe("string");
+      expect(entry.description.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("covers every non-alias key in standardFunctions (no undocumented functions)", () => {
+    // CEILING is the only alias (for CEIL); it shares a description entry with 'ceil'.
+    const aliases = new Set(["CEILING"]);
+    const descNamesUpper = new Set(standardFunctionDescriptions.map(f => f.name.toUpperCase()));
+    for (const key of standardFunctions.keys()) {
+      if (aliases.has(key)) continue;
+      expect(descNamesUpper.has(key), `standardFunctions key "${key}" has no entry in standardFunctionDescriptions`).toBe(true);
+    }
+  });
+
+  it("includes sum with indexSet in its signature", () => {
+    const sumEntry = standardFunctionDescriptions.find(f => f.name === "sum");
+    expect(sumEntry).toBeDefined();
+    expect(sumEntry.signature).toContain("indexSet");
+  });
+
+  it("includes if(cond, a, b)", () => {
+    const ifEntry = standardFunctionDescriptions.find(f => f.name === "if");
+    expect(ifEntry).toBeDefined();
+    expect(ifEntry.signature).toContain("cond");
+  });
+
+  it("includes min, max, floor, ceil", () => {
+    const names = standardFunctionDescriptions.map(f => f.name);
+    expect(names).toContain("min");
+    expect(names).toContain("max");
+    expect(names).toContain("floor");
+    expect(names).toContain("ceil");
   });
 });
 

@@ -3,6 +3,7 @@ import { wireModelHandlers, restoreModelFromSession } from "./applications/model
 import { wireGraphHandlers, restoreGraphFromSession } from "./applications/graphApp.js";
 import { wireVariableCrudHandlers, restoreVariableCrudFromSession } from "./applications/variableCrudApp.js";
 import { wireExampleHandlers } from "./applications/exampleApp.js";
+import { wireHelpHandlers } from "./applications/helpApp.js";
 import { logLogLevel } from "../utils/logger.js";
 import { loadSession, saveSession } from "../utils/persistence.js";
 
@@ -97,6 +98,7 @@ wireModelHandlers();
 wireGraphHandlers();
 wireVariableCrudHandlers();
 wireExampleHandlers();
+wireHelpHandlers();
 logLogLevel();
 
 // Persist the open/closed state of every <details> element that has an id.
