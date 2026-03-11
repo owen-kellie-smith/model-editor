@@ -1,5 +1,6 @@
 import { asArray, throwModelError, parseXmlOrThrow, getObjectFromXML } from "../utils/helpers.js";
 import { makeDependencyCollector } from "./dependencyCollector.js";
+import { getFunctionsFromModelObj } from "./language.js";
 import { log } from "../utils/logger.js"
 
 // ---------------------------------------------------------------------------
@@ -35,9 +36,15 @@ export function getUnitValue(raw) {
 /**
  * Parses and validates a raw XML model string, returning the parsed object and computed features.
  *
+ * The `lang` parameter is optional.  When omitted (or null/undefined), the language
+ * environment is derived automatically from the model's own `<functions>` section
+ * combined with the built-in standard functions.  Passing an explicit `lang` object
+ * (as returned by `getFunctionsFromLanguage`) is still supported for backward
+ * compatibility but is deprecated; declare functions in the model instead.
+ *
  * @param {string} text - The raw XML text of the model
  * @param {string} filename - Label used in error messages to identify the source
- * @param {Object} lang - Language environment (from getFunctionsFromLanguage)
+ * @param {Object|null} [lang] - Language environment (from getFunctionsFromLanguage), or null/undefined
  * @param {Object} [options={}] - Validation options (e.g. { ignoreUnits: true })
  * @returns {{ features: Object, obj: Object, filename: string }} Validated model result
  * @throws {Error} If the XML is invalid or the model violates domain rules
@@ -45,7 +52,13 @@ export function getUnitValue(raw) {
 export function validateModelCore(text, filename, lang, options = {}) {
   const xml = parseXmlOrThrow(text, filename);
   const obj = getObjectFromXML(xml);
-  const features = getModelFeatures(obj, lang, options);
+
+  // Derive language environment from the model when none is supplied.
+  const resolvedLang = (lang && typeof lang === "object" && lang.functions instanceof Map)
+    ? lang
+    : getFunctionsFromModelObj(obj);
+
+  const features = getModelFeatures(obj, resolvedLang, options);
 
   return { features, obj, filename };
 }

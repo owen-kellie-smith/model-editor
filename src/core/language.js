@@ -1,3 +1,4 @@
+import { asArray } from "../utils/helpers.js";
 import { log } from "../utils/logger.js"
 
 export const runtimeIdentifiers = new Set([
@@ -7,8 +8,98 @@ export const runtimeIdentifiers = new Set([
 ]);
 
 /**
+ * The built-in standard functions that the system recognises and can render
+ * to Excel formulas and Python code.  Model XML files do not need to declare
+ * these; they are always available during validation and export.
+ *
+ * @type {Map<string, { arity: number, minArgs: number, maxArgs: number }>}
+ */
+export const standardFunctions = new Map([
+  // numeric – rounding / truncation
+  ["FLOOR",   { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["CEIL",    { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["CEILING", { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["ROUND",   { arity: 2, minArgs: 0, maxArgs: 0 }],
+  ["INT",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  // numeric – general
+  ["ABS",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["SQRT",    { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["POW",     { arity: 2, minArgs: 0, maxArgs: 0 }],
+  // numeric – exponential / logarithmic
+  ["LOG",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["EXP",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  // numeric – trigonometric
+  ["SIN",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["COS",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["TAN",     { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["ASIN",    { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["ACOS",    { arity: 1, minArgs: 0, maxArgs: 0 }],
+  ["ATAN",    { arity: 1, minArgs: 0, maxArgs: 0 }],
+  // aggregate – binary (also used in sum/min/max over an index)
+  ["MIN",     { arity: 2, minArgs: 0, maxArgs: 0 }],
+  ["MAX",     { arity: 2, minArgs: 0, maxArgs: 0 }],
+  // aggregate – sum over an index set: sum(expr, indexSet)
+  ["SUM",     { arity: 0, minArgs: 1, maxArgs: 0 }],
+  // conditional
+  ["IF",      { arity: 3, minArgs: 0, maxArgs: 0 }],
+]);
+
+/**
+ * Builds a language environment from a parsed model object.
+ * Starts with all standard functions, then merges in any functions declared
+ * in the model's optional `<functions>` section.
+ *
+ * A model function entry may carry an optional `definition` property that
+ * describes how the function is computed (using the same format as a variable
+ * definition: expression, piecewise, etc.).  The definition is stored on the
+ * map entry for use by renderers, but is not currently validated here.
+ *
+ * @param {Object} obj - Parsed model object (from getObjectFromXML)
+ * @returns {{ functions: Map<string, { arity: number, minArgs: number, maxArgs: number, definition?: Object }> }}
+ * @throws {Error} If a function declaration is missing a name or has a non-numeric arity/minArgs/maxArgs
+ */
+export function getFunctionsFromModelObj(obj) {
+  const functions = new Map(standardFunctions);
+
+  for (const fn of asArray(obj?.model?.functions?.function)) {
+    const name = fn?.name;
+    if (!name) {
+      throw new Error("Invalid function declaration in model: function without name");
+    }
+
+    const arity    = Number(fn.arity    ?? 0);
+    const minArgs  = Number(fn.minArgs  ?? 0);
+    const maxArgs  = Number(fn.maxArgs  ?? 0);
+
+    if (Number.isNaN(arity)) {
+      throw new Error(`Invalid function declaration in model: function '${name}' has non-numeric arity`);
+    }
+    if (Number.isNaN(minArgs)) {
+      throw new Error(`Invalid function declaration in model: function '${name}' has non-numeric minArgs`);
+    }
+    if (Number.isNaN(maxArgs)) {
+      throw new Error(`Invalid function declaration in model: function '${name}' has non-numeric maxArgs`);
+    }
+
+    const entry = { arity, minArgs, maxArgs };
+    if (fn.definition) {
+      entry.definition = fn.definition;
+    }
+
+    functions.set(name.toUpperCase(), entry);
+  }
+
+  return { functions };
+}
+
+/**
  * Parses a language XML document and returns a map of declared functions.
  * Each function entry records its arity, minArgs, and maxArgs.
+ *
+ * @deprecated Language.xml is no longer used as an input.  Declare functions
+ *   in the model's `<functions>` section instead.  Standard functions are
+ *   always available without any declaration.  This function is kept for
+ *   backward compatibility only.
  *
  * @param {Document} xmlDoc - Parsed XML document (from parseXmlOrThrow)
  * @param {string} filename - Label used in error messages to identify the source

@@ -1,6 +1,15 @@
 <?xml version="1.0"?>
 <ModelSpec>
   <Title>AnnuityL1</Title>
+
+  <!-- Vendor-specific functions used in this legacy model.
+       Standard functions (floor, ceil, min, max, etc.) do not need to be declared. -->
+  <functions>
+    <function name="GetModelPoint" arity="1"/>
+    <function name="GetDoubleTableValue" minArgs="3"/>
+    <function name="GetMultiUltMortRate" minArgs="3"/>
+  </functions>
+
   <indexSets>
     <indexSet id="t" min="0" max="11" role="temporal">
       <description>Projection steps (months)</description>

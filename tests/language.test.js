@@ -7,7 +7,7 @@ import { serializeLanguage  } from "@/core/serialize.js";
 import path from "path";
 
 
-import { getFunctionsFromLanguage } from "../src/core/language.js";
+import { getFunctionsFromLanguage, getFunctionsFromModelObj, standardFunctions } from "../src/core/language.js";
 
 
 describe("language loading", () => {
@@ -50,6 +50,103 @@ describe("language loading", () => {
         expect(lang2).toEqual(lang);
       });
     });
+  });
+});
+
+describe("standardFunctions", () => {
+  it("is a Map", () => {
+    expect(standardFunctions).toBeInstanceOf(Map);
+  });
+
+  it("includes core numeric functions", () => {
+    expect(standardFunctions.has("FLOOR")).toBe(true);
+    expect(standardFunctions.has("CEIL")).toBe(true);
+    expect(standardFunctions.has("ABS")).toBe(true);
+    expect(standardFunctions.has("SQRT")).toBe(true);
+    expect(standardFunctions.has("LOG")).toBe(true);
+    expect(standardFunctions.has("EXP")).toBe(true);
+  });
+
+  it("includes trigonometric functions", () => {
+    expect(standardFunctions.has("SIN")).toBe(true);
+    expect(standardFunctions.has("COS")).toBe(true);
+    expect(standardFunctions.has("TAN")).toBe(true);
+    expect(standardFunctions.has("ASIN")).toBe(true);
+    expect(standardFunctions.has("ACOS")).toBe(true);
+    expect(standardFunctions.has("ATAN")).toBe(true);
+  });
+
+  it("includes aggregate functions min, max, and sum over an index", () => {
+    expect(standardFunctions.has("MIN")).toBe(true);
+    expect(standardFunctions.has("MAX")).toBe(true);
+    expect(standardFunctions.has("SUM")).toBe(true);
+  });
+
+  it("includes conditional if", () => {
+    expect(standardFunctions.has("IF")).toBe(true);
+  });
+});
+
+describe("getFunctionsFromModelObj", () => {
+  it("returns standard functions when model has no <functions> section", () => {
+    const obj = { model: { id: "test" } };
+    const lang = getFunctionsFromModelObj(obj);
+    expect(lang.functions).toBeInstanceOf(Map);
+    expect(lang.functions.has("FLOOR")).toBe(true);
+    expect(lang.functions.has("SUM")).toBe(true);
+  });
+
+  it("merges model-declared functions with standard functions", () => {
+    const obj = {
+      model: {
+        functions: {
+          function: { name: "GetModelPoint", arity: "1" }
+        }
+      }
+    };
+    const lang = getFunctionsFromModelObj(obj);
+    expect(lang.functions.has("GETMODELPOINT")).toBe(true);
+    expect(lang.functions.has("FLOOR")).toBe(true); // standard still present
+  });
+
+  it("handles an array of model-declared functions", () => {
+    const obj = {
+      model: {
+        functions: {
+          function: [
+            { name: "FuncA", arity: "1" },
+            { name: "FuncB", minArgs: "2" }
+          ]
+        }
+      }
+    };
+    const lang = getFunctionsFromModelObj(obj);
+    expect(lang.functions.has("FUNCA")).toBe(true);
+    expect(lang.functions.has("FUNCB")).toBe(true);
+  });
+
+  it("throws when a declared function has no name", () => {
+    const obj = {
+      model: {
+        functions: {
+          function: { arity: "1" }  // no name
+        }
+      }
+    };
+    expect(() => getFunctionsFromModelObj(obj)).toThrow(/function without name/i);
+  });
+
+  it("stores an optional definition on the function entry", () => {
+    const definition = { type: "expression", "#text": "x * 2" };
+    const obj = {
+      model: {
+        functions: {
+          function: { name: "MyFunc", arity: "1", definition }
+        }
+      }
+    };
+    const lang = getFunctionsFromModelObj(obj);
+    expect(lang.functions.get("MYFUNC").definition).toEqual(definition);
   });
 });
 

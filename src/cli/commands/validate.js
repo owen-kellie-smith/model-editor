@@ -1,25 +1,21 @@
 import fs from 'node:fs';
 import '../runtime.js';
-import { getFunctionsFromLanguage, validateModelCore } from '../../core/index.js';
-import { loadXmlFromFile } from './xml.js';
+import { validateModelCore } from '../../core/index.js';
 
 export function validateCommandUsage() {
-  return 'Usage: model-editor validate <model.xml> --language <language.xml>';
+  return 'Usage: model-editor validate <model.xml>';
 }
 
 export function runValidate(args) {
-  const { positional, options } = args;
+  const { positional } = args;
   const modelPath = positional[0];
-  const languagePath = options.language;
 
-  if (!modelPath || !languagePath || languagePath === true) {
+  if (!modelPath) {
     throw new Error(validateCommandUsage());
   }
 
   const modelText = fs.readFileSync(modelPath, 'utf8');
-  const languageXml = loadXmlFromFile(languagePath);
-  const lang = getFunctionsFromLanguage(languageXml, languagePath);
-  const result = validateModelCore(modelText, modelPath, lang);
+  const result = validateModelCore(modelText, modelPath);
 
   console.log(`Valid model: ${result.filename}`);
   console.log(`Variables: ${result.features.incoming.size}`);

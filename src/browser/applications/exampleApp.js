@@ -1,6 +1,6 @@
 import { exampleFiles } from "../exampleFiles.js";
 import { ui } from "../ui.js";
-import { commitOrRejectLanguage, getLanguageEnv } from "./languageApp.js";
+import { commitOrRejectLanguage } from "./languageApp.js";
 import { loadModelFromText } from "./modelApp.js";
 
 let availableLanguage = [];
@@ -9,20 +9,10 @@ let availableModel = [];
 /**
  * Refreshes the visibility of the "Load example" links by checking which example
  * files are actually available via HTTP HEAD requests.
- * Hides the model example link immediately if no language is loaded.
  *
  * @returns {Promise<void>}
  */
 export async function refreshExampleVisibility(){
-  // Immediately hide the model example link if no language is loaded.
-  // Without this, the link can remain visible during the async HEAD-request
-  // phase even after the language env has been cleared, causing clicks to
-  // silently do nothing (loadModelFromText returns early when languageEnv is
-  // null but shows no feedback to the user).
-  if (!getLanguageEnv()) {
-    ui.modelExample.style.visibility = "hidden";
-  }
-
   const languageFiles = exampleFiles.filter(f => f.category === "language");
   const modelFiles = exampleFiles.filter(f => f.category === "model");
 
@@ -37,7 +27,7 @@ export async function refreshExampleVisibility(){
   if (availableLanguage.length > 0) {
     ui.languageExample.style.visibility = "visible";
   }
-  if (getLanguageEnv() && availableModel.length > 0) {
+  if (availableModel.length > 0) {
     ui.modelExample.style.visibility = "visible";
   } else {
     ui.modelExample.style.visibility = "hidden";
