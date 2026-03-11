@@ -49,5 +49,6 @@ export const ui = {
   sortGraphVariablesAlpha: document.getElementById("sortGraphVariablesAlpha"),
   spreadsheetPreview: document.getElementById("spreadsheetPreview"),
   spreadsheetPreviewDetails: document.getElementById("spreadsheetPreviewDetails"),
+  renderPreviewBtn: document.getElementById("renderPreviewBtn"),
 };
 

@@ -6,6 +6,7 @@
  */
 
 import { asArray } from '../utils/helpers.js'
+import { getFunctionsFromModelObj, standardFunctions } from './language.js'
 
 // ------------------------------------------------------------
 // Basic model XML helpers
@@ -313,4 +314,87 @@ export function buildTableSheetsData(modelObj) {
   }
 
   return sheets
+}
+
+// ------------------------------------------------------------
+// Renderability analysis
+// ------------------------------------------------------------
+
+/**
+ * Collects all user-visible expression text strings from a single variable's
+ * definition regardless of definition type (expression, constant, piecewise).
+ *
+ * @param {Object} varXml - Variable XML object
+ * @returns {string[]}
+ */
+function _getExpressionTexts(varXml) {
+  const def = varXml?.definition
+  if (!def) return []
+  const texts = []
+  const type = def.type
+  if (type === 'expression' || type === 'constant') {
+    const t = def['#text']
+    if (t) texts.push(String(t))
+  } else if (type === 'piecewise') {
+    for (const c of asArray(def.case)) {
+      const when = c?.when?.['#text'] ?? (typeof c?.when === 'string' ? c.when : '')
+      const value = c?.value?.['#text'] ?? (typeof c?.value === 'string' ? c.value : '')
+      if (when) texts.push(String(when))
+      if (value) texts.push(String(value))
+    }
+  }
+  return texts
+}
+
+/**
+ * Returns the names of model-declared functions that are used in variable
+ * expressions but cannot be rendered to Python or spreadsheet.
+ *
+ * A function is "unrenderable" when it is declared in the model's
+ * `<functions>` section (so the validator accepts it without error) but has
+ * NO `<definition>` child and is not one of the built-in standard functions
+ * (floor, sum, min, max, if, …).  Neither the Python renderer nor the
+ * spreadsheet renderer can evaluate such a call, so exporting is unsafe.
+ *
+ * @param {Object} modelObj - The parsed model object (from getObjectFromXML)
+ * @returns {string[]} Sorted uppercase list of unrenderable function names
+ *   actually used in at least one variable expression; empty array when none.
+ */
+export function getUnrenderableFunctionNames(modelObj) {
+  // 1. Build the set of candidates: declared without definition, not standard.
+  const lang = getFunctionsFromModelObj(modelObj)
+  const candidates = new Set()
+  for (const [name, entry] of lang.functions) {
+    if (!standardFunctions.has(name) && !entry.definition) {
+      candidates.add(name.toUpperCase())
+    }
+  }
+  if (candidates.size === 0) return []
+
+  // 2. Collect all expression text from variable definitions.
+  const expressionTexts = []
+
+  // Modern format: <variables><variable>...</variable></variables>
+  for (const v of asArray(modelObj?.model?.variables?.variable)) {
+    expressionTexts.push(..._getExpressionTexts(v))
+  }
+
+  // Legacy format: <ModelPointFields> and <Formulas>
+  for (const v of asArray(modelObj?.model?.ModelPointFields?.VariableDefinition)) {
+    if (v?.Formula) expressionTexts.push(String(v.Formula))
+  }
+  for (const v of asArray(modelObj?.model?.Formulas?.VariableDefinition)) {
+    if (v?.Formula) expressionTexts.push(String(v.Formula))
+  }
+
+  // 3. Test each candidate against the collected expression text.
+  const found = new Set()
+  for (const text of expressionTexts) {
+    for (const name of candidates) {
+      const re = new RegExp(`\\b${name}\\s*\\(`, 'i')
+      if (re.test(text)) found.add(name)
+    }
+  }
+
+  return [...found].sort()
 }
