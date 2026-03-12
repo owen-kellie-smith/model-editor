@@ -15,19 +15,12 @@ function makeMockElement(overrides = {}) {
  */
 function setupDom(elements = {}) {
   const defaults = {
-    loadLanguageFile: makeMockElement({ value: null }),
-    loadLanguageText: makeMockElement({ disabled: false }),
-    languageLoaded: { textContent: '' },
-    languageDirty: { textContent: '', style: {} },
-    languageText: makeMockElement({ value: '' }),
-    languageStatus: { textContent: '', className: '' },
     loadModelFile: makeMockElement({ value: null }),
     loadModelText: makeMockElement({ disabled: false }),
     modelLoaded: { textContent: '' },
     modelDirty: { textContent: '', style: {} },
     modelText: makeMockElement({ value: '' }),
     modelStatus: { textContent: '', className: '' },
-    downloadLanguage: makeMockElement({ disabled: false }),
     downloadModel: makeMockElement({ disabled: false }),
     downloadSpreadsheet: makeMockElement({ disabled: false }),
     downloadPython: makeMockElement({ disabled: false }),
@@ -67,13 +60,8 @@ function setupDom(elements = {}) {
 
 /**
  * Wire the vi.doMock stubs that all exampleApp tests need.
- * `languageEnv` – the value returned by getLanguageEnv() (null = no language).
  */
-function mockDependencies(languageEnv = null) {
-  vi.doMock('../src/browser/applications/languageApp.js', () => ({
-    getLanguageEnv: () => languageEnv,
-    commitOrRejectLanguage: vi.fn(),
-  }))
+function mockDependencies() {
   const loadModelFromText = vi.fn()
   vi.doMock('../src/browser/applications/modelApp.js', () => ({ loadModelFromText }))
   return { loadModelFromText }
@@ -88,24 +76,24 @@ describe('exampleApp', () => {
   })
 
   describe('refreshExampleVisibility', () => {
-    it('shows modelExample when model files are available (no language check)', async () => {
+    it('shows modelExample when model files are available', async () => {
       const modelExampleEl = makeMockElement({ style: { visibility: 'hidden' } })
       setupDom({ modelExample: modelExampleEl })
-      mockDependencies(null) // no language — but models should still show
+      mockDependencies()
 
       global.fetch = vi.fn(() => Promise.resolve({ ok: true }))
 
       const { refreshExampleVisibility } = await import('../src/browser/applications/exampleApp.js')
 
       await refreshExampleVisibility()
-      // Model example should be visible when files are available, regardless of language
+      // Model example should be visible when files are available
       expect(modelExampleEl.style.visibility).toBe('visible')
     })
 
     it('hides modelExample when no model files are available', async () => {
       const modelExampleEl = makeMockElement({ style: { visibility: 'visible' } })
       setupDom({ modelExample: modelExampleEl })
-      mockDependencies({ lang: 'en' })
+      mockDependencies()
 
       // HEAD requests always fail — no files available
       global.fetch = vi.fn(() => Promise.resolve({ ok: false }))
@@ -119,17 +107,16 @@ describe('exampleApp', () => {
 
   describe('wireExampleHandlers — loading guard', () => {
     /**
-     * Build a DOM world with a language loaded and wire the handlers.
+     * Build a DOM world and wire the handlers.
      * `fetchImpl` lets each test control what fetch returns.
      */
     async function setup(fetchImpl) {
       global.fetch = vi.fn(fetchImpl)
 
-      const languageExampleEl = makeMockElement()
       const modelExampleEl = makeMockElement()
-      setupDom({ languageExample: languageExampleEl, modelExample: modelExampleEl })
+      setupDom({ modelExample: modelExampleEl })
 
-      const { loadModelFromText } = mockDependencies({ lang: 'en' })
+      const { loadModelFromText } = mockDependencies()
 
       const { wireExampleHandlers } = await import('../src/browser/applications/exampleApp.js')
       await wireExampleHandlers()
