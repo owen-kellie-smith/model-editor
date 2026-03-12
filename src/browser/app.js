@@ -1,4 +1,3 @@
-import { wireLanguageHandlers, restoreLanguageFromSession } from "./applications/languageApp.js";
 import { wireModelHandlers, restoreModelFromSession } from "./applications/modelApp.js";
 import { wireGraphHandlers, restoreGraphFromSession } from "./applications/graphApp.js";
 import { wireVariableCrudHandlers, restoreVariableCrudFromSession } from "./applications/variableCrudApp.js";
@@ -93,7 +92,6 @@ if (params.has("large")) {
 // overwrite persisted session values before we read them.
 const session = loadSession();
 
-wireLanguageHandlers();
 wireModelHandlers();
 wireGraphHandlers();
 wireVariableCrudHandlers();
@@ -130,7 +128,6 @@ function restoreDetailsFromSession(storedSession) {
 // Restore any previously saved session so users don't lose work after a
 // browser crash or accidental tab close.
 restoreDetailsFromSession(session);
-restoreLanguageFromSession(session);
 restoreModelFromSession(session);
 // After model load the modelLoaded event has already fired and the
 // dropdowns have been populated, so we can safely restore selections.
