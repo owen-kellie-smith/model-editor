@@ -3,9 +3,9 @@ import { wireModelHandlers, restoreModelFromSession } from "./applications/model
 import { wireGraphHandlers, restoreGraphFromSession } from "./applications/graphApp.js";
 import { wireVariableCrudHandlers, restoreVariableCrudFromSession } from "./applications/variableCrudApp.js";
 import { wireExampleHandlers } from "./applications/exampleApp.js";
+import { wireHelpHandlers } from "./applications/helpApp.js";
 import { logLogLevel } from "../utils/logger.js";
 import { loadSession, saveSession } from "../utils/persistence.js";
-import { getLanguageEnv } from "./applications/languageApp.js";
 
 /**
  * Formats error information for display to the user
@@ -98,6 +98,7 @@ wireModelHandlers();
 wireGraphHandlers();
 wireVariableCrudHandlers();
 wireExampleHandlers();
+wireHelpHandlers();
 logLogLevel();
 
 // Persist the open/closed state of every <details> element that has an id.
@@ -130,11 +131,9 @@ function restoreDetailsFromSession(storedSession) {
 // browser crash or accidental tab close.
 restoreDetailsFromSession(session);
 restoreLanguageFromSession(session);
-if (getLanguageEnv()) {
-  restoreModelFromSession(session);
-  // After model load the modelLoaded event has already fired and the
-  // dropdowns have been populated, so we can safely restore selections.
-  restoreGraphFromSession(session);
-  restoreVariableCrudFromSession(session);
-}
+restoreModelFromSession(session);
+// After model load the modelLoaded event has already fired and the
+// dropdowns have been populated, so we can safely restore selections.
+restoreGraphFromSession(session);
+restoreVariableCrudFromSession(session);
 

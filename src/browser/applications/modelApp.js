@@ -1,11 +1,11 @@
 import { ui } from "../ui.js";
 import { formatError, formatErrorNoStack, formatModelResult } from "../../utils/formatters.js";
-import { getLanguageEnv } from "./languageApp.js";
 import { validateModelCore } from "../../core/model.js";
 import { exportFile } from "../../utils/export.js";
 import { serializeModel } from "../../core/serialize.js";
 import { renderModelAsExcel, renderModelAsHTMLPreview, makeRenderContext } from "../../core/spreadsheetRenderer.js";
 import { renderModelAsPython } from "../../core/pythonRenderer.js";
+import { getUnrenderableFunctionNames } from "../../core/renderShared.js";
 import { setElementContent, sanitizeFilename } from "../../utils/helpers.js";
 import { saveSession } from "../../utils/persistence.js";
 
@@ -56,20 +56,6 @@ function setLogText(s) {
 }
 
 /**
- * Returns false and shows an error in the log if the language environment has not been loaded.
- * Used as a guard before model operations that require a language.
- *
- * @returns {boolean} True if the language is loaded; false otherwise
- */
-function languageEnvIsSet() {
-  if (!getLanguageEnv()) {
-    setLogText("✖ Load language.xml first.");
-    return false;
-  }
-  return true;
-}
-
-/**
  * Updates the "loaded at" timestamp label for the model panel.
  *
  * @returns {void}
@@ -102,71 +88,95 @@ function updateDirtyIndicator() {
 
 /**
  * Validates the given XML model text, updates the log, model environment, status indicator,
- * spreadsheet preview, and dispatches a `modelLoaded` event on success.
+ * and dispatches a `modelLoaded` event on success.
  * On failure, clears the model environment and disables export buttons.
+ *
+ * If any model-declared function has no definition (and is not a built-in standard
+ * function), a warning is shown and the spreadsheet / Python export buttons are
+ * disabled – graphs and XML export remain available.
+ *
+ * The HTML Sample Evaluation preview is NOT rendered automatically; use the
+ * "Render to browser" button in the Sample Evaluation panel instead.
+ *
+ * Functions declared in the model's `<functions>` section are recognised
+ * automatically; no separate language file is required.
  *
  * @param {string} text - The raw XML model text to validate
  * @param {string} filename - Label used in error messages to identify the source
- * @param {Object} lang - Language environment (from getLanguageEnv)
  * @returns {void}
  */
-export function validateModel(text, filename, lang) {
+export function validateModel(text, filename) {
   try {
     text = text.trim();
-    const result = validateModelCore(text, filename, lang);
+    const result = validateModelCore(text, filename);
     setLogText(formatModelResult(result));
     modelEnv = result;
     modelCommitTime = new Date();
     lastCommittedText = text;
     saveSession({ modelText: text });
-    ui.downloadModel.disabled = false;   // ✅ valid
-    ui.downloadSpreadsheet.disabled = false;  // ✅ enable spreadsheet download
-    ui.downloadPython.disabled = false;  // ✅ enable python export
-    updateModelStatus("✓ Valid", "success");
+    ui.downloadModel.disabled = false;   // ✅ valid – XML export always available
+
+    // Check for declared functions that have no renderable definition.
+    const unrenderable = getUnrenderableFunctionNames(result.obj);
+    if (unrenderable.length > 0) {
+      ui.downloadSpreadsheet.disabled = true;  // ❌ unrenderable
+      ui.downloadPython.disabled = true;       // ❌ unrenderable
+      updateModelStatus(
+        `⚠ Valid – export disabled: unrenderable functions: ${unrenderable.join(', ')}`,
+        "warning"
+      );
+    } else {
+      ui.downloadSpreadsheet.disabled = false;  // ✅ enable spreadsheet download
+      ui.downloadPython.disabled = false;       // ✅ enable python export
+      updateModelStatus("✓ Valid", "success");
+    }
+
+    // Enable the on-demand preview button (preview is NOT rendered automatically).
+    ui.renderPreviewBtn.disabled = false;
+
     updateLoadedInfo();
     updateDirtyIndicator();
-    
-    // Render HTML spreadsheet preview
-    try {
-      const ctx = makeRenderContext({ cohortId: activePreviewCohortId });
-      ui.spreadsheetPreview.innerHTML = renderModelAsHTMLPreview(result.obj, result.features, ctx);
-      ui.spreadsheetPreviewDetails.open = true;
-    } catch (previewErr) {
-      ui.spreadsheetPreview.innerHTML = '';
-      console.warn("Spreadsheet preview failed:", previewErr);
-    }
-    
+
     // Dispatch event for graph UI
     window.dispatchEvent(new CustomEvent('modelLoaded'));
   } catch (er) {
     setLogText(formatError(er));
     modelEnv = null;
-    ui.downloadModel.disabled = true;    // ❌ invalid
-    ui.downloadSpreadsheet.disabled = true;  // ❌ disable spreadsheet download
-    ui.downloadPython.disabled = true;  // ❌ disable python export
+    ui.downloadModel.disabled = true;         // ❌ invalid
+    ui.downloadSpreadsheet.disabled = true;   // ❌ disable spreadsheet download
+    ui.downloadPython.disabled = true;        // ❌ disable python export
+    ui.renderPreviewBtn.disabled = true;      // ❌ disable preview
     ui.spreadsheetPreview.innerHTML = '';
     updateModelStatus(formatErrorNoStack(er), "error");
-    updateDirtyIndicator();  // ✅ ADD THIS - also update on error
+    updateDirtyIndicator();
   }
 }
 /**
  * Validates the model XML currently in the textarea and updates the status indicator.
  * Enables or disables the "Load Model" button based on whether the XML is valid.
  * Also updates the log with the current model information or the validation error.
+ * Shows a warning in the status if the model contains unrenderable functions.
  *
  * @param {string} text - The current textarea content to validate
- * @param {Object} lang - Language environment (from getLanguageEnv)
  * @returns {void}
  */
-function validateModelContent(text, lang) {
+function validateModelContent(text) {
   if (!text.trim()) {
     updateModelStatus("", "error");
     ui.loadModelText.disabled = true;
     return;
   }
   try {
-    const result = validateModelCore(text, "model in textarea", lang);
-    updateModelStatus("✓ Valid", "success");
+    const result = validateModelCore(text, "model in textarea");
+    const unrenderable = getUnrenderableFunctionNames(result.obj);
+    if (unrenderable.length > 0) {
+      updateModelStatus(
+        `⚠ Valid – unrenderable functions: ${unrenderable.join(', ')}`,
+        "warning"
+      );
+    } else {
+      updateModelStatus("✓ Valid", "success");
+    }
     ui.loadModelText.disabled = false;
     // Update the Report/Log with the current model information
     setLogText(formatModelResult(result));
@@ -195,10 +205,9 @@ function updateModelStatus(message, statusClass) {
  * Immediately updates the dirty indicator on every keystroke.
  *
  * @param {string} text - The current textarea content
- * @param {Object} lang - Language environment (from getLanguageEnv)
  * @returns {void}
  */
-function debouncedValidateModel(text, lang) {
+function debouncedValidateModel(text) {
   // Clear any pending validation
   if (validationTimeout) {
     clearTimeout(validationTimeout);
@@ -209,7 +218,7 @@ function debouncedValidateModel(text, lang) {
 
   // Set a new timeout
   validationTimeout = setTimeout(() => {
-    validateModelContent(text, lang);
+    validateModelContent(text);
   }, DEBOUNCE_DELAY);
 }
 
@@ -252,16 +261,14 @@ export function updateModelTextareaAndDate() {
 
 /**
  * Loads a model from a text string by populating the textarea and calling validateModel.
- * Does nothing if no language is loaded.
  *
  * @param {string} text - The raw XML model text
  * @param {string} filename - Label used in error messages to identify the source
  * @returns {void}
  */
 export function loadModelFromText(text, filename) {
-  if (!languageEnvIsSet()) return;
   ui.modelText.value = text;
-  validateModel(text, filename, getLanguageEnv());
+  validateModel(text, filename);
 }
 
 /**
@@ -273,11 +280,23 @@ export function loadModelFromText(text, filename) {
 export function wireModelHandlers() {
   // Add input event listener with debouncing
   ui.modelText.addEventListener("input", (e) => {
-    if (!languageEnvIsSet()) return;
     saveSession({ modelText: e.target.value });
-    debouncedValidateModel(e.target.value,getLanguageEnv());
+    debouncedValidateModel(e.target.value);
   });
 
+  // On-demand Sample Evaluation render button
+  ui.renderPreviewBtn.addEventListener('click', () => {
+    if (!modelEnv) return;
+    try {
+      const ctx = makeRenderContext({ cohortId: activePreviewCohortId });
+      ui.spreadsheetPreview.innerHTML = renderModelAsHTMLPreview(modelEnv.obj, modelEnv.features, ctx);
+      ui.spreadsheetPreviewDetails.open = true;
+    } catch (err) {
+      ui.spreadsheetPreview.innerHTML = '';
+      console.warn('Spreadsheet preview failed:', err);
+      alert('Preview failed: ' + err.message);
+    }
+  });
 
   // Spreadsheet preview: click a cohort ID in input_cohort_data to switch the active cohort (single-cohort eval)
   ui.spreadsheetPreview.addEventListener('click', (e) => {
@@ -345,23 +364,20 @@ export function wireModelHandlers() {
   });
   
   ui.loadModelText.addEventListener("click", () => {
-    if (!languageEnvIsSet()) return;
     const text = ui.modelText.value.trim();
     if (!text) return;
-    validateModel(text, "model in textarea", getLanguageEnv());
+    validateModel(text, "model in textarea");
     updateDirtyIndicator();
   });
 
   ui.loadModelFile.addEventListener("change", (e) => {
-    if (!languageEnvIsSet()) return;
-
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
       ui.modelText.value = reader.result;
-      validateModel(reader.result, file.name, getLanguageEnv());
+      validateModel(reader.result, file.name);
       updateDirtyIndicator();
     };
     reader.readAsText(file);
@@ -371,7 +387,6 @@ export function wireModelHandlers() {
 /**
  * Restore the model textarea from a persisted session object and
  * automatically validate/commit it so the rest of the UI is ready to use.
- * Requires the language to already be loaded.
  *
  * @param {Object} session - Session object returned by loadSession()
  */

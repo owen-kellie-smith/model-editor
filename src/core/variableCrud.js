@@ -15,12 +15,12 @@ import { serializeModel } from "./serialize.js";
  * @param {string} [variableData.dataType] - Optional data type (real, integer, boolean, string)
  * @param {string} [variableData.unit] - Optional unit
  * @param {Object} [variableData.arguments] - Optional arguments for parameterized variables
- * @param {Object} lang - The language environment for validation
+ * @param {Object|null} [lang] - Language environment for validation (null = use model's own functions)
  * @param {Object} [options] - Validation options (e.g. { ignoreUnits: true })
  * @returns {Object} Updated model validation result
  * @throws {Error} If variable ID already exists or if model becomes invalid
  */
-export function createVariable(modelObj, variableData, lang, options = {}) {
+export function createVariable(modelObj, variableData, lang = null, options = {}) {
   // Validate required fields
   if (!variableData || !variableData.id) {
     throw new Error("Variable ID is required");
@@ -132,12 +132,12 @@ export function readVariable(modelObj, variableId) {
  * @param {string} [variableData.dataType] - Updated data type
  * @param {string} [variableData.unit] - Updated unit
  * @param {Object} [variableData.arguments] - Updated arguments
- * @param {Object} lang - The language environment for validation
+ * @param {Object|null} [lang] - Language environment for validation (null = use model's own functions)
  * @param {Object} [options] - Validation options (e.g. { ignoreUnits: true })
  * @returns {Object} Updated model validation result
  * @throws {Error} If variable not found or if model becomes invalid after update
  */
-export function updateVariable(modelObj, variableId, variableData, lang, options = {}) {
+export function updateVariable(modelObj, variableId, variableData, lang = null, options = {}) {
   // Find the variable by ID (case-insensitive)
   const existingVariable = readVariable(modelObj, variableId);
   
@@ -185,12 +185,12 @@ export function updateVariable(modelObj, variableId, variableData, lang, options
  * 
  * @param {Object} modelObj - The model object (from validateModelCore result)
  * @param {string} variableId - The identifier of the variable to delete
- * @param {Object} lang - The language environment for validation
+ * @param {Object|null} [lang] - Language environment for validation (null = use model's own functions)
  * @param {Object} [options] - Validation options (e.g. { ignoreUnits: true })
  * @returns {Object} Updated model validation result
  * @throws {Error} If variable not found or if model becomes invalid after deletion
  */
-export function deleteVariable(modelObj, variableId, lang, options = {}) {
+export function deleteVariable(modelObj, variableId, lang = null, options = {}) {
   // Find the variable by ID (case-insensitive)
   const existingVariable = readVariable(modelObj, variableId);
   
@@ -409,12 +409,12 @@ function replaceVariableIdInDefinition(definition, oldIdUpper, pattern, newId) {
  * @param {Object} modelObj - The model object (from validateModelCore result)
  * @param {string} oldId - The current identifier of the variable to rename
  * @param {string} newId - The new identifier for the variable
- * @param {Object} lang - The language environment for validation
+ * @param {Object|null} [lang] - Language environment for validation (null = use model's own functions)
  * @param {Object} [options] - Validation options (e.g. { ignoreUnits: true })
  * @returns {Object} Updated model validation result
  * @throws {Error} If old variable not found, new ID already exists, or model becomes invalid
  */
-export function renameVariable(modelObj, oldId, newId, lang, options = {}) {
+export function renameVariable(modelObj, oldId, newId, lang = null, options = {}) {
   // Find the variable to rename
   const existingVariable = readVariable(modelObj, oldId);
   if (!existingVariable) {
@@ -468,12 +468,12 @@ export function renameVariable(modelObj, oldId, newId, lang, options = {}) {
  * @param {Object} modelObj - The model object (from validateModelCore result)
  * @param {string} sourceVariableId - The identifier of the variable to copy
  * @param {string} newVariableId - The identifier for the new variable
- * @param {Object} lang - The language environment for validation
+ * @param {Object|null} [lang] - Language environment for validation (null = use model's own functions)
  * @param {Object} [options] - Validation options (e.g. { ignoreUnits: true })
  * @returns {Object} Updated model validation result
  * @throws {Error} If source variable not found, new ID already exists, or if model becomes invalid
  */
-export function copyVariable(modelObj, sourceVariableId, newVariableId, lang, options = {}) {
+export function copyVariable(modelObj, sourceVariableId, newVariableId, lang = null, options = {}) {
   // Find the source variable
   const sourceVariable = readVariable(modelObj, sourceVariableId);
   

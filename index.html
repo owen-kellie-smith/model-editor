@@ -45,25 +45,42 @@
         <span id="modelDirty" class="dirty">
         </span>
       </div>
-      <input type="file" id="loadModelFile" accept=".xml" disabled>
+      <input type="file" id="loadModelFile" accept=".xml">
       <span id="modelExample" class="example-link" style="visibility: hidden;">Example</span>
       <br>
-      <textarea id="modelText" cols="80" disabled
+      <textarea id="modelText" cols="80"
         placeholder="Paste model.xml here"></textarea>
       <!-- Validation refers to the editor content -->
       <div id="modelStatus" class="status error">
       </div>
       <br>
-      <button id="loadModelText" disabled>Apply changes</button>
+      <button id="loadModelText">Apply changes</button>
       <button id="downloadModel" disabled>Export as XML</button>
       <button id="downloadSpreadsheet" disabled>Export as spreadsheet</button>
       <button id="downloadPython" disabled>Export as Python</button>
+      <button id="functionsHelpBtn" class="btn-secondary" title="List built-in standard functions">? Functions</button>
      </details>
     </div>
+
+    <!-- Built-in functions help dialog -->
+    <dialog id="functionsHelpDialog" aria-labelledby="functionsHelpTitle">
+      <div class="functions-help-header">
+        <h3 id="functionsHelpTitle">Built-in standard functions</h3>
+        <button id="functionsHelpClose" class="btn-secondary" aria-label="Close">✕</button>
+      </div>
+      <p>These functions are always available in model expressions without any declaration in model.xml.</p>
+      <table id="functionsHelpTable" class="functions-help-table">
+        <thead>
+          <tr><th>Signature</th><th>Description</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </dialog>
 
     <div class="editor">
       <details id="spreadsheetPreviewDetails">
         <summary>Sample Evaluation</summary>
+        <button id="renderPreviewBtn" disabled>Render to browser</button>
         <div id="spreadsheetPreview"></div>
       </details>
     </div>

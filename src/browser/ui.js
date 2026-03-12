@@ -17,6 +17,10 @@ export const ui = {
   downloadModel: document.getElementById("downloadModel"),
   downloadSpreadsheet: document.getElementById("downloadSpreadsheet"),   
   downloadPython: document.getElementById("downloadPython"),
+  functionsHelpBtn: document.getElementById("functionsHelpBtn"),
+  functionsHelpDialog: document.getElementById("functionsHelpDialog"),
+  functionsHelpClose: document.getElementById("functionsHelpClose"),
+  functionsHelpTable: document.getElementById("functionsHelpTable"),
   log: document.getElementById("log"),
   graphVariable: document.getElementById("graphVariable"),
   graphSortAlphabetically: document.getElementById("graphSortAlphabetically"),
@@ -45,5 +49,6 @@ export const ui = {
   sortGraphVariablesAlpha: document.getElementById("sortGraphVariablesAlpha"),
   spreadsheetPreview: document.getElementById("spreadsheetPreview"),
   spreadsheetPreviewDetails: document.getElementById("spreadsheetPreviewDetails"),
+  renderPreviewBtn: document.getElementById("renderPreviewBtn"),
 };
 

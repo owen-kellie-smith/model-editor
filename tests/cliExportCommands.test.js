@@ -11,7 +11,6 @@ import { getFixture } from './helpers/fixtures.ts'
 
 // Paths to shared test fixtures
 const MODEL_PATH = getFixture('restaurant/model.xml')
-const LANGUAGE_PATH = getFixture('language.xml')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,22 +35,10 @@ describe('runExportPython', () => {
     const usage = exportPythonCommandUsage()
     expect(typeof usage).toBe('string')
     expect(usage).toContain('export-python')
-    expect(usage).toContain('--language')
   })
 
   it('throws when model path is missing', () => {
-    const args = { positional: [], options: { language: LANGUAGE_PATH } }
-    expect(() => runExportPython(args)).toThrow(/export-python/)
-  })
-
-  it('throws when language path is missing', () => {
-    const args = { positional: [MODEL_PATH], options: {} }
-    expect(() => runExportPython(args)).toThrow(/export-python/)
-  })
-
-  it('throws when language flag is present but has no value', () => {
-    // parseCliArgs sets flag-only options to true
-    const args = { positional: [MODEL_PATH], options: { language: true } }
+    const args = { positional: [], options: {} }
     expect(() => runExportPython(args)).toThrow(/export-python/)
   })
 
@@ -59,7 +46,7 @@ describe('runExportPython', () => {
     const outPath = tmpOut('restaurant.py')
     const args = {
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     }
     const result = runExportPython(args)
     expect(result.outPath).toBe(outPath)
@@ -70,7 +57,7 @@ describe('runExportPython', () => {
     const outPath = tmpOut('restaurant_check.py')
     runExportPython({
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     })
     const content = fs.readFileSync(outPath, 'utf-8')
     expect(content).toContain('def main()')
@@ -84,7 +71,7 @@ describe('runExportPython', () => {
     const outPath = tmpOut(expectedFilename)
     const args = {
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     }
     const result = runExportPython(args)
     // The file should have the model-id–based name when --out matches it
@@ -95,28 +82,18 @@ describe('runExportPython', () => {
     const outPath = tmpOut('result_test.py')
     const result = runExportPython({
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     })
     expect(result).toHaveProperty('outPath')
     expect(result.outPath).toBe(outPath)
   })
 
-  it('throws on invalid model XML', () => {
+  it('throws on model with circular dependencies', () => {
     const circularModelPath = getFixture('modelCircular.xml')
     expect(() =>
       runExportPython({
         positional: [circularModelPath],
-        options: { language: LANGUAGE_PATH, out: tmpOut('ignored.py') },
-      })
-    ).toThrow()
-  })
-
-  it('throws on invalid language XML', () => {
-    const badLangPath = getFixture('languageNoName.xml')
-    expect(() =>
-      runExportPython({
-        positional: [MODEL_PATH],
-        options: { language: badLangPath, out: tmpOut('ignored2.py') },
+        options: { out: tmpOut('ignored.py') },
       })
     ).toThrow()
   })
@@ -129,21 +106,10 @@ describe('runExportSpreadsheet', () => {
     const usage = exportSpreadsheetCommandUsage()
     expect(typeof usage).toBe('string')
     expect(usage).toContain('export-spreadsheet')
-    expect(usage).toContain('--language')
   })
 
   it('throws when model path is missing', async () => {
-    const args = { positional: [], options: { language: LANGUAGE_PATH } }
-    await expect(runExportSpreadsheet(args)).rejects.toThrow(/export-spreadsheet/)
-  })
-
-  it('throws when language path is missing', async () => {
-    const args = { positional: [MODEL_PATH], options: {} }
-    await expect(runExportSpreadsheet(args)).rejects.toThrow(/export-spreadsheet/)
-  })
-
-  it('throws when language flag is present but has no value', async () => {
-    const args = { positional: [MODEL_PATH], options: { language: true } }
+    const args = { positional: [], options: {} }
     await expect(runExportSpreadsheet(args)).rejects.toThrow(/export-spreadsheet/)
   })
 
@@ -151,7 +117,7 @@ describe('runExportSpreadsheet', () => {
     const outPath = tmpOut('restaurant.xlsx')
     const args = {
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     }
     const result = await runExportSpreadsheet(args)
     expect(result.outPath).toBe(outPath)
@@ -162,7 +128,7 @@ describe('runExportSpreadsheet', () => {
     const outPath = tmpOut('restaurant_binary.xlsx')
     await runExportSpreadsheet({
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     })
     const stat = fs.statSync(outPath)
     expect(stat.size).toBeGreaterThan(0)
@@ -173,7 +139,7 @@ describe('runExportSpreadsheet', () => {
     const outPath = tmpOut('model_spreadsheet.xlsx')
     const result = await runExportSpreadsheet({
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     })
     expect(path.basename(result.outPath)).toBe('model_spreadsheet.xlsx')
   })
@@ -182,28 +148,18 @@ describe('runExportSpreadsheet', () => {
     const outPath = tmpOut('result_test.xlsx')
     const result = await runExportSpreadsheet({
       positional: [MODEL_PATH],
-      options: { language: LANGUAGE_PATH, out: outPath },
+      options: { out: outPath },
     })
     expect(result).toHaveProperty('outPath')
     expect(result.outPath).toBe(outPath)
   })
 
-  it('throws on invalid model XML', async () => {
+  it('throws on model with circular dependencies', async () => {
     const circularModelPath = getFixture('modelCircular.xml')
     await expect(
       runExportSpreadsheet({
         positional: [circularModelPath],
-        options: { language: LANGUAGE_PATH, out: tmpOut('ignored.xlsx') },
-      })
-    ).rejects.toThrow()
-  })
-
-  it('throws on invalid language XML', async () => {
-    const badLangPath = getFixture('languageNoName.xml')
-    await expect(
-      runExportSpreadsheet({
-        positional: [MODEL_PATH],
-        options: { language: badLangPath, out: tmpOut('ignored2.xlsx') },
+        options: { out: tmpOut('ignored.xlsx') },
       })
     ).rejects.toThrow()
   })

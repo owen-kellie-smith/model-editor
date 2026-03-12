@@ -1,20 +1,11 @@
-import { describe, it, expect,  beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import fs from "fs";
-import { loadXml } from "./helpers/xml.js";
 import { getFixture } from "./helpers/fixtures.ts";
 import { validateModelCore } from "@/core/model.js";
-import { getFunctionsFromLanguage } from "@/core/language.js";
 import { serializeModel } from "@/core/serialize.js";
 import { log } from "@/utils/logger.js"
 
 describe("validateModelCore", () => {
-  let lang;
-
-  beforeAll(() => {
-    const fixture = getFixture("language.xml");
-    const xml = loadXml(fixture);
-    lang = getFunctionsFromLanguage(xml, "test");
-  });
 
   const readFixture = (name) =>
     fs.readFileSync(getFixture(name), "utf-8");
@@ -23,7 +14,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelCircular.xml");
 
       expect(() => {
-        validateModelCore(text, "modelCircular.xml", lang);
+        validateModelCore(text, "modelCircular.xml");
       }).toThrow(/Circular/i);
     });
   });
@@ -33,7 +24,7 @@ describe("validateModelCore", () => {
       const text = readFixture("model.xml");
 
       expect(() => {
-        validateModelCore(text, "model.xml", lang);
+        validateModelCore(text, "model.xml");
       }).not.toThrow();
     });
   });
@@ -43,7 +34,7 @@ describe("validateModelCore", () => {
       const text = readFixture("toyMM_L1.xml");
 
       expect(() => {
-        validateModelCore(text, "toyMM_L1.xml", lang);
+        validateModelCore(text, "toyMM_L1.xml");
       }).not.toThrow();
     });
   });
@@ -52,9 +43,9 @@ describe("validateModelCore", () => {
     describe("round trip through serializer", () => {
       it("preserves model semantics though it changes xml", () => {
         const text = readFixture("model.xml");
-        const first = validateModelCore(text, "model.xml", lang);
+        const first = validateModelCore(text, "model.xml");
         const exportedText = serializeModel(first.obj);
-        const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+        const second = validateModelCore(exportedText, "modelSerialized.xml");
         expect(second.features.indexSets).toEqual(first.features.indexSets);
         expect(second.features.variables).toEqual(first.features.variables);
         expect(second.features.resolvedVarsWithArguments).toEqual(first.features.resolvedVarsWithArguments);
@@ -69,9 +60,9 @@ describe("validateModelCore", () => {
     describe("round trip through serializer", () => {
       it("preserves model semantics though it changes xml", () => {
         const text = readFixture("toyMM_L1.xml");
-        const first = validateModelCore(text, "model.xml", lang);
+        const first = validateModelCore(text, "model.xml");
         const exportedText = serializeModel(first.obj);
-        const second = validateModelCore(exportedText, "modelSerialized.xml", lang);
+        const second = validateModelCore(exportedText, "modelSerialized.xml");
         expect(second.features.indexSets).toEqual(first.features.indexSets);
         expect(text).not.toEqual(exportedText);
       });
@@ -83,7 +74,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelDuplicateVariable.xml");
 
       expect(() => {
-        validateModelCore(text, "modelDuplicateVariable.xml", lang);
+        validateModelCore(text, "modelDuplicateVariable.xml");
       }).toThrow(/Duplicate variable/i);
     });
   });
@@ -93,7 +84,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelVariableTableNameConflict.xml");
 
       expect(() => {
-        validateModelCore(text, "modelVariableTableNameConflict.xml", lang);
+        validateModelCore(text, "modelVariableTableNameConflict.xml");
       }).toThrow(/conflicts with table/i);
     });
   });
@@ -103,7 +94,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelDuplicateIndexSet.xml");
 
       expect(() => {
-        validateModelCore(text, "modelDuplicateIndexSet.xml", lang);
+        validateModelCore(text, "modelDuplicateIndexSet.xml");
       }).toThrow(/Duplicate index set/i);
     });
   });
@@ -111,11 +102,11 @@ describe("validateModelCore", () => {
   describe("when model contains incoming variables", () => {
     it("calculates incoming variables from formulae", () => {
       const text = readFixture("modelPrecedents.xml");
-      const result = validateModelCore(text, "modelPrecedents.xml", lang);
+      const result = validateModelCore(text, "modelPrecedents.xml");
       
       // total_rate has formula: max(base_rate + spread, 0)
       // Expected incoming variables: BASE_RATE, SPREAD
-      // NOT expected: MAX (language function)
+      // NOT expected: MAX (standard function)
       const totalRateIncoming = result.features.incoming.get("TOTAL_RATE");
       
       expect(totalRateIncoming).toBeDefined();
@@ -139,7 +130,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelVariableMissingUnit.xml");
 
       expect(() => {
-        validateModelCore(text, "modelVariableMissingUnit.xml", lang);
+        validateModelCore(text, "modelVariableMissingUnit.xml");
       }).toThrow(/missing a unit/i);
     });
   });
@@ -149,7 +140,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelVariableUndeclaredUnit.xml");
 
       expect(() => {
-        validateModelCore(text, "modelVariableUndeclaredUnit.xml", lang);
+        validateModelCore(text, "modelVariableUndeclaredUnit.xml");
       }).toThrow(/not declared/i);
     });
   });
@@ -159,7 +150,7 @@ describe("validateModelCore", () => {
       const text = readFixture("modelVariableMissingUnit.xml");
 
       expect(() => {
-        validateModelCore(text, "modelVariableMissingUnit.xml", lang, { ignoreUnits: true });
+        validateModelCore(text, "modelVariableMissingUnit.xml", null, { ignoreUnits: true });
       }).not.toThrow();
     });
 
@@ -167,14 +158,14 @@ describe("validateModelCore", () => {
       const text = readFixture("modelVariableUndeclaredUnit.xml");
 
       expect(() => {
-        validateModelCore(text, "modelVariableUndeclaredUnit.xml", lang, { ignoreUnits: true });
+        validateModelCore(text, "modelVariableUndeclaredUnit.xml", null, { ignoreUnits: true });
       }).not.toThrow();
     });
   });
 
   describe("when model contains outgoing variables", () => {
     it("calculates outgoing variables from formulae", () => {      const text = readFixture("modelPrecedents.xml");
-      const result = validateModelCore(text, "modelPrecedents.xml", lang);
+      const result = validateModelCore(text, "modelPrecedents.xml");
       
       // In modelPrecedents.xml:
       // - base_rate = 0.05 (no incoming variables)
@@ -203,6 +194,64 @@ describe("validateModelCore", () => {
       const totalRateOutgoing = result.features.outgoing.get("TOTAL_RATE");
       expect(totalRateOutgoing).toBeDefined();
       expect(totalRateOutgoing.size).toBe(0);
+    });
+  });
+
+  describe("when model declares custom functions in <functions>", () => {
+    it("recognises declared custom functions and does not throw", () => {
+      const text = `<?xml version="1.0"?>
+<model id="functions-test">
+  <indexSets/>
+  <units><unit id="1"/></units>
+  <functions>
+    <function name="MyCustomFunc" arity="1"/>
+  </functions>
+  <variables>
+    <variable id="x">
+      <unit>1</unit>
+      <definition type="expression">MyCustomFunc(42)</definition>
+    </variable>
+  </variables>
+</model>`;
+      expect(() => validateModelCore(text, "functions-test.xml")).not.toThrow();
+    });
+
+    it("throws for an unknown function not in standard functions or model functions", () => {
+      const text = `<?xml version="1.0"?>
+<model id="functions-test">
+  <indexSets/>
+  <units><unit id="1"/></units>
+  <variables>
+    <variable id="x">
+      <unit>1</unit>
+      <definition type="expression">UnknownFunc(42)</definition>
+    </variable>
+  </variables>
+</model>`;
+      expect(() => validateModelCore(text, "functions-test.xml")).toThrow(/Missing reference/i);
+    });
+
+    it("recognises standard functions (floor, ceil, min, max, sum, if, etc.) without declaration", () => {
+      const text = `<?xml version="1.0"?>
+<model id="std-functions-test">
+  <indexSets/>
+  <units><unit id="1"/></units>
+  <variables>
+    <variable id="a">
+      <unit>1</unit>
+      <definition type="expression">5</definition>
+    </variable>
+    <variable id="b">
+      <unit>1</unit>
+      <definition type="expression">3</definition>
+    </variable>
+    <variable id="result">
+      <unit>1</unit>
+      <definition type="expression">max(floor(a), min(b, if(a, b, 0)))</definition>
+    </variable>
+  </variables>
+</model>`;
+      expect(() => validateModelCore(text, "std-functions-test.xml")).not.toThrow();
     });
   });
 

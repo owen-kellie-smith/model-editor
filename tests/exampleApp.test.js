@@ -88,38 +88,32 @@ describe('exampleApp', () => {
   })
 
   describe('refreshExampleVisibility', () => {
-    it('immediately hides modelExample when no language is loaded', async () => {
-      const modelExampleEl = makeMockElement({ style: { visibility: 'visible' } })
+    it('shows modelExample when model files are available (no language check)', async () => {
+      const modelExampleEl = makeMockElement({ style: { visibility: 'hidden' } })
       setupDom({ modelExample: modelExampleEl })
-      mockDependencies(null) // no language
+      mockDependencies(null) // no language — but models should still show
 
-      // All HEAD requests pass — so availableModel will be non-empty.
-      // The link should still be hidden synchronously before the fetch starts.
       global.fetch = vi.fn(() => Promise.resolve({ ok: true }))
 
       const { refreshExampleVisibility } = await import('../src/browser/applications/exampleApp.js')
 
-      // Kick off refresh but don't await — we check the synchronous part
-      const p = refreshExampleVisibility()
-      expect(modelExampleEl.style.visibility).toBe('hidden')
-
-      await p // clean up the pending promise
+      await refreshExampleVisibility()
+      // Model example should be visible when files are available, regardless of language
+      expect(modelExampleEl.style.visibility).toBe('visible')
     })
 
-    it('does NOT immediately hide modelExample when language is loaded', async () => {
+    it('hides modelExample when no model files are available', async () => {
       const modelExampleEl = makeMockElement({ style: { visibility: 'visible' } })
       setupDom({ modelExample: modelExampleEl })
-      mockDependencies({ lang: 'en' }) // language is set
+      mockDependencies({ lang: 'en' })
 
-      global.fetch = vi.fn(() => Promise.resolve({ ok: true }))
+      // HEAD requests always fail — no files available
+      global.fetch = vi.fn(() => Promise.resolve({ ok: false }))
 
       const { refreshExampleVisibility } = await import('../src/browser/applications/exampleApp.js')
 
-      const p = refreshExampleVisibility()
-      // Link should still be visible — language IS set
-      expect(modelExampleEl.style.visibility).toBe('visible')
-
-      await p
+      await refreshExampleVisibility()
+      expect(modelExampleEl.style.visibility).toBe('hidden')
     })
   })
 

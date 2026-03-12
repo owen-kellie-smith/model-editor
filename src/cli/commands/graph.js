@@ -1,20 +1,18 @@
 import fs from 'node:fs';
 import '../runtime.js';
-import { generateDot, getFunctionsFromLanguage, getGraphOfRelations, getGraphOfRelationsMulti, validateModelCore } from '../../core/index.js';
-import { loadXmlFromFile } from './xml.js';
+import { generateDot, getGraphOfRelations, getGraphOfRelationsMulti, validateModelCore } from '../../core/index.js';
 
 export function graphCommandUsage() {
-  return 'Usage: model-editor graph <model.xml> --language <language.xml> --root <VARIABLE[,VARIABLE2,...]> [--depth <n>] [--out <file>]';
+  return 'Usage: model-editor graph <model.xml> --root <VARIABLE[,VARIABLE2,...]> [--depth <n>] [--out <file>]';
 }
 
 export function runGraph(args) {
   const { positional, options } = args;
   const modelPath = positional[0];
-  const languagePath = options.language;
   const root = options.root;
   const depth = options.depth ? Number(options.depth) : 1;
 
-  if (!modelPath || !languagePath || languagePath === true || !root || root === true) {
+  if (!modelPath || !root || root === true) {
     throw new Error(graphCommandUsage());
   }
   if (!Number.isInteger(depth) || depth < 0) {
@@ -22,9 +20,7 @@ export function runGraph(args) {
   }
 
   const modelText = fs.readFileSync(modelPath, 'utf8');
-  const languageXml = loadXmlFromFile(languagePath);
-  const lang = getFunctionsFromLanguage(languageXml, languagePath);
-  const model = validateModelCore(modelText, modelPath, lang);
+  const model = validateModelCore(modelText, modelPath);
 
   const roots = String(root).split(',').map((value) => value.trim()).filter(Boolean);
   if (roots.length === 0) {

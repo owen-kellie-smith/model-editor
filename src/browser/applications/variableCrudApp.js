@@ -1,8 +1,5 @@
-// variableCrudApp.js (cleaned: single textarea containing full <variable> XML)
-
 import { ui } from "../ui.js";
 import { getModelEnv, validateModel } from "./modelApp.js";
-import { getLanguageEnv } from "./languageApp.js";
 import { setElementContent, escapeHtml } from "../../utils/helpers.js";
 import {
   listVariables,
@@ -18,10 +15,10 @@ let currentSelectedVariableId = null;
 let isCreatingNew = false;
 
 /**
- * Validates that both model and language environments are loaded.
- * Shows an alert if either is missing.
+ * Validates that the model environment is loaded.
+ * Shows an alert if it is missing.
  *
- * @returns {Object|null} Returns { modelEnv, lang } if both are loaded, null otherwise
+ * @returns {Object|null} Returns { modelEnv } if loaded, null otherwise
  */
 function validateEnvironments() {
   const modelEnv = getModelEnv();
@@ -30,13 +27,7 @@ function validateEnvironments() {
     return null;
   }
 
-  const lang = getLanguageEnv();
-  if (!lang) {
-    alert("Language environment not loaded. Please load a language file first.");
-    return null;
-  }
-
-  return { modelEnv, lang };
+  return { modelEnv };
 }
 
 /**
@@ -297,15 +288,15 @@ function handleDeleteVariable() {
   const env = validateEnvironments();
   if (!env) return;
 
-  const { modelEnv, lang } = env;
+  const { modelEnv } = env;
   const deletedVariableId = currentSelectedVariableId;
 
   try {
-    const result = deleteVariable(modelEnv.obj, deletedVariableId, lang);
+    const result = deleteVariable(modelEnv.obj, deletedVariableId);
 
     // Update the copy model in textarea
     const xml = serializeModel(result.obj);
-    validateModel(xml.trim(), "After delete", lang);
+    validateModel(xml.trim(), "After delete");
     ui.modelText.value = xml.trim();
 
     // Refresh the variable dropdown
@@ -345,7 +336,7 @@ function handleSaveVariable() {
   const env = validateEnvironments();
   if (!env) return;
 
-  const { modelEnv, lang } = env;
+  const { modelEnv } = env;
 
   try {
     const variableXml = ui.editVarDefinition.value.trim();
@@ -377,7 +368,7 @@ function handleSaveVariable() {
 
     if (wasCreating) {
       try {
-        result = createVariable(modelEnv.obj, variableData, lang);
+        result = createVariable(modelEnv.obj, variableData);
         alert(`Variable "${savedId}" created successfully.`);
       } catch (createError) {
         const errorMsg = formatErrorMessage(createError);
@@ -402,7 +393,7 @@ function handleSaveVariable() {
         // Step 1: rename the variable and propagate all references
         let renamedResult;
         try {
-          renamedResult = renameVariable(modelEnv.obj, currentSelectedVariableId, variableData.id, lang);
+          renamedResult = renameVariable(modelEnv.obj, currentSelectedVariableId, variableData.id);
         } catch (renameError) {
           const errorMsg = formatErrorMessage(renameError);
           alert(
@@ -414,7 +405,7 @@ function handleSaveVariable() {
 
         // Step 2: apply any other changes (definition, dataType, unit, arguments) to the renamed variable
         try {
-          result = updateVariable(renamedResult.obj, variableData.id, variableData, lang);
+          result = updateVariable(renamedResult.obj, variableData.id, variableData);
         } catch (updateError) {
           const errorMsg = formatErrorMessage(updateError);
           alert(
@@ -427,7 +418,7 @@ function handleSaveVariable() {
         alert(`Variable "${currentSelectedVariableId}" renamed to "${variableData.id}" and updated successfully.`);
       } else {
         try {
-          result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData, lang);
+          result = updateVariable(modelEnv.obj, currentSelectedVariableId, variableData);
           alert(`Variable "${currentSelectedVariableId}" updated successfully.`);
         } catch (updateError) {
           const errorMsg = formatErrorMessage(updateError);
@@ -442,7 +433,7 @@ function handleSaveVariable() {
 
     // Update the copy model in textarea
     const xml = serializeModel(result.obj);
-    validateModel(xml.trim(), "After updated variable", lang);
+    validateModel(xml.trim(), "After updated variable");
     ui.modelText.value = xml.trim();
 
     // Refresh the variable dropdown

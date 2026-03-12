@@ -5,6 +5,7 @@ import { runValidate, validateCommandUsage } from './commands/validate.js';
 import { runGraph, graphCommandUsage } from './commands/graph.js';
 import { runExportPython, exportPythonCommandUsage } from './commands/export-python.js';
 import { runExportSpreadsheet, exportSpreadsheetCommandUsage } from './commands/export-spreadsheet.js';
+import { runFunctions, functionsCommandUsage } from './commands/functions.js';
 
 const [, , command, ...rest] = process.argv;
 
@@ -14,6 +15,9 @@ function printHelp() {
   console.log(`  ${graphCommandUsage()}`);
   console.log(`  ${exportPythonCommandUsage()}`);
   console.log(`  ${exportSpreadsheetCommandUsage()}`);
+  console.log(`  ${functionsCommandUsage()}`);
+  console.log('');
+  console.log("Run 'model-editor functions' to list all built-in standard functions.");
 }
 
 const commands = {
@@ -21,6 +25,7 @@ const commands = {
   graph: runGraph,
   'export-python': runExportPython,
   'export-spreadsheet': runExportSpreadsheet,
+  functions: runFunctions,
   help: () => printHelp(),
   '--help': () => printHelp(),
   '-h': () => printHelp(),
@@ -50,3 +55,4 @@ try {
   console.error(formatErrorNoStack(error));
   process.exit(1);
 }
+
